@@ -1,4 +1,4 @@
-# High-throughput-interactive-app
+# combinatorials-app
 
 [William Rigaut](https://github.com/escouflenfer)<sup>1, 2</sup>
 

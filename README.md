@@ -7,7 +7,7 @@
 
 ## About
 
-`High-throughput-interactive-app` is a Python software using Dash, providing:
+`combinatorials-app` is a Python software using Dash, providing:
 
 - reading high number of datafiles from specific instruments at Institut Néel (SmartLab diffractometer for XRD, Zeiss Ultra+ for EDX and in-house scanning MOKE)
 
@@ -18,7 +18,7 @@ Available on Windows, MacOS, and Linux. Requires Python 3.8+.
 
 ## Documentation
 
-Documentation will be included in further versions, this is just a prototype
+Documentation will be included in further versions, this is just a first draft version
 
 ## Installation
 
@@ -38,7 +38,7 @@ If you would like to contribute, please fork the repository and create a pull re
 
 ## License
 
-To be determined
+MIT License
 
 ## How to cite
 

@@ -1,6 +1,6 @@
 # combinatorials-app
 
-[William Rigaut](https://github.com/escouflenfer)<sup>1, 2</sup>
+[William Rigaut](https://github.com/escouflenfer)<sup>1, 2</sup>, [Pierre Le-berre](https://github.com/kellypops)<sup>1, 2</sup>
 
 <sup>1</sup> *Institut Néel, Centre National de la Recherche Scientifique, 38000 Grenoble, France*  
 <sup>2</sup> *Université Grenoble Alpes, 38000 Grenoble, France*  

@@ -1,0 +1,10 @@
+dash
+dash_bootstrap_components
+plotly
+scipy
+IPython
+openpyxl
+numpy
+natsort
+pandas
+./app/modules/

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "combinatorials_app"
+version = "0.5"
+description = "High throughput data vizualisation and treatment with interactive interface"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+
+authors = [
+    {name = "William Rigaut"},
+	{name = "Pierre Le Berre"}
+]
+
+classifiers = [
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: MIT",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Visualization"
+]
+
+dependencies = [
+    "dash",
+	"dash_bootstrap_components",
+    "plotly",
+	"IPython",
+    "openpyxl",
+    "numpy",
+	"pandas",
+	"natsort",
+	"scipy"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
+
+
+[tool.coverage.run]
+omit = ["High-throughput-interactive-app/tests/*"]

@@ -40,11 +40,13 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
         file_y = float(path.name.split('_')[2].lstrip('y'))
         if file_x == target_x and file_y == target_y:
             files.append(path)
-    file = sorted(files)
-    pulse = pd.read_table(files[0]).dropna(axis=1, how='all')
-    mag = pd.read_table(files[1]).dropna(axis=1, how='all')
-    sum = pd.read_table(files[2]).dropna(axis=1, how='all')
-
+    for path in files:
+        if 'magnetization' in str(path):
+            mag = pd.read_table(path).dropna(axis=1, how='all')
+        elif 'pulse' in str(path):
+            pulse = pd.read_table(path).dropna(axis=1, how='all')
+        elif 'sum' in str(path):
+            sum = pd.read_table(path).dropna(axis=1, how='all')
 
     if measurement_id == 0:
         data = pd.DataFrame({'Magnetization': mag.mean(axis=1),

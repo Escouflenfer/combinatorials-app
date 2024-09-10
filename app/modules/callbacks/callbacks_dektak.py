@@ -48,25 +48,26 @@ def callbacks_dektak(app):
         prevent_initial_call=True
                   )
     def refit_profile(n_clicks, folderpath, position, start, height, stepnb):
-        folderpath = Path(folderpath)
-        if position is None:
-            return go.Figure(), {}
+        if folderpath is not None:
+            folderpath = Path(folderpath)
+            if position is None:
+                return go.Figure(), {}
 
-        target_x = position[0]
-        target_y = position[1]
+            target_x = position[0]
+            target_y = position[1]
 
-        if n_clicks > 0:
-            asc2d_dataframe = pd.read_csv(get_asc2d_path(folderpath, target_x, target_y), skiprows = 46)
-            _, asc2d_dataframe = treat_data(asc2d_dataframe)
-            guess = generate_parameters(x0=start, height=height, n_steps=stepnb)
-            fitted_params = fit_data(asc2d_dataframe, guess)
-            profile = profile_plot(folderpath, target_x, target_y)
-            profile = fit_plot(profile, asc2d_dataframe, *fitted_params)
+            if n_clicks > 0:
+                asc2d_dataframe = pd.read_csv(get_asc2d_path(folderpath, target_x, target_y), skiprows = 46)
+                _, asc2d_dataframe = treat_data(asc2d_dataframe)
+                guess = generate_parameters(x0=start, height=height, n_steps=stepnb)
+                fitted_params = fit_data(asc2d_dataframe, guess)
+                profile = profile_plot(folderpath, target_x, target_y)
+                profile = fit_plot(profile, asc2d_dataframe, *fitted_params)
 
-            return profile, fitted_params
+                return profile, fitted_params
 
-        else:
-            return go.Figure(), {}
+            else:
+                return go.Figure(), {}
 
     # Callback to save refitted profile
     @app.callback(
@@ -99,18 +100,19 @@ def callbacks_dektak(app):
         prevent_initial_call=True
     )
     def update_heatmap(selected_plot, folderpath):
-        folderpath = Path(folderpath)
-        database_path = get_database_path(folderpath)
-        if database_path is None:
-            return go.Figure()
-        try:
-            database = pd.read_csv(database_path)
-        except FileNotFoundError:
-            return go.Figure()
-        if database is None:
-            return go.Figure()
-        heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
-        return heatmap
+        if folderpath is not None:
+            folderpath = Path(folderpath)
+            database_path = get_database_path(folderpath)
+            if database_path is None:
+                return go.Figure()
+            try:
+                database = pd.read_csv(database_path)
+            except FileNotFoundError:
+                return go.Figure()
+            if database is None:
+                return go.Figure()
+            heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
+            return heatmap
 
 
     # Callback for batch fitting
@@ -124,7 +126,7 @@ def callbacks_dektak(app):
         folderpath = Path(folderpath)
         database_path = get_database_path(folderpath)
         if database_path is None and n_clicks > 0:
-            command = [sys.executable, 'modules/functions/batch_fit_dektak.py']
+            command = [sys.executable, Path('modules/functions/batch_fit_dektak.py')]
             command.append(folderpath)
             # Launch the script in a new terminal
             if sys.platform == 'win32':  # Windows

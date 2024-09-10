@@ -5,7 +5,7 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 @Author: William Rigaut - Institut Néel (william.rigaut@neel.cnrs.fr)
 """
 
-import pathlib
+from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 import xml.etree.ElementTree as ET
@@ -39,7 +39,7 @@ def make_path_name(
     x_idx, y_idx = int((x_pos - start_x) / step_x + 1), int(
         (y_pos - start_y) / step_y + 1
     )
-    path_name = pathlib.Path(f"{foldername}/Spectrum_({x_idx},{y_idx}).spx")
+    path_name = Path(f"{foldername}/Spectrum_({x_idx},{y_idx}).spx")
 
     return path_name
 
@@ -249,7 +249,7 @@ def get_elements(foldername, with_plot=False):
     """
 
     # Reading in .xlsx file using openpyxl library, checking if file exists, if not returns empty list
-    filepath = pathlib.Path(f"{foldername}/Global spectrum results.xlsx")
+    filepath = Path(f"{foldername}/Global spectrum results.xlsx")
     try:
         wb = load_workbook(filename=filepath)
     except FileNotFoundError:

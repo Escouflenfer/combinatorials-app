@@ -264,11 +264,12 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
         z=heatmap_data.values,
         colorscale='Rainbow',
         colorbar=dict(
-            title='(nm)',  # Title for the colorbar
+            title='(nm) <br>&nbsp;<br>',
+            tickfont=dict(size=15),
+            titlefont=dict(size=18),
             tickvals=[z_min, (z_min + z_mid) / 2, z_mid, (z_max + z_mid) / 2, z_max],  # Tick values
             ticktext=[f'{z_min:.2f}', f'{(z_min + z_mid) / 2:.2f}', f'{z_mid:.2f}', f'{(z_max + z_mid) / 2:.2f}',
                       f'{z_max:.2f}'],  # Tick text
-            tickfont=dict(size=15)
         )
 
     )
@@ -277,8 +278,9 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
     # Plot parameters
     layout = go.Layout(
         title=title,
-        xaxis=dict(title='X (mm)', tickfont=dict(size=15)),
-        yaxis=dict(title='Y (mm)', tickfont=dict(size=15)),
+        titlefont=dict(size=20),
+        xaxis=dict(title='X (mm)', tickfont=dict(size=15), titlefont=dict(size=18)),
+        yaxis=dict(title='Y (mm)', tickfont=dict(size=15), titlefont=dict(size=18)),
         height=700,
         width=700
     )

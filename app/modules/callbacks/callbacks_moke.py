@@ -89,7 +89,7 @@ def callbacks_moke(app, children_moke):
         folderpath = Path(folderpath)
         number = get_measurement_number(folderpath)
         options=[{'label': 'Average', 'value': 0}]
-        for n in range(number+2):
+        for n in range(number+1):
             if n != 0:
                 options.append({'label': n, 'value': n})
         return options, 0

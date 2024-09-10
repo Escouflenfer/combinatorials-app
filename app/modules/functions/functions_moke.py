@@ -40,9 +40,11 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
         file_y = float(path.name.split('_')[2].lstrip('y'))
         if file_x == target_x and file_y == target_y:
             files.append(path)
-    mag = pd.read_table(files[0]).dropna(axis=1, how='all')
-    pulse = pd.read_table(files[1]).dropna(axis=1, how='all')
+    file = sorted(files)
+    pulse = pd.read_table(files[0]).dropna(axis=1, how='all')
+    mag = pd.read_table(files[1]).dropna(axis=1, how='all')
     sum = pd.read_table(files[2]).dropna(axis=1, how='all')
+
 
     if measurement_id == 0:
         data = pd.DataFrame({'Magnetization': mag.mean(axis=1),
@@ -141,16 +143,14 @@ def heatmap_plot(folderpath, selected_plot, title=''):
     # Plot parameters
     layout = go.Layout(
         title=title,
-        xaxis=dict(title='X (mm)'),
-        yaxis=dict(title='Y (mm)'),
+        xaxis=dict(range=[-50, 50], title='X (mm)'),
+        yaxis=dict(range=[-50, 50], title='Y (mm)'),
         height=700,
         width=700
     )
 
     # Make and show figure
     fig = go.Figure(data=[heatmap], layout=layout)
-    fig.update_xaxes(title_text='x (mm)', range=[-50,50])
-    fig.update_yaxes(title_text='y (mm)', range=[-50,50])
 
     return fig
 

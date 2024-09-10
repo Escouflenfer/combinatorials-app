@@ -31,18 +31,20 @@ class WidgetsDEKTAK:
 
         # Widget for Dektak heatmap
         self.dektak_heatmap = html.Div(children=[
-            dcc.Graph(id="dektak_heatmap")
+            dcc.Graph(id="dektak_heatmap"),
+            html.Button('Save!', id='dektak_heatmap_save', n_clicks=0),
         ], className='plot_cell_left')
 
         # Widget for Dektak profile plot
-        self.dektak_profile = html.Div(children=[
-            dcc.Graph(id="dektak_profile")
+        self.dektak_plot = html.Div(children=[
+            dcc.Graph(id="dektak_plot"),
+            html.Button('Save!', id='dektak_plot_save', n_clicks=0),
         ], className='plot_cell_right')
 
         # Stored variables
         self.dektak_stores = html.Div(children=[
             dcc.Store(id='dektak_position_store'),
-            dcc.Store(id='dektak_parameters_store')
+            dcc.Store(id='dektak_parameters_store'),
         ])
 
 
@@ -59,7 +61,7 @@ class WidgetsDEKTAK:
                         self.dektak_text_box,
                         self.fitting_widget,
                         self.dektak_heatmap,
-                        self.dektak_profile,
+                        self.dektak_plot,
                         self.dektak_stores
                     ],
                     className="grid_layout_dektak",

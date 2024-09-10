@@ -11,7 +11,7 @@ from modules.functions.functions_dektak import *
 def callbacks_dektak(app):
 
     # Callback to update profile plot based on heatmap click position
-    @app.callback([Output('dektak_profile', 'figure', allow_duplicate=True),
+    @app.callback([Output('dektak_plot', 'figure', allow_duplicate=True),
                    Output('dektak_position_store', 'data')],
                   Input('dektak_heatmap', 'clickData'),
                   State('dektak_path_store', 'data'),
@@ -37,7 +37,7 @@ def callbacks_dektak(app):
 
     # Callback to refit profile plot
     @app.callback(
-        [Output('dektak_profile', 'figure', allow_duplicate=True),
+        [Output('dektak_plot', 'figure', allow_duplicate=True),
         Output('dektak_parameters_store', 'data')],
         Input('dektak_fit_button', 'n_clicks'),
         State('dektak_path_store', 'data'),
@@ -109,7 +109,7 @@ def callbacks_dektak(app):
             return go.Figure()
         if database is None:
             return go.Figure()
-        heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.name)
+        heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
         return heatmap
 
 
@@ -143,3 +143,72 @@ def callbacks_dektak(app):
         else:
             return f"Database {get_database_path(folderpath)} loaded successfully"
 
+
+
+    # Callback to save heatmap
+    @app.callback(
+        Output('dektak_text_box', 'children', allow_duplicate=True),
+        Input('dektak_heatmap_save','n_clicks'),
+        State('dektak_heatmap', 'figure'),
+        State('dektak_path_store', 'data'),
+        prevent_initial_call=True
+        )
+
+    def save_heatmap_to_pdf(n_clicks, heatmap_fig, folderpath):
+        folderpath = Path(folderpath)
+        heatmap_fig = go.Figure(heatmap_fig)
+        if n_clicks>0:
+            heatmap_fig.update_layout(
+                titlefont=dict(size=30),
+                xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+                yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+                height=700,
+                width=700
+            )
+
+            heatmap_fig.update_traces(
+                colorbar=dict(
+                    tickfont=dict(size=20),
+                    titlefont=dict(size=25),
+                    thickness=20
+                )
+            )
+
+            # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
+            heatmap_fig.write_image(folderpath / 'heatmap.png', format="png")
+
+            return f'Saved heatmap to png at {folderpath}'
+
+
+    # Callback to save plot
+    @app.callback(
+        Output('dektak_text_box', 'children', allow_duplicate=True),
+        Input('dektak_plot_save', 'n_clicks'),
+        State('dektak_plot', 'figure'),
+        State('dektak_path_store', 'data'),
+        prevent_initial_call=True
+    )
+    def save_plot(n_clicks, plot_fig, folderpath):
+        folderpath = Path(folderpath)
+        plot_fig = go.Figure(plot_fig)
+        if n_clicks > 0:
+            plot_fig.update_layout(
+                titlefont=dict(size=30),
+                xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+                yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+                height=700,
+                width=700
+            )
+
+            plot_fig.update_traces(
+                colorbar=dict(
+                    tickfont=dict(size=20),
+                    titlefont=dict(size=25),
+                    thickness=20
+                )
+            )
+
+            # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
+            plot_fig.write_image(folderpath / 'plot.png', format="png")
+
+            return f'Saved plot to png at {folderpath}'

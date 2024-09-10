@@ -1,4 +1,4 @@
-from dash import Input, Output
+from dash import Input, Output, State
 
 import modules.functions.functions_edx as edx
 
@@ -79,3 +79,70 @@ def callbacks_edx(app):
         fig.update_xaxes(title="Energy (keV)", range=xrange)
         fig.update_yaxes(title="Counts", range=yrange)
         return fig
+
+
+    # # Callback to save heatmap
+    # @app.callback(
+    #     Output('dektak_text_box', 'children', allow_duplicate=True),
+    #     Input('dektak_heatmap_save', 'n_clicks'),
+    #     State('dektak_heatmap', 'figure'),
+    #     State('dektak_path_store', 'data'),
+    #     prevent_initial_call=True
+    # )
+    # def save_heatmap_to_pdf(n_clicks, heatmap_fig, folderpath):
+    #     folderpath = Path(folderpath)
+    #     heatmap_fig = go.Figure(heatmap_fig)
+    #     if n_clicks > 0:
+    #         heatmap_fig.update_layout(
+    #             titlefont=dict(size=30),
+    #             xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+    #             yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+    #             height=700,
+    #             width=700
+    #         )
+    #
+    #         heatmap_fig.update_traces(
+    #             colorbar=dict(
+    #                 tickfont=dict(size=20),
+    #                 titlefont=dict(size=25),
+    #                 thickness=20
+    #             )
+    #         )
+    #
+    #         # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
+    #         heatmap_fig.write_image(folderpath / 'heatmap.png', format="png")
+    #
+    #         return f'Saved heatmap to png at {folderpath}'
+    #
+    #     # Callback to save plot
+    #     @app.callback(
+    #         Output('dektak_text_box', 'children', allow_duplicate=True),
+    #         Input('dektak_plot_save', 'n_clicks'),
+    #         State('dektak_plot', 'figure'),
+    #         State('dektak_path_store', 'data'),
+    #         prevent_initial_call=True
+    #     )
+    #     def save_plot(n_clicks, plot_fig, folderpath):
+    #         folderpath = Path(folderpath)
+    #         plot_fig = go.Figure(plot_fig)
+    #         if n_clicks > 0:
+    #             plot_fig.update_layout(
+    #                 titlefont=dict(size=30),
+    #                 xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+    #                 yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
+    #                 height=700,
+    #                 width=700
+    #             )
+    #
+    #             plot_fig.update_traces(
+    #                 colorbar=dict(
+    #                     tickfont=dict(size=20),
+    #                     titlefont=dict(size=25),
+    #                     thickness=20
+    #                 )
+    #             )
+    #
+    #             # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
+    #             plot_fig.write_image(folderpath / 'plot.png', format="png")
+    #
+    #             return f'Saved plot to png at {folderpath}'

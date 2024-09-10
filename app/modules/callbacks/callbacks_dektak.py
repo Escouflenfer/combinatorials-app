@@ -199,15 +199,7 @@ def callbacks_dektak(app):
                 xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
                 yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
                 height=700,
-                width=700
-            )
-
-            plot_fig.update_traces(
-                colorbar=dict(
-                    tickfont=dict(size=20),
-                    titlefont=dict(size=25),
-                    thickness=20
-                )
+                width=1100
             )
 
             # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")

@@ -41,13 +41,13 @@ class WidgetsMOKE:
         # Widget for Moke heatmap
         self.moke_heatmap = html.Div(children=[
             dcc.Graph(id="moke_heatmap"),
-            html.Button('Save!', id='moke_heatmap_save_button', n_clicks=0),
+            html.Button('Save!', id='moke_heatmap_save', n_clicks=0),
         ], className='plot_cell_left')
 
         # Widget for Moke signal
         self.moke_profile = html.Div(children=[
             dcc.Graph(id="moke_plot"),
-            html.Button('Save!', id='moke_plot_save_button', n_clicks=0),
+            html.Button('Save!', id='moke_plot_save', n_clicks=0),
         ], className='plot_cell_right')
 
         # Stored variables

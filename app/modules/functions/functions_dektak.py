@@ -274,7 +274,7 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
 
     )
 
-    title = 'Thickness map (nm) <br>' + title
+    title = 'Thickness map <br>' + title
     # Plot parameters
     layout = go.Layout(
         title=title,

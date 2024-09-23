@@ -37,6 +37,7 @@ class WidgetsBROWSER:
             dcc.Store(id='dektak_path_store', storage_type='local'),
             dcc.Store(id='moke_path_store', storage_type='local'),
             dcc.Store(id='xray_path_store', storage_type='local'),
+            dcc.Store(id='squid_path_store', storage_type='local')
         ])
 
         self.make_folder_button = html.Div(children=[
@@ -64,6 +65,11 @@ class WidgetsBROWSER:
             html.Div('No path set', id='xray_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'flex', 'align-items': 'center'})
 
+        self.make_squid_button = html.Div(children=[
+            html.Button('Set SQUID folder', id='SQUID_path_button'),
+            html.Div('No path set', id='squid_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+        ], style={'display': 'flex', 'align-items': 'center'})
+
 
 
     def make_tab_from_widgets(self):
@@ -79,6 +85,7 @@ class WidgetsBROWSER:
                         self.make_dektak_button,
                         self.make_moke_button,
                         self.make_xray_button,
+                        self.make_squid_button,
                         self.browser,
                         self.folder_path_store
 

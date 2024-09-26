@@ -3,6 +3,7 @@ from modules.functions.functions_browser import *
 
 '''Callbacks for file browser'''
 def callbacks_browser(app):
+
     @app.callback(
         Output('cwd', 'children'),
         Input('stored_cwd', 'data'),

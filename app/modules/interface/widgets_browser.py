@@ -4,6 +4,7 @@ import os
 
 class WidgetsBROWSER:
     def __init__(self):
+
         self.browser = html.Div(children=[
         html.Link(
             rel="stylesheet",
@@ -30,9 +31,8 @@ class WidgetsBROWSER:
             ])
         ])
 
-
         self.folder_path_store = html.Div(children=[
-            dcc.Store(id='sample_path_store', storage_type='local'),
+            dcc.Store(id='data_path_store', storage_type='local'),
             dcc.Store(id='edx_path_store', storage_type='local'),
             dcc.Store(id='dektak_path_store', storage_type='local'),
             dcc.Store(id='moke_path_store', storage_type='local'),
@@ -41,8 +41,8 @@ class WidgetsBROWSER:
         ])
 
         self.make_folder_button = html.Div(children=[
-            html.Button('Set sample folder', id='sample_path_button'),
-            html.Div('No path set', id='sample_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Button('Set data folder', id='data_path_button'),
+            html.Div('No path set', id='data_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
             ], style={'display': 'flex', 'align-items': 'center'})
 
         self.make_edx_button = html.Div(children=[

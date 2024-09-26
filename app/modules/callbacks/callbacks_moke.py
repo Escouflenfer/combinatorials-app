@@ -6,37 +6,20 @@ from modules.functions.functions_moke import *
 '''Callbacks for MOKE tab'''
 
 def callbacks_moke(app, children_moke):
-
     # Callback to update profile plot based on heatmap click position
-    @app.callback([Output('moke_plot', 'figure', allow_duplicate=True),
-                   Output('moke_position_store', 'data')],
+    @app.callback(Output('moke_position_store', 'data'),
                   Input('moke_heatmap', 'clickData'),
-                  State('moke_path_store', 'data'),
-                  State('moke_plot_select', 'value'),
-                  State('moke_plot_dropdown', 'value'),
                   prevent_initial_call=True
                   )
-    def update_position(heatmapclick, folderpath, plot_select, measurement_id):
-        folderpath = Path(folderpath)
+    def update_position(heatmapclick):
         if heatmapclick is None:
-            return go.Figure(), {}
+            return None
         target_x = heatmapclick['points'][0]['x']
         target_y = heatmapclick['points'][0]['y']
 
         position = (target_x, target_y)
 
-        # Plot the profile
-        try:
-            if plot_select == 'Loop':
-                fig = loop_plot(folderpath, target_x, target_y, measurement_id)
-            elif plot_select == 'Raw data':
-                fig = data_plot(folderpath, target_x, target_y, measurement_id)
-            else:
-                fig = go.Figure()
-        except NameError:
-            return go.Figure(), {}
-
-        return fig, position
+        return position
 
 
 
@@ -45,12 +28,13 @@ def callbacks_moke(app, children_moke):
         Output('moke_plot', 'figure', allow_duplicate=True),
         Input('moke_plot_select', 'value'),
         Input('moke_plot_dropdown', 'value'),
+        Input('moke_position_store', 'data'),
         State('moke_path_store', 'data'),
-        State('moke_position_store', 'data'),
+        State('moke_heatmap_select', 'value'),
         prevent_initial_call=True
     )
 
-    def update_plot(selected_plot, measurement_id, folderpath, position):
+    def update_plot(selected_plot, measurement_id, position, folderpath,  heatmap_select):
         folderpath = Path(folderpath)
         if position is None:
             return go.Figure()
@@ -60,22 +44,39 @@ def callbacks_moke(app, children_moke):
             fig = loop_plot(folderpath, target_x, target_y, measurement_id)
         elif selected_plot == 'Raw data':
             fig = data_plot(folderpath, target_x, target_y, measurement_id)
+        elif selected_plot == 'Loop + Derivative':
+            fig = loop_derivative_plot(folderpath, target_x, target_y, measurement_id)
         else:
             fig = go.Figure()
+
+        if heatmap_select == 'Derivative Coercivity':
+            pos, neg = get_derivative_coercivity(folderpath, target_x, target_y, mean=False)
+            fig.add_vline(x = pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
+            fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
+        if heatmap_select == 'Measured Coercivity':
+            pos, neg = get_measured_coercivity(folderpath, target_x, target_y, mean=False)
+            fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
+            fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
+
         return fig
 
 
     # Callback for heatmap plot selection
     @app.callback(
-        Output('moke_heatmap', 'figure', allow_duplicate=True),
+        [Output('moke_heatmap', 'figure', allow_duplicate=True),
+         Output('moke_text_box', 'children', allow_duplicate=True)],
         Input('moke_heatmap_select', 'value'),
         Input('moke_path_store', 'data'),
         prevent_initial_call=True
     )
     def update_heatmap(selected_plot, folderpath):
         folderpath = Path(folderpath)
+        for file in folderpath.glob('*.csv'):
+            database_path = file
+        if not any(folderpath.glob('*.csv')):
+            database_path = make_database(folderpath)
         heatmap = heatmap_plot(folderpath, selected_plot)
-        return heatmap
+        return heatmap, str(database_path)
 
 
     # Callback to load measurements in dropdown menu
@@ -87,7 +88,7 @@ def callbacks_moke(app, children_moke):
 
     def update_plot_dropdown(folderpath):
         folderpath = Path(folderpath)
-        number = get_measurement_number(folderpath)
+        number = get_measurement_count(folderpath)
         options=[{'label': 'Average', 'value': 0}]
         for n in range(number+1):
             if n != 0:
@@ -104,7 +105,7 @@ def callbacks_moke(app, children_moke):
         prevent_initial_call=True
         )
 
-    def save_heatmap_to_pdf(n_clicks, heatmap_fig, folderpath):
+    def save_heatmap(n_clicks, heatmap_fig, folderpath):
         folderpath = Path(folderpath)
         heatmap_fig = go.Figure(heatmap_fig)
         if n_clicks>0:

@@ -7,6 +7,7 @@ Internal use for Institut Néel and within the MaMMoS project, to read big datas
 
 import os
 from dash import html, dcc
+import dash_bootstrap_components as dbc
 from itertools import count, takewhile
 
 
@@ -28,13 +29,13 @@ class WidgetsMOKE:
         # Widget Heatmap plot option radio items
         self.heatmap_selection_widget = html.Div(children=[
             html.Label('Heatmap plot selection'),
-            dcc.RadioItems(id='moke_heatmap_select', options=['Blank', 'Coercivity', 'Reflectivity'], value='Blank'),
+            dcc.RadioItems(id='moke_heatmap_select', options=['Kerr Rotation', 'Reflectivity', 'Derivative Coercivity', 'Measured Coercivity'], value='Kerr Rotation'),
         ], style={'padding': 10, 'flex': 1}, className='cell_11')
 
         # Widget plotting options
         self.plot_selection_widget = html.Div(children=[
             html.Label('Plot selection'),
-            dcc.RadioItems(id='moke_plot_select', options=['Raw data', 'Loop'], value='Loop'),
+            dcc.RadioItems(id='moke_plot_select', options=['Raw data', 'Loop', 'Loop + Derivative'], value='Loop'),
             dcc.Dropdown(id='moke_plot_dropdown', options=[]),
         ], style={'padding': 10, 'flex': 1}, className='cell_13')
 

@@ -10,70 +10,41 @@ from dash import html, dcc
 
 
 class WidgetsEDX:
-    folderpath_className = "cell12"
-
-    element_className = "cell22"
 
     xrange_slider_min = 0
     xrange_slider_max = 20
     xrange_slider_step = 0.1
     xrange_slider_value = [0, 10]
     xrange_slider_markStep = 5
-    xrange_slider_className = "cell13"
 
     yrange_slider_min = 0
     yrange_slider_max = 50000
     yrange_slider_step = 1000
     yrange_slider_value = [0, 10000]
     yrange_slider_markStep = 10000
-    yrange_slider_className = "cell23"
 
     crange_slider_min = 0
     crange_slider_max = 100
     crange_slider_step = 0.1
     crange_slider_value = [0, 100]
     crange_slider_markStep = 5
-    crange_slider_className = "cell11"
-
-    edx_spectra_className = "plot_cell_right"
-
-    edx_heatmap_className = "plot_cell_left"
 
     def __init__(self, folderpath):
         # Folderpath for the EDX spectras
         self.folderpath = folderpath
 
+        self.edx_text_box = html.Div(children=[
+            html.Span(children='', id='edx_text_box')
+        ], className='top-center')
+
         # Element component
         self.element = html.Div(
-            children=[html.Label("Element"), dcc.Dropdown([], id="element_edx")],
-            className=self.element_className,
+            children=[html.Label("Element"), dcc.Dropdown([], className='dropdown-item', id="element_edx")],
+            className='top-left',
         )
 
         # Slider Xrange component
-        self.xrange_slider = html.Div(
-            children=[
-                html.Label("Energy Range"),
-                dcc.RangeSlider(
-                    min=self.xrange_slider_min,
-                    max=self.xrange_slider_max,
-                    step=self.xrange_slider_step,
-                    value=self.xrange_slider_value,
-                    marks={
-                        i: f"{i}"
-                        for i in range(
-                            self.xrange_slider_min,
-                            self.xrange_slider_max + self.xrange_slider_markStep,
-                            self.xrange_slider_markStep,
-                        )
-                    },
-                    id="xrange_slider",
-                ),
-            ],
-            className=self.xrange_slider_className,
-        )
-
-        # Slider Yrange component
-        self.yrange_slider = html.Div(
+        self.plot_sliders = html.Div(
             children=[
                 html.Label("Counts"),
                 dcc.RangeSlider(
@@ -89,10 +60,29 @@ class WidgetsEDX:
                             self.yrange_slider_markStep,
                         )
                     },
+                    className='dropdown-item',
                     id="yrange_slider",
                 ),
+
+                html.Label("Energy Range"),
+                dcc.RangeSlider(
+                    min=self.xrange_slider_min,
+                    max=self.xrange_slider_max,
+                    step=self.xrange_slider_step,
+                    value=self.xrange_slider_value,
+                    marks={
+                        i: f"{i}"
+                        for i in range(
+                            self.xrange_slider_min,
+                            self.xrange_slider_max + self.xrange_slider_markStep,
+                            self.xrange_slider_markStep,
+                        )
+                    },
+                    className='dropdown-item',
+                    id="xrange_slider",
+                ),
             ],
-            className=self.yrange_slider_className,
+            className='top-right',
         )
 
         # Colorange for heatmap
@@ -112,20 +102,21 @@ class WidgetsEDX:
                             self.crange_slider_markStep,
                         )
                     },
+                    className='dropdown-item',
                     id="crange_slider",
                 ),
             ],
-            className=self.crange_slider_className,
+            className='top-left',
         )
 
         # EDX spectra graph that will be modified by user interaction
         self.edx_spectra = html.Div(
-            [dcc.Graph(id="edx_spectra")], className=self.edx_spectra_className
+            [dcc.Graph(id="edx_spectra")], className='plot-right'
         )
 
         # EDX heatmap
         self.edx_heatmap = html.Div(
-            [dcc.Graph(id="edx_heatmap")], className=self.edx_heatmap_className
+            [dcc.Graph(id="edx_heatmap")], className='plot-left'
         )
 
     def make_tab_from_widgets(
@@ -133,7 +124,6 @@ class WidgetsEDX:
         id_edx="edx",
         label_edx="EDX",
         value_edx="edx",
-        className_edx="grid_layout_edx",
     ):
         edx_tab = dcc.Tab(
             id=id_edx,
@@ -143,14 +133,14 @@ class WidgetsEDX:
                 html.Div(
                     [
                         self.folderpath,
+                        self.edx_text_box,
                         self.element,
                         self.crange_slider,
-                        self.xrange_slider,
-                        self.yrange_slider,
+                        self.plot_sliders,
                         self.edx_heatmap,
                         self.edx_spectra,
                     ],
-                    className=className_edx,
+                    className='grid-container',
                 )
             ],
         )

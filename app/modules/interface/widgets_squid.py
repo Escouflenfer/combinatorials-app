@@ -26,12 +26,12 @@ class WidgetsSQUID:
         ], className='cell12')
 
         # Widget for custom graph options
-        self.custom_graph_widget = html.Div(children=[
+        self.squid_custom_options = html.Div(children=[
             html.Label('WIP'),
         ], style={'padding': 10, 'flex': 1}, className='cell_11')
 
         # Widget for dropdown file list / plot selector
-        self.plot_selection_widget = html.Div(children=[
+        self.squid_plot_select = html.Div(children=[
             html.Label('SQUID plot selection'),
             dcc.Dropdown(id='squid_plot_select', options=[]),
         ], style={'padding': 10, 'flex': 1}, className='cell_13')
@@ -64,9 +64,9 @@ class WidgetsSQUID:
             children=[
                 html.Div(
                     [
-                        self.custom_graph_widget,
+                        self.squid_custom_options,
                         self.squid_text_box,
-                        self.plot_selection_widget,
+                        self.squid_plot_select,
                         self.squid_custom,
                         self.squid_plot,
                         self.squid_stores

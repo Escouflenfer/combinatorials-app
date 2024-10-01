@@ -24,32 +24,33 @@ class WidgetsMOKE:
         # Widget for the text box
         self.moke_text_box = html.Div(children=[
             html.Span(children='', id='moke_text_box')
-        ], className='cell12')
+        ], className='top-center')
 
         # Widget Heatmap plot option radio items
         self.heatmap_selection_widget = html.Div(children=[
-            html.Label('Heatmap plot selection'),
-            dcc.RadioItems(id='moke_heatmap_select', options=['Kerr Rotation', 'Reflectivity', 'Derivative Coercivity', 'Measured Coercivity'], value='Kerr Rotation'),
-        ], style={'padding': 10, 'flex': 1}, className='cell_11')
+            dcc.RadioItems(id='moke_heatmap_select',
+                           options=['Kerr Rotation', 'Reflectivity', 'Derivative Coercivity', 'Measured Coercivity'],
+                           value='Kerr Rotation'),
+        ], className='top-left')
 
         # Widget plotting options
         self.plot_selection_widget = html.Div(children=[
-            html.Label('Plot selection'),
-            dcc.RadioItems(id='moke_plot_select', options=['Raw data', 'Loop', 'Loop + Derivative'], value='Loop'),
-            dcc.Dropdown(id='moke_plot_dropdown', options=[]),
-        ], style={'padding': 10, 'flex': 1}, className='cell_13')
+            dcc.Dropdown(id='moke_plot_dropdown', options=[], className='dropdown-item'),
+            dcc.RadioItems(id='moke_plot_select',
+                                     options=['Raw data', 'Loop', 'Loop + Derivative'], value='Loop'),
+        ], className='top-right')
 
         # Widget for Moke heatmap
         self.moke_heatmap = html.Div(children=[
             dcc.Graph(id="moke_heatmap"),
             html.Button('Save!', id='moke_heatmap_save', n_clicks=0),
-        ], className='plot_cell_left')
+        ], className='plot-left')
 
         # Widget for Moke signal
         self.moke_profile = html.Div(children=[
             dcc.Graph(id="moke_plot"),
             html.Button('Save!', id='moke_plot_save', n_clicks=0),
-        ], className='plot_cell_right')
+        ], className='plot-right')
 
         # Stored variables
         self.moke_stores = html.Div(children=[
@@ -74,7 +75,7 @@ class WidgetsMOKE:
                         self.moke_profile,
                         self.moke_stores
                     ],
-                    className="grid_layout_moke",
+                    className="grid-container",
                 )
             ],
         )

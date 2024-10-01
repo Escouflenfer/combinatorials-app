@@ -1,38 +1,44 @@
 import sys
 from dash import Input, Output, State
 import subprocess
+import plotly.graph_objects as go
 
 from dash.exceptions import PreventUpdate
-
-from modules.functions.functions_dektak import *
+from ..functions.functions_dektak import *
 
 '''Callbacks for DEKTAK tab'''
 
 def callbacks_dektak(app):
 
     # Callback to update profile plot based on heatmap click position
-    @app.callback([Output('dektak_plot', 'figure', allow_duplicate=True),
-                   Output('dektak_position_store', 'data')],
+    @app.callback(Output('dektak_position_store', 'data'),
                   Input('dektak_heatmap', 'clickData'),
-                  State('dektak_path_store', 'data'),
                   prevent_initial_call=True
                   )
-    def update_position(heatmapclick, folderpath):
-        folderpath = Path(folderpath)
+    def update_position(heatmapclick):
         if heatmapclick is None:
-            return go.Figure(), {}
+            return None
         target_x = heatmapclick['points'][0]['x']
         target_y = heatmapclick['points'][0]['y']
 
         position = (target_x, target_y)
 
-        # Plot the profile
-        try:
-            profile = profile_plot(folderpath, target_x, target_y)
-        except NameError:
-            return go.Figure(), {}
+        return position
 
-        return profile, position
+
+    # Callback to update profile plot
+    @app.callback(Output('dektak_plot', 'figure'),
+                  Input('dektak_position_store', 'data'),
+                  State('dektak_path_store', 'data'))
+    def update_plot(position, folderpath):
+        folderpath = Path(folderpath)
+        if position is None:
+            fig = blank_plot()
+        else:
+            target_x = position[0]
+            target_y = position[1]
+            fig = profile_plot(folderpath, target_x, target_y)
+        return fig
 
 
     # Callback to refit profile plot
@@ -104,14 +110,15 @@ def callbacks_dektak(app):
             folderpath = Path(folderpath)
             database_path = get_database_path(folderpath)
             if database_path is None:
-                return go.Figure()
+                heatmap = blank_heatmap()
             try:
                 database = pd.read_csv(database_path)
             except FileNotFoundError:
-                return go.Figure()
+                heatmap = blank_heatmap()
             if database is None:
-                return go.Figure()
-            heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
+                heatmap = blank_heatmap()
+            else:
+                heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
             return heatmap
 
 

@@ -1,6 +1,6 @@
 from dash import Input, Output, State
 
-import modules.functions.functions_edx as edx
+from ..functions.functions_edx import *
 
 def callbacks_edx(app):
     # EDX components
@@ -9,7 +9,7 @@ def callbacks_edx(app):
     def update_element_edx(folderpath):
         element_edx_opt = []
         if folderpath is not None:
-            element_edx_opt = edx.get_elements(folderpath)
+            element_edx_opt = get_elements(folderpath)
         return element_edx_opt
 
 
@@ -36,7 +36,7 @@ def callbacks_edx(app):
         Input("element_edx", "value"),
     )
     def update_heatmap_edx(foldername, element_edx):
-        fig = edx.generate_heatmap(foldername, element_edx)
+        fig = generate_heatmap(foldername, element_edx)
 
         # Update the dimensions of the heatmap and the X-Y title axes
         fig.update_layout(height=750, width=750, clickmode="event+select")
@@ -69,7 +69,7 @@ def callbacks_edx(app):
             x_pos = int(clickData["points"][0]["x"])
             y_pos = int(clickData["points"][0]["y"])
 
-        fig, meta = edx.generate_spectra(foldername, x_pos, y_pos)
+        fig, meta = generate_spectra(foldername, x_pos, y_pos)
         fig.update_layout(
             title=f"EDX Spectrum for {foldername} at position ({x_pos}, {y_pos})",
             height=750,

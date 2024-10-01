@@ -1,0 +1,95 @@
+.grid-container {
+  display: grid;
+  grid-template-rows: 1fr 1.5fr 0.5fr; /* This will give the rows 1/3, 1/2, and 1/6 of the page height */
+  grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
+  grid-template-areas:
+    "top-left top-center top-right"
+    "middle-left middle-right middle-right"
+    "bottom-left bottom-center bottom-right";
+  height: 100vh; /* Full viewport height */
+  gap: 5px; /* Space between the grid items */
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+/* Add outline for the first row's columns */
+.grid-container > .top-left,
+.grid-container > .top-center,
+.grid-container > .top-right {
+  border: 2px solid black; /* Outline for the first row (top line) */
+  box-sizing: border-box;
+}
+
+/* Ensure all grid items fill the space */
+.grid-container > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+  box-sizing: border-box;
+  font-size: 1.5em;
+  font-family: Arial, sans-serif;
+}
+
+.dropdown-item {
+  flex-grow: 2;
+  min-width: 200px;
+  width: 90%;
+}
+
+
+/* Assign each div to a grid area */
+.top-left {
+  grid-area: top-left;
+}
+
+.top-center {
+  grid-area: top-center;
+}
+
+.top-right {
+  grid-area: top-right;
+}
+
+.plot-left {
+  grid-area: middle-left;
+  background-color: #e0e0e0
+}
+
+.plot-right {
+  grid-area: middle-right;
+  grid-column: span 2;
+  padding: 10px;
+  background-color: #e0e0e0;
+}
+
+.bottom-left {
+  grid-area: bottom-left;
+}
+
+.bottom-center {
+  grid-area: bottom-center;
+}
+
+.bottom-right {
+  grid-area: bottom-right;
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 600px) {
+  .grid-container {
+    grid-template-rows: auto; /* Change rows to auto-fit on small screens */
+    grid-template-columns: 1fr; /* Stack columns vertically */
+    grid-template-areas:
+      "top-left"
+      "top-center"
+      "top-right"
+      "middle-left"
+      "middle-right"
+      "bottom-left"
+      "bottom-center"
+      "bottom-right"; /* Stack all items in a single column */
+  }
+}
+

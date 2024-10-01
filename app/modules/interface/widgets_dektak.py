@@ -11,15 +11,15 @@ class WidgetsDEKTAK:
         # Widget for the text box
         self.dektak_text_box = html.Div(children=[
             html.Span(children='', id='dektak_text_box')
-        ], className='cell12')
+        ], className='top-center')
 
         # Widget Heatmap plot option radio items
         self.heatmap_selection_widget = html.Div(children=[
             html.Label('Heatmap plot selection'),
             dcc.RadioItems(id='dektak_heatmap_select', options=['Thickness', 'Gradient', 'Standard Deviation'], value='Thickness'),
-        ], style={'padding': 10, 'flex': 1}, className='cell_11')
+        ], className='top-left')
 
-        # Widget for fitting parameters and button
+        # Widget for fitting parameters and buttons
         self.fitting_widget = html.Div(id='dektak_fit_interface', children=[
             dcc.Input(id='dektak_fit_start', type='number', placeholder='First step up position', value=None),
             dcc.Input(id='dektak_fit_height', type='number', placeholder='Height estimate', value=None),
@@ -27,19 +27,19 @@ class WidgetsDEKTAK:
             html.Button('Fit!', id='dektak_fit_button', n_clicks=0),
             html.Button('Save', id='dektak_save_button', n_clicks=0),
             html.Button('Clear', id='dektak_clear_button', n_clicks=0)
-        ], className='cell_13')
+        ], className='top-right')
 
         # Widget for Dektak heatmap
         self.dektak_heatmap = html.Div(children=[
             dcc.Graph(id="dektak_heatmap"),
             html.Button('Save!', id='dektak_heatmap_save', n_clicks=0),
-        ], className='plot_cell_left')
+        ], className='plot-left')
 
         # Widget for Dektak profile plot
         self.dektak_plot = html.Div(children=[
             dcc.Graph(id="dektak_plot"),
             html.Button('Save!', id='dektak_plot_save', n_clicks=0),
-        ], className='plot_cell_right')
+        ], className='plot-right')
 
         # Stored variables
         self.dektak_stores = html.Div(children=[
@@ -64,7 +64,7 @@ class WidgetsDEKTAK:
                         self.dektak_plot,
                         self.dektak_stores
                     ],
-                    className="grid_layout_dektak",
+                    className="grid-container",
                 )
             ],
         )

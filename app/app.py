@@ -39,6 +39,5 @@ callbacks_dektak.callbacks_dektak(app)
 callbacks_edx.callbacks_edx(app)
 callbacks_moke.callbacks_moke(app, children_moke)
 
-
 if __name__ == '__main__':
     app.run(debug=True)

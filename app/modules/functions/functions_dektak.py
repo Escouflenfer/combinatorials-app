@@ -231,6 +231,40 @@ def blank_heatmap(radius=40, step=5, title=''):
 
     return fig
 
+
+def blank_plot():
+    fig = make_subplots(
+        rows=3,
+        cols=1,
+        row_heights=[0.3, 0.4, 0.3],
+        subplot_titles=("Raw data", "Fitted data", "Measured thicknesses"),
+        shared_xaxes=True,
+        vertical_spacing=0.1
+    )
+
+    fig.add_trace(go.Scatter(x=[], y=[]), row=1, col=1)
+    fig.add_trace(go.Scatter(x=[], y=[]), row=2, col=1)
+    fig.add_trace(go.Scatter(x=[], y=[]), row=3, col=1)
+
+    fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
+    fig.update_yaxes(title_text='Profile (nm)', row=2, col=1)
+    fig.update_yaxes(title_text='Thickness (nm)', row=3, col=1)
+
+    fig.update_layout(
+        # legend=dict(
+        #     x=0.1,  # X position (0-1)
+        #     y=0.1,  # Y position (0-1)
+        #     xanchor="center",  # Anchor point for x
+        #     yanchor="top"  # Anchor point for y
+        # ),
+        height=700,
+        width=1100,
+        showlegend=False
+    )
+
+    return fig
+
+
 def heatmap_plot(database, mode = 'Thickness', title = ''):
     if database is None:
         return go.Figure()

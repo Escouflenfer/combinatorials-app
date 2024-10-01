@@ -1,7 +1,7 @@
 from dash import Input, Output, State
 from pathlib import Path
 
-from modules.functions.functions_moke import *
+from ..functions.functions_moke import *
 
 '''Callbacks for MOKE tab'''
 
@@ -23,40 +23,40 @@ def callbacks_moke(app, children_moke):
 
 
 
-    # Callback for plot selection
+    # Callback for data plot
     @app.callback(
-        Output('moke_plot', 'figure', allow_duplicate=True),
+        Output('moke_plot', 'figure'),
         Input('moke_plot_select', 'value'),
         Input('moke_plot_dropdown', 'value'),
         Input('moke_position_store', 'data'),
         State('moke_path_store', 'data'),
         State('moke_heatmap_select', 'value'),
-        prevent_initial_call=True
     )
 
     def update_plot(selected_plot, measurement_id, position, folderpath,  heatmap_select):
         folderpath = Path(folderpath)
         if position is None:
-            return go.Figure()
-        target_x = position[0]
-        target_y = position[1]
-        if selected_plot == 'Loop':
-            fig = loop_plot(folderpath, target_x, target_y, measurement_id)
-        elif selected_plot == 'Raw data':
-            fig = data_plot(folderpath, target_x, target_y, measurement_id)
-        elif selected_plot == 'Loop + Derivative':
-            fig = loop_derivative_plot(folderpath, target_x, target_y, measurement_id)
+            fig = blank_plot()
         else:
-            fig = go.Figure()
+            target_x = position[0]
+            target_y = position[1]
+            if selected_plot == 'Loop':
+                fig = loop_plot(folderpath, target_x, target_y, measurement_id)
+            elif selected_plot == 'Raw data':
+                fig = data_plot(folderpath, target_x, target_y, measurement_id)
+            elif selected_plot == 'Loop + Derivative':
+                fig = loop_derivative_plot(folderpath, target_x, target_y, measurement_id)
+            else:
+                fig = blank_plot()
 
-        if heatmap_select == 'Derivative Coercivity':
-            pos, neg = get_derivative_coercivity(folderpath, target_x, target_y, mean=False)
-            fig.add_vline(x = pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
-            fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
-        if heatmap_select == 'Measured Coercivity':
-            pos, neg = get_measured_coercivity(folderpath, target_x, target_y, mean=False)
-            fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
-            fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
+            if heatmap_select == 'Derivative Coercivity' and position is not None:
+                pos, neg = get_derivative_coercivity(folderpath, target_x, target_y, mean=False)
+                fig.add_vline(x=pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
+                fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
+            if heatmap_select == 'Measured Coercivity' and position is not None:
+                pos, neg = get_measured_coercivity(folderpath, target_x, target_y, mean=False)
+                fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
+                fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
 
         return fig
 

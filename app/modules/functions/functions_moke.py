@@ -281,13 +281,33 @@ def heatmap_plot(folderpath, mode, title=''):
 
     return fig
 
+def blank_plot():
+    fig = go.Figure()
+
+    fig.update_xaxes(title_text='Time (s)')
+    fig.update_yaxes(title_text='Voltage (V)')
+
+    fig.update_layout(
+        # legend=dict(
+        #     x=0.1,  # X position (0-1)
+        #     y=0.1,  # Y position (0-1)
+        #     xanchor="center",  # Anchor point for x
+        #     yanchor="top"  # Anchor point for y
+        # ),
+        height=700,
+        width=1100,
+        title_text='',
+        showlegend=False
+    )
+
+    return fig
+
 
 def data_plot(folderpath, target_x, target_y, measurement_id):
     data = load_measurement_files(folderpath, target_x, target_y, measurement_id)
 
     fig = go.Figure()
 
-    # First plot
     fig.update_xaxes(title_text='Time (s)')
     fig.update_yaxes(title_text='Voltage (V)')
 

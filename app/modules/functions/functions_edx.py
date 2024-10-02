@@ -181,9 +181,9 @@ def generate_spectra(foldername, x_pos, y_pos):
     fig : FIGURE OBJ
         Figure object from plotly.graph_objects containing a Scatter plot
     """
-    # Defining a empty Figure object to send when certains conditions are not met
+    # Defining a empty Figure object to send when certain conditions are not met
     empty_fig = go.Figure(data=go.Scatter())
-    empty_fig.update_layout(height=700, width=1300)
+    empty_fig.update_layout(height=750, width=1500)
     empty_meta = go.layout.Annotation()
 
     # If the user did not select a data folder, the displayed graph will be empty
@@ -275,7 +275,7 @@ def get_elements(foldername, with_plot=False):
         return elm_options
 
 
-def generate_heatmap(folderpath_edx, element_edx):
+def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
     """Plotting results from element quantification inside the Global Spectrum Results.xlsx file
 
     Parameters
@@ -293,7 +293,7 @@ def generate_heatmap(folderpath_edx, element_edx):
     """
     # Defining a dummy Figure object to send when certains conditions are not met
     empty_fig = go.Figure(data=go.Heatmap())
-    empty_fig.update_layout(height=800, width=800)
+    empty_fig.update_layout(height=750, width=750)
     if folderpath_edx is None or element_edx is None:
         return empty_fig
 
@@ -303,14 +303,18 @@ def generate_heatmap(folderpath_edx, element_edx):
         return empty_fig
 
     X_POS, Y_POS, ELM = make_heatmap(list_data, element_edx)
-    z_min = np.min(ELM)
-    z_max = np.max(ELM)
+
+    if z_min is None:
+        z_min = np.min(ELM)
+    if z_max is None:
+        z_max = np.max(ELM)
+
     z_mid = (z_min + z_max) / 2
 
     fig = go.Figure(data=go.Heatmap(x=X_POS, y=Y_POS, z=ELM, colorscale="Jet",
                                     colorbar=dict(
                                         title='(at.%)',  # Title for the colorbar
-                                        tickvals=[z_min, (z_min + z_mid) / 2, z_mid, (z_max + z_mid) / 2, z_max],
+                                        tickvals=[z_min, (z_min + z_mid)/2, z_mid, (z_max + z_mid)/2, z_max],
                                         # Tick values
                                         ticktext=[f'{z_min:.2f}', f'{(z_min + z_mid) / 2:.2f}', f'{z_mid:.2f}',
                                                   f'{(z_max + z_mid) / 2:.2f}',
@@ -318,6 +322,10 @@ def generate_heatmap(folderpath_edx, element_edx):
                                     )
                                     ))
     fig.update_layout(title=f"EDX Heatmap for element {element_edx}")
-    fig.data[0].update(zmin=min(ELM), zmax=max(ELM))
+
+    if z_min is not None:
+        fig.data[0].update(zmin=z_min)
+    if z_max is not None:
+        fig.data[0].update(zmax=z_max)
 
     return fig

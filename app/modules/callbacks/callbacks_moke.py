@@ -1,4 +1,5 @@
 from dash import Input, Output, State
+from dash.exceptions import PreventUpdate
 from pathlib import Path
 
 from ..functions.functions_moke import *
@@ -34,6 +35,8 @@ def callbacks_moke(app, children_moke):
     )
 
     def update_plot(selected_plot, measurement_id, position, folderpath,  heatmap_select):
+        if folderpath is None:
+            raise PreventUpdate
         folderpath = Path(folderpath)
         if position is None:
             fig = blank_plot()
@@ -70,6 +73,8 @@ def callbacks_moke(app, children_moke):
         prevent_initial_call=True
     )
     def update_heatmap(selected_plot, folderpath):
+        if folderpath is None:
+            raise PreventUpdate
         folderpath = Path(folderpath)
         for file in folderpath.glob('*.csv'):
             database_path = file
@@ -87,6 +92,8 @@ def callbacks_moke(app, children_moke):
     )
 
     def update_plot_dropdown(folderpath):
+        if folderpath is None:
+            raise PreventUpdate
         folderpath = Path(folderpath)
         number = get_measurement_count(folderpath)
         options=[{'label': 'Average', 'value': 0}]
@@ -106,6 +113,8 @@ def callbacks_moke(app, children_moke):
         )
 
     def save_heatmap(n_clicks, heatmap_fig, folderpath):
+        if folderpath is None:
+            raise PreventUpdate
         folderpath = Path(folderpath)
         heatmap_fig = go.Figure(heatmap_fig)
         if n_clicks>0:
@@ -140,6 +149,8 @@ def callbacks_moke(app, children_moke):
         prevent_initial_call=True
     )
     def save_plot(n_clicks, plot_fig, folderpath):
+        if folderpath is None:
+            raise PreventUpdate
         folderpath = Path(folderpath)
         plot_fig = go.Figure(plot_fig)
         if n_clicks > 0:

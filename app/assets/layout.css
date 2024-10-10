@@ -29,9 +29,12 @@
 }
 
 .long-item {
+  text-align: center;
   flex-grow: 2;
   min-width: 250px;
   width: 100%;
+  font-size: 1em;
+  font-family: Arial, sans-serif;
 }
 
 /* Subgrid for specific grid spots */
@@ -54,7 +57,7 @@
   align-items: center;
   padding: 2px;
   box-sizing: border-box;
-  font-size: 1.2em;
+  font-size: 1em;
   font-family: Arial, sans-serif;
 }
 

@@ -12,6 +12,7 @@ from scipy.signal import savgol_filter
 from collections import defaultdict
 import re
 
+from ..functions.functions_shared import *
 
 def get_pulse_voltage(folderpath):
     infopath = folderpath / 'info.txt'
@@ -218,21 +219,12 @@ def make_database(folderpath, coil_factor=0.92667):
     return database_path
 
 
-def heatmap_plot(folderpath, mode, title=''):
+def heatmap_plot(folderpath, mode, title='', z_min=None, z_max=None):
     database = pd.read_csv(folderpath / 'database.csv')
-
-    # Plot parameters
-    layout = go.Layout(
-        title=title,
-        xaxis=dict(range=[-50, 50], title='X (mm)'),
-        yaxis=dict(range=[-50, 50], title='Y (mm)'),
-        height=700,
-        width=700
-    )
 
     # Exit if no database is found
     if database is None:
-        return go.Figure(layout=layout)
+        return go.Figure(layout=heatmap_layout())
 
     # Mode selection
     if mode == 'Kerr Rotation':
@@ -254,9 +246,12 @@ def heatmap_plot(folderpath, mode, title=''):
     )
 
     # Min and max values for colorbar fixing
-    z_min = database[values].min()
-    z_max = database[values].max()
-    z_mid = (z_min + z_max) / 2
+    if z_min is None:
+        z_min = database[values].min()
+    if z_max is None:
+        z_max = database[values].max()
+
+    unit = values.split(' ')[-1]
 
 
     # Generate the heatmap plot from the dataframe
@@ -266,18 +261,18 @@ def heatmap_plot(folderpath, mode, title=''):
         z=heatmap_data.values,
         colorscale='Rainbow',
         # Set ticks for the colorbar
-        colorbar=dict(
-            title='',  # Title for the colorbar
-            tickvals=[z_min, (z_min + z_mid) / 2, z_mid, (z_max + z_mid) / 2, z_max],  # Tick values
-            ticktext=[f'{z_min:.2f}', f'{(z_min + z_mid) / 2:.2f}', f'{z_mid:.2f}', f'{(z_max + z_mid) / 2:.2f}',
-                      f'{z_max:.2f}']  # Tick text
-        )
+        colorbar=colorbar_layout(z_min, z_max, title=unit)
     )
 
-    title = 'Map of MOKE points <br>' + title
+    title = f'{mode} MOKE map <br>' + title
 
     # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=layout)
+    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title))
+
+    if z_min is not None:
+        fig.data[0].update(zmin=z_min)
+    if z_max is not None:
+        fig.data[0].update(zmax=z_max)
 
     return fig
 

@@ -9,15 +9,29 @@ class WidgetsDEKTAK:
         self.folderpath = folderpath
 
         # Widget for the text box
-        self.dektak_text_box = html.Div(children=[
+        self.dektak_text_box = dcc.Loading(
+        id="loading-dektak",
+        type="default",
+        children=html.Div(children=[
             html.Span(children='', id='dektak_text_box')
-        ], className='top-center')
+        ]), className='top-center')
 
-        # Widget Heatmap plot option radio items
-        self.heatmap_selection_widget = html.Div(children=[
-            html.Label('Heatmap plot selection'),
-            dcc.RadioItems(id='dektak_heatmap_select', options=['Thickness', 'Gradient', 'Standard Deviation'], value='Thickness'),
-        ], className='top-left')
+        # Heatmap plot options
+        self.heatmap_selection_widget = html.Div(className='subgrid top-left', children=[
+            html.Div(className='subgrid-2', children=[
+                html.Label('Currently plotting:'),
+                html.Br(),
+                dcc.Dropdown(id='dektak_heatmap_select', className='long-item',
+                             options=['Thickness', 'Gradient', 'Standard Deviation'], value='Thickness')
+            ]),
+            html.Div(className='subgrid-7', children=[
+                html.Label('Colorbar bounds'),
+                dcc.Input(id='dektak_heatmap_max', className='long-item', type='number', placeholder='maximum value',
+                          value=None),
+                dcc.Input(id='dektak_heatmap_min', className='long-item', type='number', placeholder='minimum value',
+                          value=None)
+            ]),
+        ])
 
         # Widget for fitting parameters and buttons
         self.fitting_widget = html.Div(id='dektak_fit_interface', children=[
@@ -43,8 +57,8 @@ class WidgetsDEKTAK:
 
         # Stored variables
         self.dektak_stores = html.Div(children=[
-            dcc.Store(id='dektak_position_store'),
-            dcc.Store(id='dektak_parameters_store'),
+            dcc.Store(id='dektak_position_store', data=None),
+            dcc.Store(id='dektak_parameters_store', data=None),
         ])
 
 

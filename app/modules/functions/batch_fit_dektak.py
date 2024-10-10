@@ -1,6 +1,6 @@
 import sys
 
-from modules.functions.functions_dektak import *
+from functions_dektak import *
 
 folderpath = None
 

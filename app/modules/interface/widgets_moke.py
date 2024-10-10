@@ -22,16 +22,31 @@ class WidgetsMOKE:
         self.folderpath = folderpath
 
         # Widget for the text box
-        self.moke_text_box = html.Div(children=[
+        self.moke_text_box = dcc.Loading(
+        id="loading-moke",
+        type="default",
+        children=html.Div(children=[
             html.Span(children='', id='moke_text_box')
-        ], className='top-center')
+        ]), className='top-center')
 
         # Widget Heatmap plot option radio items
-        self.heatmap_selection_widget = html.Div(children=[
-            dcc.RadioItems(id='moke_heatmap_select',
+        self.heatmap_selection_widget = html.Div(className='subgrid top-left', children=[
+            html.Div(className='subgrid-2', children=[
+                html.Label('Currently plotting:'),
+                html.Br(),
+                dcc.Dropdown(id='moke_heatmap_select', className='long-item',
                            options=['Kerr Rotation', 'Reflectivity', 'Derivative Coercivity', 'Measured Coercivity'],
                            value='Kerr Rotation'),
-        ], className='top-left')
+            ]),
+            html.Div(className='subgrid-7', children=[
+                html.Label('Colorbar bounds'),
+                dcc.Input(id='moke_heatmap_max', className='long-item', type='number', placeholder='maximum value',
+                          value=None),
+                dcc.Input(id='moke_heatmap_min', className='long-item', type='number', placeholder='minimum value',
+                          value=None)
+            ]),
+
+        ])
 
         # Widget plotting options
         self.plot_selection_widget = html.Div(children=[
@@ -54,8 +69,8 @@ class WidgetsMOKE:
 
         # Stored variables
         self.moke_stores = html.Div(children=[
-            dcc.Store(id='moke_position_store'),
-            dcc.Store(id='moke_parameters_store')
+            dcc.Store(id='moke_position_store', data=None),
+            dcc.Store(id='moke_parameters_store', data=None)
         ])
 
 

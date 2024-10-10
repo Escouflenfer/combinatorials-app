@@ -2,18 +2,12 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 import os
 
+# "https://github.com/eliasdabbas/dash-file-browser"
+
 class WidgetsBROWSER:
     def __init__(self):
 
         self.browser = html.Div(children=[
-        html.Link(
-            rel="stylesheet",
-            href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css"),
-        html.A(
-            className="github-fork-ribbon",
-            href="https://github.com/eliasdabbas/dash-file-browser",
-            title="Original on Github", **{"data-ribbon": "Original on Github"}),
-        html.Br(), html.Br(),
         dbc.Row([
             dbc.Col(lg=1, sm=1, md=1),
 
@@ -47,27 +41,31 @@ class WidgetsBROWSER:
 
         self.make_edx_button = html.Div(children=[
             html.Button('Set EDX folder', id='edx_path_button'),
-            html.Div('No path set', id='edx_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Div('None', id='edx_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'flex', 'align-items': 'center'})
 
         self.make_dektak_button = html.Div(children=[
             html.Button('Set DEKTAK folder', id='dektak_path_button'),
-            html.Div('No path set', id='dektak_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Div('None', id='dektak_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'flex', 'align-items': 'center'})
 
         self.make_moke_button = html.Div(children=[
             html.Button('Set MOKE folder', id='moke_path_button'),
-            html.Div('No path set', id='moke_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Div('None', id='moke_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'flex', 'align-items': 'center'})
 
         self.make_xray_button = html.Div(children=[
             html.Button('Set XRAY folder', id='xray_path_button'),
-            html.Div('No path set', id='xray_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Div('None', id='xray_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'flex', 'align-items': 'center'})
 
         self.make_squid_button = html.Div(children=[
             html.Button('Set SQUID folder', id='SQUID_path_button'),
-            html.Div('No path set', id='squid_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+            html.Div('None', id='squid_path_text', style={'display': 'inline-block', 'margin-left': '10px'})
+        ], style={'display': 'flex', 'align-items': 'center'})
+
+        self.make_clear_button = html.Div(children=[
+            html.Button('Clear', id='clear_path_button')
         ], style={'display': 'flex', 'align-items': 'center'})
 
 
@@ -86,6 +84,7 @@ class WidgetsBROWSER:
                         self.make_moke_button,
                         self.make_xray_button,
                         self.make_squid_button,
+                        self.make_clear_button,
                         self.browser,
                         self.folder_path_store
 

@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import xml.etree.ElementTree as ET
 from openpyxl import load_workbook
 
+from ..functions.functions_shared import *
 
 def make_path_name(
     foldername, x_pos, y_pos, start_x=-40, start_y=-40, step_x=5, step_y=5
@@ -309,17 +310,9 @@ def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
     if z_max is None:
         z_max = np.max(ELM)
 
-    z_mid = (z_min + z_max) / 2
 
     fig = go.Figure(data=go.Heatmap(x=X_POS, y=Y_POS, z=ELM, colorscale="Jet",
-                                    colorbar=dict(
-                                        title='(at.%)',  # Title for the colorbar
-                                        tickvals=[z_min, (z_min + z_mid)/2, z_mid, (z_max + z_mid)/2, z_max],
-                                        # Tick values
-                                        ticktext=[f'{z_min:.2f}', f'{(z_min + z_mid) / 2:.2f}', f'{z_mid:.2f}',
-                                                  f'{(z_max + z_mid) / 2:.2f}',
-                                                  f'{z_max:.2f}']  # Tick text
-                                    )
+                                    colorbar=colorbar_layout(z_min, z_max, title='at.%')
                                     ))
     fig.update_layout(title=f"EDX Heatmap for element {element_edx}")
 

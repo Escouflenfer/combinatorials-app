@@ -1,4 +1,4 @@
-from dash import Input, Output, State
+from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 from pathlib import Path
 
@@ -67,12 +67,16 @@ def callbacks_moke(app, children_moke):
     # Callback for heatmap plot selection
     @app.callback(
         [Output('moke_heatmap', 'figure', allow_duplicate=True),
-         Output('moke_text_box', 'children', allow_duplicate=True)],
+         Output('moke_text_box', 'children', allow_duplicate=True),
+         Output('moke_heatmap_min', 'value'),
+         Output('moke_heatmap_max', 'value'),],
         Input('moke_heatmap_select', 'value'),
         Input('moke_path_store', 'data'),
+        Input('moke_heatmap_min', 'value'),
+        Input('moke_heatmap_max', 'value'),
         prevent_initial_call=True
     )
-    def update_heatmap(selected_plot, folderpath):
+    def update_heatmap(selected_plot, folderpath, z_min, z_max):
         if folderpath is None:
             raise PreventUpdate
         folderpath = Path(folderpath)
@@ -80,8 +84,17 @@ def callbacks_moke(app, children_moke):
             database_path = file
         if not any(folderpath.glob('*.csv')):
             database_path = make_database(folderpath)
-        heatmap = heatmap_plot(folderpath, selected_plot)
-        return heatmap, str(database_path)
+
+        if ctx.triggered_id == 'moke_heatmap_select':
+            z_min = None
+            z_max = None
+
+        heatmap = heatmap_plot(folderpath, selected_plot, '', z_min, z_max)
+
+        z_min = significant_round(heatmap.data[0].zmin, 3)
+        z_max = significant_round(heatmap.data[0].zmax, 3)
+
+        return heatmap, str(database_path), z_min, z_max
 
 
     # Callback to load measurements in dropdown menu

@@ -10,6 +10,8 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from pathlib import Path
 
+from ..functions.functions_shared import *
+
 
 def pairwise(list):
     a = iter(list)
@@ -217,47 +219,30 @@ def blank_heatmap(radius=40, step=5, title=''):
         colorscale='Rainbow'
     )
 
-    # Set up the layout
-    layout = go.Layout(
-        title=title,
-        xaxis=dict(title='X (mm)'),
-        yaxis=dict(title='Y (mm)'),
-        width=700,
-        height=700
-    )
-
     # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=layout)
+    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title='Blank heatmap'))
 
     return fig
 
 
 def blank_plot():
     fig = make_subplots(
-        rows=3,
+        rows=2,
         cols=1,
-        row_heights=[0.3, 0.4, 0.3],
-        subplot_titles=("Raw data", "Fitted data", "Measured thicknesses"),
+        row_heights=[0.6, 0.4],
+        subplot_titles=("Fitted data", "Measured thicknesses"),
         shared_xaxes=True,
         vertical_spacing=0.1
     )
 
     fig.add_trace(go.Scatter(x=[], y=[]), row=1, col=1)
     fig.add_trace(go.Scatter(x=[], y=[]), row=2, col=1)
-    fig.add_trace(go.Scatter(x=[], y=[]), row=3, col=1)
 
     fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
-    fig.update_yaxes(title_text='Profile (nm)', row=2, col=1)
-    fig.update_yaxes(title_text='Thickness (nm)', row=3, col=1)
+    fig.update_yaxes(title_text='Thickness (nm)', row=2, col=1)
 
     fig.update_layout(
-        # legend=dict(
-        #     x=0.1,  # X position (0-1)
-        #     y=0.1,  # Y position (0-1)
-        #     xanchor="center",  # Anchor point for x
-        #     yanchor="top"  # Anchor point for y
-        # ),
-        height=700,
+        height=750,
         width=1100,
         showlegend=False
     )
@@ -289,7 +274,6 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
     # Min and max values for colorbar fixing
     z_min = database[values].min()
     z_max = database[values].max()
-    z_mid = (z_min + z_max) / 2
 
     # Generate the heatmap plot from the dataframe
     heatmap = go.Heatmap(
@@ -297,30 +281,13 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
         y=heatmap_data.index,
         z=heatmap_data.values,
         colorscale='Rainbow',
-        colorbar=dict(
-            title='(nm) <br>&nbsp;<br>',
-            tickfont=dict(size=15),
-            titlefont=dict(size=18),
-            tickvals=[z_min, (z_min + z_mid) / 2, z_mid, (z_max + z_mid) / 2, z_max],  # Tick values
-            ticktext=[f'{z_min:.2f}', f'{(z_min + z_mid) / 2:.2f}', f'{z_mid:.2f}', f'{(z_max + z_mid) / 2:.2f}',
-                      f'{z_max:.2f}'],  # Tick text
-        )
-
+        colorbar=colorbar_layout(z_min, z_max, title='nm')
     )
 
     title = 'Thickness map <br>' + title
-    # Plot parameters
-    layout = go.Layout(
-        title=title,
-        titlefont=dict(size=20),
-        xaxis=dict(title='X (mm)', tickfont=dict(size=15), titlefont=dict(size=18)),
-        yaxis=dict(title='Y (mm)', tickfont=dict(size=15), titlefont=dict(size=18)),
-        height=700,
-        width=700
-    )
 
     # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=layout)
+    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title))
 
     return fig
 
@@ -349,48 +316,48 @@ def profile_plot(folderpath, target_x, target_y):
 
     # Plot the data
     fig = make_subplots(
-        rows=3,
+        rows=2,
         cols=1,
-        row_heights=[0.3, 0.4, 0.3],
-        subplot_titles=("Raw data", "Fitted data", "Measured thicknesses"),
+        row_heights=[0.6, 0.4],
+        subplot_titles=("Fitted data", "Measured thicknesses"),
         shared_xaxes=True,
         vertical_spacing=0.1
     )
 
-    # First plot
-    fig.update_xaxes(title_text='Distance (um)', row=1, col=1)
-    fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
-    # Measured profile
-    fig.add_trace(
-        go.Scatter(x=asc2d_dataframe['Distance (um)'], y=asc2d_dataframe['Total Profile (nm)'],
-                   mode='lines',
-                   # name='Measured profile',
-                   line=dict(color='SlateBlue ', width=3)),
-        row=1, col=1
-    )
-    # Linear component
-    try:
-        fig.add_trace(
-            go.Scatter(x=asc2d_dataframe['Distance (um)'],
-                       y=(asc2d_dataframe['Distance (um)'] * flatten_slope) + asc2d_dataframe.iat[0, 1],
-                       mode='lines',
-                       name='Linear component',
-                       line=dict(color='Crimson', width=2)),
-            row=1, col=1
-        )
-    except NameError:
-        pass
+    # # First plot
+    # fig.update_xaxes(title_text='Distance (um)', row=1, col=1)
+    # fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
+    # # Measured profile
+    # fig.add_trace(
+    #     go.Scatter(x=asc2d_dataframe['Distance (um)'], y=asc2d_dataframe['Total Profile (nm)'],
+    #                mode='lines',
+    #                # name='Measured profile',
+    #                line=dict(color='SlateBlue ', width=3)),
+    #     row=1, col=1
+    # )
+    # # Linear component
+    # try:
+    #     fig.add_trace(
+    #         go.Scatter(x=asc2d_dataframe['Distance (um)'],
+    #                    y=(asc2d_dataframe['Distance (um)'] * flatten_slope) + asc2d_dataframe.iat[0, 1],
+    #                    mode='lines',
+    #                    name='Linear component',
+    #                    line=dict(color='Crimson', width=2)),
+    #         row=1, col=1
+    #     )
+    # except NameError:
+    #     pass
 
     # Second plot
-    fig.update_xaxes(title_text='Distance (um)', row=2, col=1)
-    fig.update_yaxes(title_text='Profile (nm)', row=2, col=1)
+    fig.update_xaxes(title_text='Distance (um)', row=1, col=1)
+    fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
     # Flattened profile
     fig.add_trace(
         go.Scatter(x=asc2d_dataframe['Distance (um)'], y=asc2d_dataframe['Fitted Profile (nm)'],
                    mode='lines',
                    # name='Flattened profile',
                    line=dict(color='SlateBlue ', width=3)),
-        row=2, col=1
+        row=1, col=1
     )
     # Fitted step function
     try:
@@ -400,14 +367,14 @@ def profile_plot(folderpath, target_x, target_y):
                        mode='lines',
                        # name='Fitted step function',
                        line=dict(color='Crimson', width=2)),
-            row=2, col=1
+            row=1, col=1
         )
     except NameError:
         pass
 
     # Third plot
-    fig.update_xaxes(title_text='Distance (um)', row=3, col=1)
-    fig.update_yaxes(title_text='Thickness (nm)', row=3, col=1)
+    fig.update_xaxes(title_text='Distance (um)', row=2, col=1)
+    fig.update_yaxes(title_text='Thickness (nm)', row=2, col=1)
     try:
         # Scattered heights
         fig.add_trace(
@@ -415,10 +382,10 @@ def profile_plot(folderpath, target_x, target_y):
                        mode='markers',
                        # name='Measured thickness',
                        line=dict(color='SlateBlue ', width=3)),
-            row=3, col=1
+            row=2, col=1
         )
         # Mean line
-        fig.add_hline(y=database_slice.loc['Mean_step_height (nm)'], row=3, col=1)
+        fig.add_hline(y=database_slice.loc['Mean_step_height (nm)'], row=2, col=1)
 
         # Linear gradient fit
         fig.add_trace(
@@ -427,7 +394,7 @@ def profile_plot(folderpath, target_x, target_y):
                        mode='lines',
                        # name=('Linear gradient fit. a = ' + str(gradient_slope) + 'nm/mm'),
                        line=dict(color='Crimson', width=2)),
-            row=3, col=1
+            row=2, col=1
         )
     except NameError:
         pass
@@ -439,7 +406,7 @@ def profile_plot(folderpath, target_x, target_y):
         #     xanchor="center",  # Anchor point for x
         #     yanchor="top"  # Anchor point for y
         # ),
-        height=700,
+        height=750,
         width=1100,
         title_text=f"{filepath.name}, x = {get_position(filepath)[0]} y = {get_position(filepath)[1]}",
         showlegend=False
@@ -455,8 +422,8 @@ def fit_plot(fig, df_raw, *fitted_params):
     gradient_intercept = linear_fit.intercept
 
     # Second plot
-    fig.update_xaxes(title_text='Distance (um)', row=2, col=1)
-    fig.update_yaxes(title_text='Profile (nm)', row=2, col=1)
+    fig.update_xaxes(title_text='Distance (um)', row=1, col=1)
+    fig.update_yaxes(title_text='Profile (nm)', row=1, col=1)
 
     # Fitted step function
     fig.add_trace(
@@ -464,22 +431,22 @@ def fit_plot(fig, df_raw, *fitted_params):
                    mode='lines',
                    name='Fitted step function',
                    line=dict(color='LimeGreen', width=2)),
-        row=2, col=1
+        row=1, col=1
     )
 
     # Third plot
-    fig.update_xaxes(title_text='Distance (um)', row=3, col=1)
-    fig.update_yaxes(title_text='Thickness (nm)', row=3, col=1)
+    fig.update_xaxes(title_text='Distance (um)', row=2, col=1)
+    fig.update_yaxes(title_text='Thickness (nm)', row=2, col=1)
     # Scattered heights
     fig.add_trace(
         go.Scatter(x=position_list, y=height_list,
                    mode='markers',
                    name='Measured thickness',
                    line=dict(color='LimeGreen', width=2)),
-        row=3, col=1
+        row=2, col=1
     )
     # Mean line
-    fig.add_hline(y=np.mean(height_list), row=3, col=1)
+    fig.add_hline(y=np.mean(height_list), row=2, col=1)
 
     # Linear gradient fit
     fig.add_trace(
@@ -487,7 +454,7 @@ def fit_plot(fig, df_raw, *fitted_params):
                    mode='lines',
                    name=('Linear gradient fit, a = ' + str(gradient_slope) + 'nm/mm'),
                    line=dict(color='LimeGreen', width=2)),
-        row=3, col=1
+        row=2, col=1
     )
 
     return fig

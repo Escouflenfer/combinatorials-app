@@ -1,4 +1,4 @@
-from dash import Input, Output, State
+from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 
 from ..functions.functions_edx import *
@@ -22,17 +22,20 @@ def callbacks_edx(app):
 
 
     # Callback to get elements for the dropdown menu
-    @app.callback(Output("element_edx", "options"),
+    @app.callback([Output("element_edx", "options"),
+                   Output("element_edx", "value")],
                   Input("edx_path_store", "data"))
     def update_element_edx(folderpath):
         if folderpath is None:
             raise PreventUpdate
         element_edx_opt = get_elements(folderpath)
-        return element_edx_opt
+        return element_edx_opt, element_edx_opt[0]
 
     # Callback to plot EDX heatmap
     @app.callback(
-        Output("edx_heatmap", "figure"),
+        [Output("edx_heatmap", "figure"),
+         Output('edx_heatmap_min', 'value'),
+         Output('edx_heatmap_max', 'value')],
         Input("element_edx", "value"),
         Input('edx_heatmap_min', 'value'),
         Input('edx_heatmap_max', 'value'),
@@ -41,14 +44,24 @@ def callbacks_edx(app):
     def update_heatmap_edx(element_edx, z_min, z_max, folderpath):
         if folderpath is None:
             raise PreventUpdate
+
+        if ctx.triggered_id == 'element_edx':
+            z_min = None
+            z_max = None
+
         fig = generate_heatmap(folderpath, element_edx, z_min, z_max)
 
+        z_min = significant_round(fig.data[0].zmin, 4)
+        z_max = significant_round(fig.data[0].zmax, 4)
+
         # Update the dimensions of the heatmap and the X-Y title axes
-        fig.update_layout(height=750, width=750, clickmode="event+select")
+        layout=heatmap_layout('EDX Map <br>' + f'Element {element_edx}')
+        fig.update_layout(layout)
         fig.update_xaxes(title="X Position")
         fig.update_yaxes(title="Y Position")
 
-        return fig
+        return fig, z_min, z_max
+
 
     #   EDX spectra
     @app.callback(
@@ -59,14 +72,15 @@ def callbacks_edx(app):
         Input("yrange_slider", "value"),
     )
     def update_spectra(folderpath, position, xrange, yrange):
-        folderpath = Path(folderpath)
         if folderpath is None:
             raise PreventUpdate
         if position is None:
             raise PreventUpdate
-        else:
-            target_x = position[0]
-            target_y = position[1]
+
+        folderpath = Path(folderpath)
+
+        target_x = position[0]
+        target_y = position[1]
 
         fig, meta = generate_spectra(folderpath, target_x, target_y)
         fig.update_layout(

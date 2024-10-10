@@ -46,7 +46,8 @@ def callbacks_dektak(app):
     # Callback to refit profile plot
     @app.callback(
         [Output('dektak_plot', 'figure', allow_duplicate=True),
-        Output('dektak_parameters_store', 'data')],
+        Output('dektak_parameters_store', 'data', allow_duplicate=True),
+         Output('dektak_text_box', 'children')],
         Input('dektak_fit_button', 'n_clicks'),
         State('dektak_path_store', 'data'),
         State('dektak_position_store', 'data'),
@@ -74,7 +75,7 @@ def callbacks_dektak(app):
             profile = profile_plot(folderpath, target_x, target_y)
             profile = fit_plot(profile, asc2d_dataframe, *fitted_params)
 
-            return profile, fitted_params
+            return profile, fitted_params, f'Refitted profile for x = {target_x}, y = {target_y}'
 
     # Callback to save refitted profile
     @app.callback(
@@ -100,6 +101,31 @@ def callbacks_dektak(app):
             replace_fit(folderpath, target_x, target_y, fitted_params)
             return (f'Replacement successful on database at {folderpath} for x = {target_x}, y = {target_y}')
 
+    # Callback to clear refitted profile
+    @app.callback(
+        [Output('dektak_plot', 'figure', allow_duplicate=True),
+         Output('dektak_parameters_store', 'data', allow_duplicate=True)],
+        Input('dektak_clear_button', 'n_clicks'),
+        State('dektak_path_store', 'data'),
+        State('dektak_position_store', 'data'),
+        State('dektak_parameters_store', 'data'),
+        prevent_initial_call=True
+    )
+    def save_new_fit(n_clicks, folderpath, position, fitted_params):
+        if folderpath is None:
+            raise PreventUpdate
+        if fitted_params is None:
+            raise PreventUpdate
+
+        folderpath = Path(folderpath)
+
+        target_x = position[0]
+        target_y = position[1]
+
+        if n_clicks > 0:
+            fig = profile_plot(folderpath, target_x, target_y)
+            return fig, None
+
 
 
     # Callback for heatmap plot selection
@@ -117,7 +143,7 @@ def callbacks_dektak(app):
         try:
             database = pd.read_csv(database_path)
             heatmap = heatmap_plot(database, mode=selected_plot, title=folderpath.parent.name)
-        except FileNotFoundError or ValueError:
+        except (FileNotFoundError, ValueError) as e:
             heatmap = blank_heatmap()
 
         return heatmap

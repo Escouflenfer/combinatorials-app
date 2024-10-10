@@ -27,9 +27,12 @@ class WidgetsEDX:
         # Folderpath for the EDX spectras
         self.folderpath = folderpath
 
-        self.edx_text_box = html.Div(children=[
+        self.edx_text_box = dcc.Loading(
+        id="loading-1",
+        type="default",
+        children=html.Div(children=[
             html.Span(children='', id='edx_text_box')
-        ], className='top-center')
+        ]), className='top-center')
 
         # Heatmap plot options
         self.element = html.Div(className='subgrid top-left', children=[
@@ -40,8 +43,10 @@ class WidgetsEDX:
             ]),
             html.Div(className='subgrid-7', children=[
                 html.Label('Colorbar bounds'),
-                dcc.Input(id='edx_heatmap_max', className='long-item', type='number', placeholder='maximum value', value=None),
-                dcc.Input(id='edx_heatmap_min', className='long-item', type='number', placeholder='minimum value', value=None)
+                dcc.Input(id='edx_heatmap_max', className='long-item', type='number', placeholder='maximum value',
+                          value=None),
+                dcc.Input(id='edx_heatmap_min', className='long-item', type='number', placeholder='minimum value',
+                          value=None)
             ]),
         ])
 

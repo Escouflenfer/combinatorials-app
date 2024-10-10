@@ -1,8 +1,18 @@
-from modules.functions.functions_browser import *
+from ..functions.functions_browser import *
 
 
 '''Callbacks for file browser'''
 def callbacks_browser(app):
+
+    @app.callback(
+        Output('stored_cwd', 'data'),
+        Input('data_path_store', 'data')
+    )
+    def set_default_data_folder(data_path):
+        if data_path is None:
+            raise PreventUpdate
+        return data_path
+
 
     @app.callback(
         Output('cwd', 'children'),
@@ -54,9 +64,11 @@ def callbacks_browser(app):
 
 
     @app.callback(
-        Output('stored_cwd', 'data'),
+        Output('stored_cwd', 'data', allow_duplicate=True),
         Input({'type': 'listed_file', 'index': ALL}, 'n_clicks'),
-        State({'type': 'listed_file', 'index': ALL}, 'title'))
+        State({'type': 'listed_file', 'index': ALL}, 'title'),
+    prevent_initial_call=True
+    )
     def store_clicked_file(n_clicks, title):
         if not n_clicks or set(n_clicks) == {None}:
             raise PreventUpdate
@@ -66,11 +78,13 @@ def callbacks_browser(app):
 
     # Callback to set folder path
     @app.callback(
-        [Output('sample_path_store', 'data'),
-         Output('sample_path_text', 'children')],
-        Input('sample_path_button', 'n_clicks'),
-        State('sample_path_store', 'data'),
-        State('stored_cwd', 'data'))
+        [Output('data_path_store', 'data', allow_duplicate=True),
+         Output('data_path_text', 'children')],
+        Input('data_path_button', 'n_clicks'),
+        Input('data_path_store', 'data'),
+        State('stored_cwd', 'data'),
+        prevent_initial_call=True
+    )
 
     def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
         if n_clicks == None:
@@ -81,11 +95,13 @@ def callbacks_browser(app):
 
     # Callback for EDX folder path
     @app.callback(
-        [Output('edx_path_store', 'data'),
+        [Output('edx_path_store', 'data', allow_duplicate=True),
          Output('edx_path_text', 'children')],
         Input('edx_path_button', 'n_clicks'),
-        State('edx_path_store', 'data'),
-        State('stored_cwd', 'data'))
+        Input('edx_path_store', 'data'),
+        State('stored_cwd', 'data'),
+        prevent_initial_call=True
+    )
     def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
         if n_clicks == None:
             return stored_folder_path, str(stored_folder_path)
@@ -94,11 +110,13 @@ def callbacks_browser(app):
 
     # Callback for DEKTAK folder path
     @app.callback(
-        [Output('dektak_path_store', 'data'),
+        [Output('dektak_path_store', 'data', allow_duplicate=True),
          Output('dektak_path_text', 'children')],
         Input('dektak_path_button', 'n_clicks'),
-        State('dektak_path_store', 'data'),
-        State('stored_cwd', 'data'))
+        Input('dektak_path_store', 'data'),
+        State('stored_cwd', 'data'),
+        prevent_initial_call=True
+    )
     def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
         if n_clicks == None:
             return stored_folder_path, str(stored_folder_path)
@@ -107,11 +125,13 @@ def callbacks_browser(app):
 
     # Callback for MOKE folder path
     @app.callback(
-        [Output('moke_path_store', 'data'),
+        [Output('moke_path_store', 'data', allow_duplicate=True),
          Output('moke_path_text', 'children')],
         Input('moke_path_button', 'n_clicks'),
-        State('moke_path_store', 'data'),
-        State('stored_cwd', 'data'))
+        Input('moke_path_store', 'data'),
+        State('stored_cwd', 'data'),
+        prevent_initial_call=True
+    )
     def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
         if n_clicks == None:
             return stored_folder_path, str(stored_folder_path)
@@ -120,13 +140,31 @@ def callbacks_browser(app):
 
     # Callback for xrd folder path
     @app.callback(
-        [Output('xray_path_store', 'data'),
+        [Output('xray_path_store', 'data', allow_duplicate=True),
          Output('xray_path_text', 'children')],
         Input('xray_path_button', 'n_clicks'),
-        State('xray_path_store', 'data'),
-        State('stored_cwd', 'data'))
+        Input('xray_path_store', 'data'),
+        State('stored_cwd', 'data'),
+        prevent_initial_call=True
+    )
     def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
         if n_clicks == None:
             return stored_folder_path, str(stored_folder_path)
         elif n_clicks > 0:
             return current_folder_path, str(current_folder_path)
+
+
+    # Callback to clear all paths
+    @app.callback(
+        [Output('data_path_store', 'data', allow_duplicate=True),
+         Output('edx_path_store', 'data', allow_duplicate=True),
+         Output('dektak_path_store', 'data', allow_duplicate=True),
+         Output('moke_path_store', 'data', allow_duplicate=True),
+         Output('xray_path_store', 'data', allow_duplicate=True)],
+        Input('clear_path_button', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def clear_folder_paths(n_clicks):
+        if n_clicks > 0:
+            return None, None, None, None, None
+

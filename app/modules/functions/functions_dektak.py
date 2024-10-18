@@ -10,24 +10,12 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from pathlib import Path
 
-from ..functions.functions_shared import *
+from functions_shared import *
 
 
 def pairwise(list):
     a = iter(list)
     return zip(a, a)
-
-
-def get_database_path(folderpath):
-    database_path = None
-    for path in folderpath.glob('*.csv'):
-        if database_path is None:
-            database_path = path
-        elif database_path is not None:
-            raise NameError('Multiple .csv files found, check your folder')
-    if database_path is None:
-        return None
-    return folderpath / database_path
 
 
 def get_row_number(database, target_x, target_y):
@@ -43,7 +31,7 @@ def get_asc2d_path(folderpath, target_x, target_y):
 
     # If database exists, load it
     if database_path is not None:
-        database = pd.read_csv(database_path)
+        database = pd.read_csv(database_path, comment='#')
         # If database contains a File_id column, get the index and extract the filename (fast and reliable)
         if 'File_id' in database.columns:
             row_number = get_row_number(database, target_x, target_y)
@@ -250,9 +238,12 @@ def blank_plot():
     return fig
 
 
-def heatmap_plot(database, mode = 'Thickness', title = ''):
+def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=None, masking=False):
+
+    # Exit if no database is found
     if database is None:
-        return go.Figure()
+        return go.Figure(layout=heatmap_layout())
+
     # Mode selection
     if mode == 'Thickness':
         values = 'Mean_step_height (nm)'
@@ -270,10 +261,26 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
         values=values,
     )
 
-    # Generate the heatmap plot from the dataframe
+    # If mask is set, hide points that have an ignore tag in the database
+    if masking:
+        # Create a mask to hide ignored points
+        mask_data = database.pivot_table(
+            index='y_pos (mm)',
+            columns='x_pos (mm)',
+            values='Ignore'
+        )
+        # Ignore points
+        mask = (mask_data == 0)
+        heatmap_data = heatmap_data.where(mask, np.nan)
+
     # Min and max values for colorbar fixing
-    z_min = database[values].min()
-    z_max = database[values].max()
+    if z_min is None:
+        z_min = np.nanmin(heatmap_data.values)
+    if z_max is None:
+        z_max = np.nanmax(heatmap_data.values)
+
+    # Get unit from selected mode for colorbar title
+    unit = values.split(' ')[-1]
 
     # Generate the heatmap plot from the dataframe
     heatmap = go.Heatmap(
@@ -281,13 +288,18 @@ def heatmap_plot(database, mode = 'Thickness', title = ''):
         y=heatmap_data.index,
         z=heatmap_data.values,
         colorscale='Rainbow',
-        colorbar=colorbar_layout(z_min, z_max, title='nm')
+        colorbar=colorbar_layout(z_min, z_max, title=unit)
     )
 
     title = 'Thickness map <br>' + title
 
     # Make and show figure
     fig = go.Figure(data=[heatmap], layout=heatmap_layout(title))
+
+    if z_min is not None:
+        fig.data[0].update(zmin=z_min)
+    if z_max is not None:
+        fig.data[0].update(zmax=z_max)
 
     return fig
 
@@ -296,20 +308,18 @@ def profile_plot(folderpath, target_x, target_y):
     database_path = get_database_path(folderpath)
     if database_path is None:
         filepath = scan_for_position(folderpath, target_x, target_y)
-    elif database_path is not None:
-        database = pd.read_csv(get_database_path(folderpath))
+
+    else:
+        database = pd.read_csv(get_database_path(folderpath), comment='#')
         rownumber = get_row_number(database, target_x, target_y)
         database_slice = database.loc[rownumber, :]
         filepath = folderpath / Path(database_slice['File_id'])
 
         # Extract fitted parameters from database for plotting
-        flatten_slope = database_slice.loc['Flatten_slope (nm/mm)']
         fitted_params = database_slice.iloc[8:].values
         position_list, height_list = extract_fit(fitted_params)
         gradient_slope = database_slice.loc['Gradient_slope (nm/mm)']
         gradient_intercept = database_slice.loc['Gradient_intercept (nm)']
-    else:
-        return go.Figure()
 
     asc2d_dataframe = pd.read_csv(filepath, skiprows=46)
     _, asc2d_dataframe = treat_data(asc2d_dataframe)
@@ -467,7 +477,7 @@ def batch_fit(folderpath):
         files.append(path)
 
     # Prepare a dataframe for export
-    export = pd.DataFrame()
+    database = pd.DataFrame()
 
     i = -1
     for n in natsorted(files):
@@ -500,26 +510,36 @@ def batch_fit(folderpath):
 
         linear_fit = linregress(position_list, height_list)
 
-        export.loc[i, 'File_id'] = filepath.name
-        export.loc[i, 'x_pos (mm)'] = x
-        export.loc[i, 'y_pos (mm)'] = y
-        export.loc[i, 'Mean_step_height (nm)'] = np.mean(height_list).round(1)
-        export.loc[i, 'Std_step_height (nm)'] = np.std(height_list).round(1)
-        export.loc[i, 'Flatten_slope (nm/mm)'] = slope.round(3)
-        export.loc[i, 'Gradient_slope (nm/mm)'] = (1000 * linear_fit.slope).round(3)
-        export.loc[i, 'Gradient_intercept (nm)'] = linear_fit.intercept.round(3)
+        database.loc[i, 'File_id'] = filepath.name
+        database.loc[i, 'Ignore'] = 0
+        database.loc[i, 'x_pos (mm)'] = x
+        database.loc[i, 'y_pos (mm)'] = y
+        database.loc[i, 'Mean_step_height (nm)'] = np.mean(height_list).round(1)
+        database.loc[i, 'Std_step_height (nm)'] = np.std(height_list).round(1)
+        database.loc[i, 'Gradient_slope (nm/mm)'] = (1000 * linear_fit.slope).round(3)
+        database.loc[i, 'Gradient_intercept (nm)'] = linear_fit.intercept.round(3)
         for n in range(len(fitted_params)):
             height_column = f'Fit_parameter_{n}'
-            export.loc[i, height_column] = fitted_params[n]
+            database.loc[i, height_column] = fitted_params[n]
 
     database_path = folderpath / (folderpath.parent.name +'_database.csv')
-    print(database_path)
-    export.to_csv(database_path, index=False)
+
+    date = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    app_version = get_version('app')
+    database_version = get_version('dektak')
+    metadata = [f"Date of fitting: {date}",
+                f"Code version: {app_version}",
+                'Database type: Dektak'
+                f'Database version = {database_version}'
+                ]
+
+    save_with_metadata(database, database_path, metadata=metadata)
     print('Done. Database saved at ', database_path)
 
 
-def replace_fit(folderpath, target_x, target_y, fitted_params):
-    database = pd.read_csv(get_database_path(folderpath))
+def replace_fit(database_path, target_x, target_y, fitted_params, metadata):
+
+    database = pd.read_csv(database_path, comment='#')
     rownumber = get_row_number(database, target_x, target_y)
 
     position_list, height_list = extract_fit(fitted_params)
@@ -533,4 +553,5 @@ def replace_fit(folderpath, target_x, target_y, fitted_params):
         for n in range(len(fitted_params)):
             height_column = f'Fit_parameter_{n}'
             database.loc[rownumber, height_column] = fitted_params[n]
-        database.to_csv(get_database_path(folderpath), index=False)
+
+        save_with_metadata(database, database_path, metadata=metadata)

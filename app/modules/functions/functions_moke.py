@@ -165,7 +165,7 @@ def make_database(folderpath, coil_factor=0.92667):
             grouped_files[number].append(filepath)
 
     database = pd.DataFrame()
-    # Now filter out groups that don't have exactly 3 files
+    # Filter out groups that don't have exactly 3 files
     for number, files in grouped_files.items():
         i = int(number) - 1
         for path in files:
@@ -207,6 +207,7 @@ def make_database(folderpath, coil_factor=0.92667):
 
         # Assign to database
         database.loc[i, 'File Number'] = number
+        database.loc[i, 'Ignore'] = 0
         database.loc[i, 'x_pos (mm)'] = float(path.name.split('_')[1].lstrip('x'))
         database.loc[i, 'y_pos (mm)'] = float(path.name.split('_')[2].lstrip('y'))
         database.loc[i, 'Kerr Rotation (deg)'] = kerr_mean
@@ -214,13 +215,24 @@ def make_database(folderpath, coil_factor=0.92667):
         database.loc[i, 'Derivative Coercivity (T)'] = d_coercivity
         database.loc[i, 'Measured Coercivity (T)'] = m_coercivity
 
-    database_path = folderpath / 'database.csv'
-    database.to_csv(database_path, index=False)
+    database_path = folderpath / (folderpath.name + '_database.csv')
+
+    date = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    app_version = get_version('app')
+    database_version = get_version('moke')
+
+    metadata = [f"Date of fitting: {date}",
+                f"Code version: {app_version}",
+                'Database type: Moke',
+                f'Moke database version = {database_version}',
+                f'Coil factor = {coil_factor}']
+
+    save_with_metadata(database, database_path, metadata=metadata)
     return database_path
 
 
-def heatmap_plot(folderpath, mode, title='', z_min=None, z_max=None):
-    database = pd.read_csv(folderpath / 'database.csv')
+def heatmap_plot(database_path, mode, title='', z_min=None, z_max=None, masking=False):
+    database = pd.read_csv(database_path, comment = '#')
 
     # Exit if no database is found
     if database is None:
@@ -245,14 +257,28 @@ def heatmap_plot(folderpath, mode, title='', z_min=None, z_max=None):
         values=values,
     )
 
+    # If mask is set, hide points that have an ignore tag in the database
+    if masking:
+        # Create a mask to hide ignored points
+        mask_data = database.pivot_table(
+            index = 'y_pos (mm)',
+            columns='x_pos (mm)',
+            values='Ignore'
+        )
+        # Ignore points
+        mask = (mask_data == 0)
+
+        heatmap_data = heatmap_data.where(mask, np.nan)
+
+
     # Min and max values for colorbar fixing
     if z_min is None:
-        z_min = database[values].min()
+        z_min = np.nanmin(heatmap_data.values)
     if z_max is None:
-        z_max = database[values].max()
+        z_max = np.nanmax(heatmap_data.values)
 
+    # Get unit from selected mode for colorbar title
     unit = values.split(' ')[-1]
-
 
     # Generate the heatmap plot from the dataframe
     heatmap = go.Heatmap(

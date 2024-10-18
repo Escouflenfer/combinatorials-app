@@ -1,9 +1,14 @@
 import sys
+import os
 
 from functions_dektak import *
 
 folderpath = None
 
+# Change working directory to app.py in order to properly resolve relative file pathing
+
+# os.chdir(Path(__file__).parent)
+print(os.getcwd())
 # try:
 if __name__ == "__main__":
     # Fetch arguments passed to the script

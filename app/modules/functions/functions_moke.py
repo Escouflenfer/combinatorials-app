@@ -5,9 +5,8 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 @Author: William Rigaut - Institut Néel (william.rigaut@neel.cnrs.fr)
 """
 
-import numpy as np
-import plotly.graph_objects as go
 import pandas as pd
+from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter
 from collections import defaultdict
 import re
@@ -33,6 +32,19 @@ def get_measurement_count(folderpath):
                 if "Average_per_point" in line:
                     avg_pts = line.split("=")[1]
         return int(avg_pts)
+    except FileNotFoundError:
+        return None
+
+def get_scan_dimension(folderpath):
+    infopath = folderpath / 'info.txt'
+    try:
+        with open(infopath, "r", encoding="iso-8859-1") as file_info:
+            for line in file_info:
+                if 'Number_of_points_x' in line:
+                    x_points = line.split("=")[1]
+                if "Number_of_points_y" in line:
+                    y_points = line.split("=")[1]
+        return int(x_points), int(y_points)
     except FileNotFoundError:
         return None
 
@@ -89,7 +101,7 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
     # Correct Magnetization for Oscilloscope offset
     offset = data['Magnetization'].mean()
     data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
-    data['Magnetization'] = savgol_filter(data['Magnetization'], 41, 3)
+    data['Magnetization'] = savgol_filter(data['Magnetization'], 61, 3)
 
     non_nan = data[data['Field'].notna()].index.values
     section = data.loc[non_nan, ('Magnetization', 'Field', 'Sum')]
@@ -423,3 +435,44 @@ def loop_derivative_plot(folderpath, target_x, target_y, measurement_id):
 
     return fig
 
+
+def loop_map_plot(folderpath, database_path):
+    database = pd.read_csv(database_path, comment='#')
+
+    x_min, x_max = database['x_pos (mm)'].min(), database['x_pos (mm)'].max()
+    y_min, y_max = database['y_pos (mm)'].min(), database['y_pos (mm)'].max()
+
+    x_dim, y_dim = get_scan_dimension(folderpath)
+
+    step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim-1)
+    step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim-1)
+
+    fig = make_subplots(rows=y_dim, cols=x_dim, horizontal_spacing=0.001, vertical_spacing=0.001)
+
+    # Update layout to hide axis lines, grid, and ticks for each subplot
+    fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
+    fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
+
+    # Update layout for aesthetics
+    fig.update_layout(height=1200, width=1200, title_text="Blobs", showlegend=False,
+                      plot_bgcolor='white')
+
+    pulse_voltage = get_pulse_voltage(folderpath) / 100
+
+    for pair in list(zip(database['x_pos (mm)'], database['y_pos (mm)'])):
+        target_x = pair[0]
+        target_y = pair[1]
+
+
+        data = load_measurement_files(folderpath, target_x, target_y, measurement_id=0)
+        data = calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667)
+
+        col = int((target_x/step_x + (x_dim+1)/2))
+        row = int((-target_y/step_y + (y_dim+1)/2))
+
+        fig.add_trace(go.Scatter(x=data['Field'], y=data['Magnetization'],
+                                 mode='lines', line=dict(color='SlateBlue', width=1)
+                      ), row=row, col=col)
+
+
+    return fig

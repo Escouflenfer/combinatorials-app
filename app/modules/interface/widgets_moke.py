@@ -29,14 +29,6 @@ class WidgetsMOKE:
 
                     html.Div(className='text-mid', children=[
                         html.Span(children='test', id='moke_text_box')
-                    ]),
-
-                    html.Div(className='text-7', children=[
-                        html.Button(children=['Save database'], id='moke_save_button', n_clicks=0)
-                    ]),
-
-                    html.Div(className='text-9', children=[
-                        html.Button(children=['Reload database'], id='moke_reload_button', n_clicks=0)
                     ])
                 ])
 
@@ -71,11 +63,21 @@ class WidgetsMOKE:
         ])
 
         # Widget for the right box (signal plotting options)
-        self.moke_right = html.Div(children=[
-            dcc.Dropdown(id='moke_plot_dropdown', options=[], className='dropdown-item'),
-            dcc.RadioItems(id='moke_plot_select',
-                                     options=['Raw data', 'Loop', 'Loop + Derivative'], value='Loop'),
-        ], className='top-right')
+        self.moke_right = html.Div(className='subgrid top-right', children=[
+            html.Div(className='subgrid 1', children=[
+                dcc.Dropdown(id='moke_plot_dropdown', options=[], className='long-item')
+            ]),
+            html.Div(className='subgrid 3', children=[
+                dcc.RadioItems(
+                    id='moke_plot_select',
+                    options=['Raw data', 'Loop', 'Loop + Derivative'],
+                    value='Loop',
+                    style={'display': 'inline-block'})
+            ]),
+            html.Div(className='subgrid 8', children=[
+                html.Button(children='Make Loop Map', id='moke_loop_map_button', n_clicks=0),
+            ])
+        ])
 
         # Widget for Moke heatmap
         self.moke_heatmap = html.Div(children=[
@@ -105,25 +107,37 @@ class WidgetsMOKE:
             label="MOKE",
             value="moke",
             children=[html.Div(children=[
-                dcc.Loading(
-                    id="loading-moke",
-                    type="default",
-                    delay_show=500,
-                    children=[
-                        html.Div(
-                            [
-                                self.moke_left,
-                                self.moke_center,
-                                self.moke_right,
-                                self.moke_heatmap,
-                                self.moke_profile,
-                                self.moke_stores
-                            ],
-                            className="grid-container",
-                        )
+                dcc.Tabs(id="moke_subtabs", value='moke_main', children=[
+                    dcc.Tab(id='moke_main', label='Main', children=[
+                        dcc.Loading(
+                            id="loading_main_moke",
+                            type="default",
+                            delay_show=500,
+                            children=[
+                                html.Div(
+                                    [
+                                        self.moke_left,
+                                        self.moke_center,
+                                        self.moke_right,
+                                        self.moke_heatmap,
+                                        self.moke_profile,
+                                        self.moke_stores
+                                    ],
+                                    className="grid-container",
+                                )
 
-                    ]
-                )
+                            ]
+                        )
+                    ]),
+                    dcc.Tab(id='moke_loop', label='Loop map', children=[
+                        dcc.Loading(
+                            id="loading_loop_moke",
+                            type="default",
+                            delay_show=500,
+                            children=[dcc.Graph(id="moke_loop_map_figure")],
+                        )
+                    ])
+                ])
             ])]
         )
 

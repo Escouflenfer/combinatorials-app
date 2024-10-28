@@ -88,10 +88,12 @@ def level_data(df, step=100):
     return slope, df
 
 
-def treat_data(df):
+def treat_data(df, savgol=True):
     # Treat the dataframe with all steps of the process at once, making it ready for measurement
     df = format_dataframe(df)
     slope, df = level_data(df)
+    if savgol:
+        df['Fitted Profile (nm)'] = savgol_filter(df['Fitted Profile (nm)'], 61, 1)
     return slope, df
 
 
@@ -174,7 +176,7 @@ def extract_fit(fitted_params):
         position_list.append(np.round(np.abs(b - (b - a) / 2), 1))
     position_list.pop()
 
-    # From fitted paramters, calculate heights
+    # From fitted parameters, calculate heights
     height_list = []
     for n in range(len(fit_height_list) - 1):
         a = fit_height_list[n]
@@ -498,8 +500,6 @@ def batch_fit(folderpath):
         x_data = data['Distance (um)']
         y_data = data['Fitted Profile (nm)']
 
-        y_data = savgol_filter(y_data, 41, 5)
-
         guess = generate_parameters(height=150, x0=x0)
 
         # Fit the multi-step function to the data
@@ -555,3 +555,12 @@ def replace_fit(database_path, target_x, target_y, fitted_params, metadata):
             database.loc[rownumber, height_column] = fitted_params[n]
 
         save_with_metadata(database, database_path, metadata=metadata)
+
+
+
+
+
+
+
+
+

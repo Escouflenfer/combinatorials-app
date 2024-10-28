@@ -104,13 +104,15 @@ def callbacks_moke(app, children_moke):
         Input('moke_heatmap_max', 'value'),
         Input('moke_heatmap_edit','value'),
         Input('moke_heatmap_replot_tag', 'data'),
+        State('moke_path_store', 'data'),
         prevent_initial_call=True
     )
-    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle, replot_tag):
+    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle, replot_tag, folderpath):
 
         if database_path is None:
             return go.Figure(layout=heatmap_layout('No database found')), None, None, False
 
+        folderpath = Path(folderpath)
         database_path = Path(database_path)
 
         if ctx.triggered_id in ['moke_heatmap_select', 'moke_heatmap_edit']:
@@ -126,7 +128,7 @@ def callbacks_moke(app, children_moke):
             masking = False
 
         heatmap = heatmap_plot(database_path, mode=selected_plot, title=database_path.name.strip('_database.csv'),
-                                   z_min=z_min, z_max=z_max, masking=masking)
+                               z_min=z_min, z_max=z_max, masking=masking)
 
         z_min = significant_round(heatmap.data[0].zmin, 3)
         z_max = significant_round(heatmap.data[0].zmax, 3)
@@ -193,6 +195,20 @@ def callbacks_moke(app, children_moke):
             return 'Invalid database. Please delete and reload to make a new one', False
 
 
+    @app.callback(
+        Output('moke_loop_map_figure', 'figure'),
+        Input('moke_loop_map_button', 'n_clicks'),
+        State('moke_path_store', 'data'),
+        State('moke_database_path_store', 'data'),
+        prevent_initial_call=True
+    )
+    def make_loop_map(n_clicks, folderpath, database_path):
+        folderpath = Path(folderpath)
+        database_path = Path(database_path)
+
+        if n_clicks>0:
+            figure = loop_map_plot(folderpath, database_path)
+            return figure
 
 
     # Callback to save heatmap

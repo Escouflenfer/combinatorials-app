@@ -30,7 +30,7 @@ def callbacks_dektak(app):
             return str(database_path), str(database_path.name), metadata
 
         if database_path is None and n_clicks > 0:
-            command = [sys.executable, Path('modules/functions/batch_fit_dektak.py')]
+            command = [sys.executable, Path('modules', 'functions', 'batch_fit_dektak.py')]
             command.append(folderpath)
             # Launch the script in a new terminal
             if sys.platform == 'win32':  # Windows

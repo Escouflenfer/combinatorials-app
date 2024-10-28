@@ -1,11 +1,16 @@
 from dash import Dash, dcc, html
 
 from modules.interface import widgets_browser, widgets_dektak, widgets_edx, widgets_moke
-from modules.callbacks import callbacks_browser, callbacks_dektak, callbacks_edx, callbacks_moke
+from modules.callbacks import (
+    callbacks_browser,
+    callbacks_dektak,
+    callbacks_edx,
+    callbacks_moke,
+)
 
 folderpath = None
 
-#%%
+# %%
 app = Dash(suppress_callback_exceptions=True)
 
 children_browser = widgets_browser.WidgetsBROWSER()
@@ -39,5 +44,5 @@ callbacks_dektak.callbacks_dektak(app)
 callbacks_edx.callbacks_edx(app)
 callbacks_moke.callbacks_moke(app, children_moke)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True, port=8051)

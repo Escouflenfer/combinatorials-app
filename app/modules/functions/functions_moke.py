@@ -63,12 +63,12 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
         elif 'sum' in str(path):
             sum = pd.read_table(path).dropna(axis=1, how='all')
 
+    # measurement_id = 0 returns average over all measurements
     if measurement_id == 0:
         data = pd.DataFrame({'Magnetization': mag.mean(axis=1),
                              'Pulse': pulse.mean(axis=1),
                              'Sum': sum.mean(axis=1)
                              })
-        return data
 
     elif measurement_id > 0:
         idx = measurement_id-1
@@ -76,21 +76,34 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
                              'Pulse': pulse.iloc[:, idx],
                              'Sum': sum.iloc[:, idx]
                              })
-        return data
 
     else:
         raise ValueError('Measurement number invalid, either out of range or not an integer')
 
+    data['Magnetization'] = savgol_filter(data['Magnetization'], 61, 2)
+
+    offset = data['Magnetization'].mean()
+    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
+
+    return data
 
 
-def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
+def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_length=61, polyorder=2):
     max_field = coil_factor * pulse_voltage
+
+    pos_start = 330
+    pos_end = 670
+    neg_start = 1330
+    neg_end = 1670
+
     # Remove pulse noise to isolate actual pulse signal
     data['Pulse'] = data['Pulse'].replace(0.0016667, 0)
     data['Pulse'] = data['Pulse'].replace(-0.0016667, 0)
+
     # Integrate pulse during triggers to get field
-    data.loc[330:670, 'Field'] = data.loc[330:670, 'Pulse'].cumsum()
-    data.loc[1330:1670, 'Field'] = data.loc[1330:1670, 'Pulse'].cumsum()
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Pulse'].cumsum()
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Pulse'].cumsum()
+
     # Correct field with coil parameters
     midpoint = len(data) // 2
     data.loc[:midpoint, 'Field'] = data.loc[:midpoint, 'Field'].apply(
@@ -98,10 +111,13 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
     data.loc[midpoint:, 'Field'] = data.loc[midpoint:, 'Field'].apply(
         lambda x: -x * max_field / np.abs(data['Field'].max()))
 
-    # Correct Magnetization for Oscilloscope offset
-    offset = data['Magnetization'].mean()
-    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
-    data['Magnetization'] = savgol_filter(data['Magnetization'], 61, 3)
+    # Data treatment
+    # Smooth measurement
+    data['Magnetization'] = savgol_filter(data['Magnetization'], window_length, polyorder)
+
+    # Remove overlap over H=0
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 2e-3)
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -2e-3)
 
     non_nan = data[data['Field'].notna()].index.values
     section = data.loc[non_nan, ('Magnetization', 'Field', 'Sum')]
@@ -109,14 +125,12 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
     return section
 
 
-def get_kerr_rotation(folderpath, target_x, target_y):
+def get_max_kerr_rotation(folderpath, target_x, target_y):
     data = load_measurement_files(folderpath, target_x, target_y, measurement_id=0)
-    offset = data['Magnetization'].mean()
-    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
-    data['Magnetization'] = savgol_filter(data['Magnetization'], 41, 3)
+
     kerr_max = data['Magnetization'].max()
     kerr_min = data['Magnetization'].min()
-    kerr_mean = (kerr_max + np.abs(kerr_min) )/2
+    kerr_mean = (kerr_max + np.abs(kerr_min))/2
     return kerr_mean
 
 
@@ -417,7 +431,7 @@ def loop_derivative_plot(folderpath, target_x, target_y, measurement_id):
                              mode='markers', line=dict(color='SlateBlue', width=3))
                   )
 
-    fig.add_trace(go.Scatter(x=data['Field'], y=data['Derivative'], mode='markers',
+    fig.add_trace(go.Scatter(x=data['Field'], y=data['Derivative'].apply(lambda x: 10*x), mode='markers',
                              line=dict(color='Firebrick', width=3)))
 
     fig.update_layout(

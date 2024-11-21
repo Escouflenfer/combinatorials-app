@@ -3,13 +3,13 @@
 Call ".venv\Scripts\activate.bat"
 
 :: Change to the app directory
-cd /d "%~dp0app"
+:: cd /d "%~dp0app"
 
 :: Start Python and run the Dash app
-start "Dash Server" python app.py
+start "Dash Server" python app\app.py
 
 :: Go back to the original directory
-cd /d "%~dp0"
+:: cd /d "%~dp0"
 
 :: Wait for the server to start
 timeout /t 8

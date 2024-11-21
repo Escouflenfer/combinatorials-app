@@ -407,6 +407,8 @@ def check_xrd_refinement(foldername):
     bool
         True if refinement files are found, False otherwise.
     """
+    if foldername is None:
+        return False
     foldername = pathlib.Path(foldername)
 
     # Check if folder exists
@@ -448,7 +450,7 @@ def plot_xrd_heatmap(foldername, datatype):
     empty_fig = go.Figure(data=go.Heatmap())
     empty_fig.update_layout(height=600, width=600)
     if foldername is None:
-        return empty_fig
+        return empty_fig, 0, 0
 
     x_pos_file, y_pos_file, xrd_filename = read_xrd_files(foldername)
     coordinate_list = [[x, y] for x, y in zip(x_pos_file, y_pos_file)]

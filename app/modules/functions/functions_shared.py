@@ -183,7 +183,7 @@ def significant_round(num, sig_figs):
         return np.nan
 
     # Calculate the factor to shift the decimal point
-    shift_factor = np.pow(10, sig_figs - np.ceil(np.log10(abs(num))))
+    shift_factor = np.power(10, sig_figs - np.ceil(np.log10(abs(num))))
 
     # Shift number, round, and shift back
     return round(num * shift_factor) / shift_factor

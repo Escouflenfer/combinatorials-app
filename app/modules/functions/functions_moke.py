@@ -89,6 +89,7 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
         return data
 
     else:
+
         raise ValueError(
             "Measurement number invalid, either out of range or not an integer"
         )
@@ -123,7 +124,7 @@ def adjust_magnetization(magnetization_data, ranges, avg_sum):
     )
 
 
-def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
+def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_length=61, polyorder=0):
     max_field = coil_factor * pulse_voltage
     # Remove pulse noise to isolate actual pulse signal
     data["Pulse"] = data["Pulse"].replace(0.0016667, 0)
@@ -132,6 +133,10 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
     data.loc[356:654, "Field"] = data.loc[356:654, "Pulse"].cumsum()
     data.loc[1356:1664, "Field"] = data.loc[1356:1664, "Pulse"].cumsum()
     # Correct field with coil parameters
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Pulse'].cumsum()
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Pulse'].cumsum()
+
+    #Correct field with coil parameters
     midpoint = len(data) // 2
     data.loc[:midpoint, "Field"] = data.loc[:midpoint, "Field"].apply(
         lambda x: -x * max_field / np.abs(data["Field"].min())
@@ -154,6 +159,15 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667):
 
     # Apply Savitzky-Golay filter
     data["Magnetization"] = savgol_filter(data["Magnetization"], 61, 3)
+    # Remove oscilloscope offset
+    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - data['Magnetization'].mean())
+
+
+    # # Remove overlap over H=0
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 1e-3)
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -1e-3)
+
+
 
     non_nan = data[data["Field"].notna()].index.values
     section = data.loc[non_nan, ("Magnetization", "Field", "Sum")]
@@ -439,6 +453,15 @@ def data_plot(folderpath, target_x, target_y, measurement_id):
             line=dict(color="Crimson", width=3),
         )
     )
+    fig.add_trace(go.Scatter(x=data.index, y=data['Magnetization'].apply(lambda x: x + 0.75),
+                             mode='lines', line=dict(color='SlateBlue', width=3))
+                  )
+    fig.add_trace(go.Scatter(x=data.index, y=data['Pulse'],
+                             mode='lines', line=dict(color='Green', width=3))
+                  )
+    fig.add_trace(go.Scatter(x=data.index, y=data['Sum'].apply(lambda x: x - 0.3),
+                             mode='lines', line=dict(color='Crimson', width=3))
+                  )
 
     fig.update_layout(
         # legend=dict(

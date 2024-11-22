@@ -40,9 +40,16 @@ def make_path_name(
     x_idx, y_idx = int((x_pos - start_x) / step_x + 1), int(
         (y_pos - start_y) / step_y + 1
     )
-    path_name = Path(f"{foldername}/Spectrum_({x_idx},{y_idx}).spx")
 
-    return path_name
+    path_name = Path(f"{foldername}/Spectrum_({x_idx},{y_idx}).spx")
+    if path_name.is_file():
+        return path_name
+    else:
+        path_name = Path(f"{foldername}/Spectre_({x_idx},{y_idx}).spx")
+        if path_name.is_file():
+            return path_name
+        else:
+            raise FileNotFoundError("Couldn't find spectrum file, check your folder")
 
 
 def create_result_list(element_list, results_ext):
@@ -250,11 +257,13 @@ def get_elements(foldername, with_plot=False):
     """
 
     # Reading in .xlsx file using openpyxl library, checking if file exists, if not returns empty list
-    filepath = Path(f"{foldername}/Global spectrum results.xlsx")
     try:
-        wb = load_workbook(filename=filepath)
+        wb = load_workbook(filename= Path(f"{foldername}/Global spectrum results.xlsx"))
     except FileNotFoundError:
-        return []
+        try:
+            wb = load_workbook(filename= Path(f"{foldername}/Résultats globaux.xlsx"))
+        except FileNotFoundError:
+                return []
     ws = wb.active
 
     # putting all the data inside lists to obtain a list of each line

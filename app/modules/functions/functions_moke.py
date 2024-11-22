@@ -80,15 +80,10 @@ def load_measurement_files(folderpath, target_x, target_y, measurement_id):
     else:
         raise ValueError('Measurement number invalid, either out of range or not an integer')
 
-    data['Magnetization'] = savgol_filter(data['Magnetization'], 61, 2)
-
-    offset = data['Magnetization'].mean()
-    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
-
     return data
 
 
-def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_length=61, polyorder=2):
+def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_length=61, polyorder=0):
     max_field = coil_factor * pulse_voltage
 
     pos_start = 330
@@ -104,7 +99,7 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_le
     data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Pulse'].cumsum()
     data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Pulse'].cumsum()
 
-    # Correct field with coil parameters
+    #Correct field with coil parameters
     midpoint = len(data) // 2
     data.loc[:midpoint, 'Field'] = data.loc[:midpoint, 'Field'].apply(
         lambda x: -x * max_field / np.abs(data['Field'].min()))
@@ -115,9 +110,15 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_le
     # Smooth measurement
     data['Magnetization'] = savgol_filter(data['Magnetization'], window_length, polyorder)
 
-    # Remove overlap over H=0
-    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 2e-3)
-    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -2e-3)
+    # Remove oscilloscope offset
+    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - data['Magnetization'].mean())
+
+
+    # # Remove overlap over H=0
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 1e-3)
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -1e-3)
+
+
 
     non_nan = data[data['Field'].notna()].index.values
     section = data.loc[non_nan, ('Magnetization', 'Field', 'Sum')]
@@ -358,13 +359,13 @@ def data_plot(folderpath, target_x, target_y, measurement_id):
     fig.update_xaxes(title_text='Time (s)')
     fig.update_yaxes(title_text='Voltage (V)')
 
-    fig.add_trace(go.Scatter(x=data.index, y=data['Magnetization'],
+    fig.add_trace(go.Scatter(x=data.index, y=data['Magnetization'].apply(lambda x: x + 0.75),
                              mode='lines', line=dict(color='SlateBlue', width=3))
                   )
     fig.add_trace(go.Scatter(x=data.index, y=data['Pulse'],
                              mode='lines', line=dict(color='Green', width=3))
                   )
-    fig.add_trace(go.Scatter(x=data.index, y=data['Sum'],
+    fig.add_trace(go.Scatter(x=data.index, y=data['Sum'].apply(lambda x: x - 0.3),
                              mode='lines', line=dict(color='Crimson', width=3))
                   )
 

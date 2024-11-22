@@ -2,7 +2,7 @@ from dash import Input, Output, State, Dash, ctx
 from dash.exceptions import PreventUpdate
 from pathlib import Path
 
-from ..functions.functions_moke_new import *
+from ..functions.functions_moke import *
 from ..functions.functions_shared import *
 
 '''Callbacks for MOKE tab'''
@@ -66,13 +66,18 @@ def callbacks_moke(app, children_moke):
             raise PreventUpdate
 
         folderpath = Path(folderpath)
+
         if position is None:
             fig = blank_plot()
         else:
             target_x = position[0]
             target_y = position[1]
-            data = load_target_measurement_files(folderpath, target_x, target_y, measurement_id)
-            data = treat_data(data, folderpath)
+
+            pulse_voltage = get_pulse_voltage(folderpath) / 100
+            data = load_measurement_files(folderpath, target_x, target_y, measurement_id)
+            data = treat_data(data, pulse_voltage)
+            data = extract_loop_from_data(data)
+
             if selected_plot == 'Loop':
                 fig = loop_plot(data)
             elif selected_plot == 'Raw data':
@@ -83,11 +88,11 @@ def callbacks_moke(app, children_moke):
                 fig = blank_plot()
 
             if heatmap_select == 'Derivative Coercivity' and position is not None:
-                pos, neg = calc_derivative_coercivity(data)
+                pos, neg = calc_derivative_coercivity(data, mean=False)
                 fig.add_vline(x=pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
             if heatmap_select == 'Measured Coercivity' and position is not None:
-                pos, neg = calc_mzero_coercivity(data)
+                pos, neg = calc_mzero_coercivity(data, mean=False)
                 fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
 
@@ -149,7 +154,7 @@ def callbacks_moke(app, children_moke):
         if folderpath is None:
             raise PreventUpdate
         folderpath = Path(folderpath)
-        number = read_info_file(folderpath)['shots_per_point']
+        number = get_measurement_count(folderpath)
         options=[{'label': 'Average', 'value': 0}]
         for n in range(number+1):
             if n != 0:
@@ -211,69 +216,3 @@ def callbacks_moke(app, children_moke):
         if n_clicks>0:
             figure = loop_map_plot(folderpath, database_path)
             return figure
-
-
-    # Callback to save heatmap
-    @app.callback(
-        Output('moke_text_box', 'children', allow_duplicate=True),
-        Input('moke_heatmap_save','n_clicks'),
-        State('moke_heatmap', 'figure'),
-        State('moke_path_store', 'data'),
-        prevent_initial_call=True
-        )
-
-    def save_heatmap(n_clicks, heatmap_fig, folderpath):
-        if folderpath is None:
-            raise PreventUpdate
-        folderpath = Path(folderpath)
-        heatmap_fig = go.Figure(heatmap_fig)
-        if n_clicks>0:
-            heatmap_fig.update_layout(
-                titlefont=dict(size=30),
-                xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-                yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-                height=700,
-                width=700
-            )
-
-            heatmap_fig.update_traces(
-                colorbar=dict(
-                    tickfont=dict(size=20),
-                    titlefont=dict(size=25),
-                    thickness=20
-                )
-            )
-
-            # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
-            heatmap_fig.write_image(folderpath / 'heatmap.png', format="png")
-
-            return f'Saved heatmap to png at {folderpath}'
-
-
-    # Callback to save plot
-    @app.callback(
-        Output('moke_text_box', 'children', allow_duplicate=True),
-        Input('moke_plot_save', 'n_clicks'),
-        State('moke_plot', 'figure'),
-        State('moke_path_store', 'data'),
-        prevent_initial_call=True
-    )
-    def save_plot(n_clicks, plot_fig, folderpath):
-        if folderpath is None:
-            raise PreventUpdate
-        folderpath = Path(folderpath)
-        plot_fig = go.Figure(plot_fig)
-        if n_clicks > 0:
-            plot_fig.update_layout(
-                titlefont=dict(size=30),
-                xaxis=dict(tickfont=dict(size=20), titlefont=dict(size=25)),
-                yaxis=dict(tickfont=dict(size=20), titlefont=dict(size=25)),
-                height=700,
-                width=1100
-            )
-
-
-            # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
-            plot_fig.write_image(folderpath / 'plot.png', format="png")
-
-            return f'Saved plot to png at {folderpath}'

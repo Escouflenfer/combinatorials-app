@@ -56,4 +56,4 @@ callbacks_moke.callbacks_moke(app, children_moke)
 callbacks_xrd.callbacks_xrd(app, children_xrd)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8051)
+    app.run(debug=True, port=8050)

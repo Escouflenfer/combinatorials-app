@@ -6,6 +6,7 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 """
 
 from dash import Input, Output, callback
+from dash.exceptions import PreventUpdate
 from ..functions.functions_xrd import *
 from ..functions.functions_shared import *
 

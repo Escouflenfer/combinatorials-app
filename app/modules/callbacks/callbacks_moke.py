@@ -197,6 +197,7 @@ def callbacks_moke(app, children_moke):
             return 'Invalid database. Please delete and reload to make a new one', False
 
 
+
     @app.callback(
         Output('moke_loop_map_figure', 'figure'),
         Input('moke_loop_map_button', 'n_clicks'),

@@ -104,7 +104,7 @@ class WidgetsMOKE:
             className="subgrid top-right",
             children=[
                 html.Div(
-                    className="subgrid 1",
+                    className="subgrid-1",
                     children=[
                         dcc.Dropdown(
                             id="moke_plot_dropdown", options=[], className="long-item"
@@ -112,7 +112,7 @@ class WidgetsMOKE:
                     ],
                 ),
                 html.Div(
-                    className="subgrid 3",
+                    className="subgrid-2",
                     children=[
                         dcc.RadioItems(
                             id="moke_plot_select",
@@ -123,7 +123,7 @@ class WidgetsMOKE:
                     ],
                 ),
                 html.Div(
-                    className="subgrid 8",
+                    className="subgrid-3",
                     children=[
                         html.Button(
                             children="Make Loop Map",
@@ -132,6 +132,42 @@ class WidgetsMOKE:
                         ),
                     ],
                 ),
+                html.Div(
+                    className="subgrid-7",
+                    children=[
+                        dcc.Checklist(
+                            className='long-item',
+                            id="moke_data_treatment_checklist",
+                            options=[
+                                {"label": "Smoothing", "value": "smoothing"},
+                                {"label": "Correct offset", "value": "offset"},
+                                {"label": "Low field filter", "value": "filter"},
+                            ],
+                            value=["smoothing", "offset", "filter"],
+                        )
+                    ]
+                ),
+                html.Div(
+                    className="subgrid-9",
+                    id='moke_data_treatment_inputs',
+                    children=[
+                        html.Label('Smoothing parameters'),
+                        html.Label('Polyorder'),
+                        dcc.Input(
+                            id='moke_smoothing_polyorder',
+                            type='number',
+                            min=0,
+                            step=1,
+                        ),
+                        html.Label('Range'),
+                        dcc.Input(
+                            id='moke_smoothing_range',
+                            type='number',
+                            min=0,
+                            step=1
+                        )
+                    ]
+                )
             ],
         )
 
@@ -159,7 +195,7 @@ class WidgetsMOKE:
                 dcc.Store(id="moke_position_store", data=None),
                 dcc.Store(id="moke_database_path_store", data=None),
                 dcc.Store(id="moke_heatmap_replot_tag", data=False),
-                dcc.Store(id="moke_database_metadata_store", data=None),
+                dcc.Store(id="moke_database_metadata_store", data=None)
             ]
         )
 

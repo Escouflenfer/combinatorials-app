@@ -115,8 +115,8 @@ def calculate_loop_from_data(data, pulse_voltage, coil_factor=0.92667, window_le
 
 
     # # Remove overlap over H=0
-    # data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 1e-3)
-    # data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -1e-3)
+    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 1e-3)
+    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -1e-3)
 
 
 

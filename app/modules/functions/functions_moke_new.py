@@ -16,7 +16,7 @@ import re
 from ..functions.functions_shared import *
 
 def read_info_file(folderpath: Path):
-    '''
+    """
     Read info.txt and extract necessary parameters for further treatment
 
     Parameters:
@@ -24,7 +24,7 @@ def read_info_file(folderpath: Path):
 
     Returns:
         dictionary
-    '''
+    """
 
     infopath = folderpath / 'info.txt'
     try:
@@ -51,19 +51,19 @@ def read_info_file(folderpath: Path):
 
 
 
-def load_target_measurement_files(folderpath: Path, target_x: int, target_y: int, measurement_nb: int = 0):
-    '''
+def load_target_measurement_files(folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0):
+    """
         For a given x and y position and measurement number, find and load corresponding measurement
 
         Parameters:
             folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
-            target_x(int) : x position of targeted measurement
-            target_y(int) : y position of targeted measurement
+            target_x(float) : x position of targeted measurement
+            target_y(float) : y position of targeted measurement
             measurement_nb(int) : for multiple acquisition per points, specify which one should be loaded. If 0, measurements will be averaged (default)
 
         Returns:
             pd.Dataframe
-        '''
+    """
     files = []
 
     for path in folderpath.glob('p*.txt'):
@@ -100,23 +100,9 @@ def load_target_measurement_files(folderpath: Path, target_x: int, target_y: int
     return data
 
 
-def correct_magnetization_offset(data):
-    '''
-        Calculate and remove the offset from the oscilloscope to center the loops around y=0
-
-        Parameters:
-            data(pd.Dataframe) : data to be corrected
-        Returns:
-            pd.Dataframe
-    '''
-    offset = data['Magnetization'].mean()
-    data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
-
-    return data
-
-
-def calculate_field(data, pulse_voltage, coil_factor=0.92667):
-    '''
+def treat_data(data: pd.DataFrame, folderpath:Path, coil_factor:float=0.92667, correct_offset:bool=True,
+               smooth:bool=True, smooth_window_length:int=61, smooth_polyorder:int=1, filter_zero:bool=True):
+    """
         Calculate the field by integrating over the pulse signal and then normalizing by the instrumental parameters
 
         Parameters:
@@ -125,8 +111,10 @@ def calculate_field(data, pulse_voltage, coil_factor=0.92667):
             coil_factor(float) : Calibration factor for the coil. Current default = 0.92667 T / 100 V (05/11/2024)
         Returns:
             pd.Dataframe
-    '''
-    max_field = coil_factor * pulse_voltage / 100
+    """
+
+    pulse_voltage = read_info_file(folderpath)['pulse_voltage']
+    max_field = coil_factor/100 * pulse_voltage
 
     pos_start = 330
     pos_end = 670
@@ -141,96 +129,125 @@ def calculate_field(data, pulse_voltage, coil_factor=0.92667):
     data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Pulse'].cumsum()
     data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Pulse'].cumsum()
 
-    # Correct field with coil parameters
+    # Set field using coil parameters
     midpoint = len(data) // 2
     data.loc[:midpoint, 'Field'] = data.loc[:midpoint, 'Field'].apply(
         lambda x: -x * max_field / np.abs(data['Field'].min()))
     data.loc[midpoint:, 'Field'] = data.loc[midpoint:, 'Field'].apply(
         lambda x: -x * max_field / np.abs(data['Field'].max()))
 
-    # Remove overlap over H=0
-    data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 2e-3)
-    data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -2e-3)
+    # Correct offset
+    if correct_offset:
+        offset = data['Magnetization'].mean()
+        data['Magnetization'] = data['Magnetization'].apply(lambda x: x - offset)
+
+    # Data smoothing
+    if smooth:
+        data['Magnetization'] = savgol_filter(data['Magnetization'], smooth_window_length, smooth_polyorder)
+
+    # Remove oddities around H=0 by forcing points in the positive(negative) loop to be over(under) a threshold
+    if filter_zero:
+        data.loc[pos_start:pos_end, 'Field'] = data.loc[pos_start:pos_end, 'Field'].where(data['Field'] > 2e-3)
+        data.loc[neg_start:neg_end, 'Field'] = data.loc[neg_start:neg_end, 'Field'].where(data['Field'] < -2e-3)
 
     return data
 
 
-def smooth_data(data: pd.DataFrame, window_length: int=61, polyorder: int=1):
-    '''
-       Using a Savitzky-Golay filter, smooth the data
 
-       Parameters:
-           data(pd.Dataframe) : data that needs to be smoothed
-           window_length(int) : length of the averaging window. default = 61
-           polyorder(int) : order of the smoothing polynomial. default = 1
-       Returns:
-           pd.Dataframe
-   '''
-    # Smooth measurement
-    data['Magnetization'] = savgol_filter(data['Magnetization'], window_length, polyorder)
-
-    return data
-
-def extract_loop_from_data(data: pd.DataFrame):
-    '''
-          From a dataframe, select only the parts where the field is defined
+def extract_loop_section(data: pd.DataFrame):
+    """
+          From a dataframe, select only the parts where the field is defined, resulting in a section containing only the loop
 
           Parameters:
-              data(pd.Dataframe) : source dataframe
+              data(pd.Dataframe) : source dataframe with a 'Field' column
           Returns:
               pd.Dataframe
-      '''
+    """
     # Keep only the points where field is defined, removing points outside of pulse
     try:
         non_nan = data[data['Field'].notna()].index.values
         loop_section = data.loc[non_nan, :]
         loop_section.reset_index(drop=True, inplace=True)
+        return loop_section
     except NameError:
-        
-
-    return loop_section
+        raise NameError('Field column not defined')
 
 
-def calc_max_kerr_rotation(data):
-    kerr_max = data['Magnetization'].max()
-    kerr_min = data['Magnetization'].min()
 
-    kerr_mean = (kerr_max + np.abs(kerr_min))/2
+def calc_max_kerr_rotation(data:pd.DataFrame):
+    """
+        From a dataframe, return the value for the saturation Kerr rotation
 
-    return kerr_mean
+        Parameters:
+            data(pd.Dataframe) : source dataframe with a 'Magnetization' column
+
+        Returns:
+            float
+    """
+    try:
+        kerr_max = data['Magnetization'].max()
+        kerr_min = data['Magnetization'].min()
+        kerr_mean = (kerr_max + np.abs(kerr_min))/2
+        return kerr_mean
+    except NameError:
+        raise NameError('Magnetization column not defined')
 
 
-def calc_reflectivity(data):
-    reflectivity = data['Sum'].mean(axis=0)
+def calc_reflectivity(data:pd.DataFrame):
+    """
+          From a dataframe, return the value for the reflectivity Kerr rotation
 
-    return reflectivity
+          Parameters:
+              data(pd.Dataframe) : source dataframe with a 'Sum' column
+
+          Returns:
+              float
+    """
+    try:
+        reflectivity = data['Sum'].mean(axis=0)
+        return reflectivity
+    except NameError:
+        raise NameError('Sum column not defined')
 
 
-def calc_derivative_coercivity(data, mean=True):
+def calc_derivative_coercivity(data:pd.DataFrame):
+    """
+            From a dataframe, return the field values for the extremes of dM/dH
+
+            Parameters:
+               data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+
+            Returns:
+               float, float
+    """
     data['Derivative'] = data['Magnetization'] - data['Magnetization'].shift(1)
     data.loc[np.abs(data['Field']) < 2e-3, 'Derivative'] = 0 # Avoid derivative discrepancies around 0 Field
+
     # For positive / negative field, find index of maximum / minimum derivative and extract corresponding field
     coercivity_positive = data.loc[data.loc[data['Field'] > 0, 'Derivative'].idxmax(), 'Field']
     coercivity_negative = data.loc[data.loc[data['Field'] < 0, 'Derivative'].idxmin(), 'Field']
-    if mean == True:
-        coercivity = (np.abs(coercivity_positive) + np.abs(coercivity_negative)) / 2
-        return coercivity
-    else:
-        return coercivity_positive, coercivity_negative
+
+    return coercivity_positive, coercivity_negative
 
 
-def calc_mzero_coercivity(data, mean=True):
+def calc_mzero_coercivity(data:pd.DataFrame):
+    """
+           From a dataframe, return the field values where Magnetization is closest to 0
+
+           Parameters:
+               data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+
+           Returns:
+               float, float
+    """
     coercivity_positive = data.loc[np.abs(data.loc[data['Field'] > 0, 'Magnetization']).idxmin(), 'Field']
     coercivity_negative = data.loc[np.abs(data.loc[data['Field'] < 0, 'Magnetization']).idxmin(), 'Field']
-    if mean == True:
-        coercivity = (np.abs(coercivity_positive) + np.abs(coercivity_negative)) / 2
-        return coercivity
-    else:
-        return coercivity_positive, coercivity_negative
+
+    return coercivity_positive, coercivity_negative
 
 
-def make_database(folderpath, coil_factor=0.92667):
-    pulse_voltage = get_pulse_voltage(folderpath) / 100
+def make_database(folderpath:Path, coil_factor:float=0.92667):
+    pulse_voltage = read_info_file(folderpath)['pulse_voltage']
 
     # Regular expression to match 'p' followed by a number
     pattern = re.compile(r'p(\d+)')
@@ -247,7 +264,7 @@ def make_database(folderpath, coil_factor=0.92667):
     # Initialize Dataframe
     database = pd.DataFrame()
 
-    # Filter out groups that don't have exactly 3 files
+    # Iterate over measurement files
     for number, files in grouped_files.items():
         i = int(number) - 1
         for path in files:
@@ -263,7 +280,7 @@ def make_database(folderpath, coil_factor=0.92667):
                              'Sum': sum.mean(axis=1)
                              })
 
-        data = treat_data(data, pulse_voltage)
+        data = treat_data(data, folderpath, coil_factor=0.92667, correct_offset=True, smooth=True, smooth_window_length=61, smooth_polyorder=1, filter_zero=True)
 
         # Get max Kerr rotation
         kerr_mean = calc_max_kerr_rotation(data)
@@ -272,10 +289,10 @@ def make_database(folderpath, coil_factor=0.92667):
         reflectivity = calc_reflectivity(data)
 
         # Get coercivity from maximum derivative
-        d_coercivity = calc_derivative_coercivity(data)
+        d_coercivity = np.mean(calc_derivative_coercivity(data))
 
         # Get M=0 coercivity
-        m_coercivity = calc_mzero_coercivity(data)
+        m_coercivity = np.mean(calc_mzero_coercivity(data))
 
         # Assign to database
         database.loc[i, 'File Number'] = number
@@ -390,9 +407,7 @@ def blank_plot():
     return fig
 
 
-def data_plot(folderpath, target_x, target_y, measurement_id):
-    data = load_measurement_files(folderpath, target_x, target_y, measurement_id)
-
+def data_plot(data):
     fig = go.Figure()
 
     fig.update_xaxes(title_text='Time (s)')
@@ -418,7 +433,7 @@ def data_plot(folderpath, target_x, target_y, measurement_id):
     return fig
 
 def loop_plot(data):
-    data = extract_loop_from_data(data)
+    data = extract_loop_section(data)
 
     fig = go.Figure()
 
@@ -441,6 +456,7 @@ def loop_plot(data):
 
 
 def loop_derivative_plot(data):
+    data = extract_loop_section(data)
     data['Derivative'] = data['Magnetization'] - data['Magnetization'].shift(1)
     data.loc[np.abs(data['Field']) < 1e-3, 'Derivative'] = 0 # Avoid derivative discrepancies around 0 Field
 
@@ -473,7 +489,8 @@ def loop_map_plot(folderpath, database_path):
     x_min, x_max = database['x_pos (mm)'].min(), database['x_pos (mm)'].max()
     y_min, y_max = database['y_pos (mm)'].min(), database['y_pos (mm)'].max()
 
-    x_dim, y_dim = get_scan_dimension(folderpath)
+    info_file = read_info_file(folderpath)
+    x_dim, y_dim = info_file['number_of_points_x'], info_file['number_of_points_y']
 
     step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim-1)
     step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim-1)
@@ -488,16 +505,16 @@ def loop_map_plot(folderpath, database_path):
     fig.update_layout(height=1200, width=1200, title_text="Blobs", showlegend=False,
                       plot_bgcolor='white')
 
-    pulse_voltage = get_pulse_voltage(folderpath) / 100
+    pulse_voltage = info_file['pulse_voltage'] / 100
 
     for pair in list(zip(database['x_pos (mm)'], database['y_pos (mm)'])):
         target_x = pair[0]
         target_y = pair[1]
 
 
-        data = load_measurement_files(folderpath, target_x, target_y, measurement_id=0)
-        data = treat_data(data, pulse_voltage)
-        data = extract_loop_from_data(data)
+        data = load_target_measurement_files(folderpath, target_x, target_y, measurement_id=0)
+        data = treat_data(data, folderpath)
+        data = extract_loop_section(data)
 
         col = int((target_x/step_x + (x_dim+1)/2))
         row = int((-target_y/step_y + (y_dim+1)/2))

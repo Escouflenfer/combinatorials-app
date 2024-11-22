@@ -2,7 +2,7 @@ from dash import Input, Output, State, Dash, ctx
 from dash.exceptions import PreventUpdate
 from pathlib import Path
 
-from ..functions.functions_moke import *
+from ..functions.functions_moke_new import *
 from ..functions.functions_shared import *
 
 '''Callbacks for MOKE tab'''
@@ -71,21 +71,23 @@ def callbacks_moke(app, children_moke):
         else:
             target_x = position[0]
             target_y = position[1]
+            data = load_target_measurement_files(folderpath, target_x, target_y, measurement_id)
+            data = treat_data(data, folderpath)
             if selected_plot == 'Loop':
-                fig = loop_plot(folderpath, target_x, target_y, measurement_id)
+                fig = loop_plot(data)
             elif selected_plot == 'Raw data':
-                fig = data_plot(folderpath, target_x, target_y, measurement_id)
+                fig = data_plot(data)
             elif selected_plot == 'Loop + Derivative':
-                fig = loop_derivative_plot(folderpath, target_x, target_y, measurement_id)
+                fig = loop_derivative_plot(data)
             else:
                 fig = blank_plot()
 
             if heatmap_select == 'Derivative Coercivity' and position is not None:
-                pos, neg = get_derivative_coercivity(folderpath, target_x, target_y, mean=False)
+                pos, neg = calc_derivative_coercivity(data)
                 fig.add_vline(x=pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
             if heatmap_select == 'Measured Coercivity' and position is not None:
-                pos, neg = get_measured_coercivity(folderpath, target_x, target_y, mean=False)
+                pos, neg = calc_mzero_coercivity(data)
                 fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
 
@@ -147,7 +149,7 @@ def callbacks_moke(app, children_moke):
         if folderpath is None:
             raise PreventUpdate
         folderpath = Path(folderpath)
-        number = get_measurement_count(folderpath)
+        number = read_info_file(folderpath)['shots_per_point']
         options=[{'label': 'Average', 'value': 0}]
         for n in range(number+1):
             if n != 0:

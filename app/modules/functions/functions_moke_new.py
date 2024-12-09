@@ -16,6 +16,9 @@ import re
 
 from ..functions.functions_shared import *
 
+pd.set_option('display.max_rows', 500)
+from IPython.display import display
+
 
 def read_info_file(folderpath: Path):
     """
@@ -52,9 +55,7 @@ def read_info_file(folderpath: Path):
         return None
 
 
-def load_target_measurement_files(
-    folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0
-):
+def load_target_measurement_files(folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0):
     """
     For a given x and y position and measurement number, find and load corresponding measurement
 
@@ -111,26 +112,33 @@ def load_target_measurement_files(
     return data
 
 
-def treat_data(
-    data: pd.DataFrame,
-    folderpath: Path,
-    coil_factor: float = 0.92667,
-    correct_offset: bool = True,
-    smooth: bool = True,
-    smooth_window_length: int = 61,
-    smooth_polyorder: int = 1,
-    filter_zero: bool = True,
-):
+def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
+
     """
     Calculate the field by integrating over the pulse signal and then normalizing by the instrumental parameters
 
     Parameters:
         data(pd.Dataframe) : data for which the field needs to be calculated
         pulse_voltage(float) : Recorded pulse voltage from the measurement, can be found in info.txt file
-        coil_factor(float) : Calibration factor for the coil. Current default = 0.92667 T / 100 V (05/11/2024)
+        treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
     Returns:
         pd.Dataframe
     """
+    try:
+        coil_factor = float(treatment_dict["coil_factor"])
+        smoothing = treatment_dict["smoothing"]
+        smoothing_polyorder = int(treatment_dict["smoothing_polyorder"])
+        smoothing_range = int(treatment_dict["smoothing_range"])
+        correct_offset = treatment_dict["correct_offset"]
+        filter_zero = treatment_dict["filter_zero"]
+        connect_loops = treatment_dict["connect_loops"]
+
+    except KeyError:
+        raise KeyError('Invalid data treatment dictionary, '
+                       'check compatibility between callbacks_moke.store_data_treatment and functions_moke.treat_data')
+
+
+
 
     pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
     max_field = coil_factor / 100 * pulse_voltage
@@ -162,20 +170,50 @@ def treat_data(
         offset = data["Magnetization"].mean()
         data["Magnetization"] = data["Magnetization"].apply(lambda x: x - offset)
 
-    # Data smoothing
-    if smooth:
-        data["Magnetization"] = savgol_filter(
-            data["Magnetization"], smooth_window_length, smooth_polyorder
-        )
 
     # Remove oddities around H=0 by forcing points in the positive(negative) loop to be over(under) a threshold
     if filter_zero:
-        data.loc[pos_start:pos_end, "Field"] = data.loc[
-            pos_start:pos_end, "Field"
-        ].where(data["Field"] > 2e-3)
-        data.loc[neg_start:neg_end, "Field"] = data.loc[
-            neg_start:neg_end, "Field"
-        ].where(data["Field"] < -2e-3)
+        data.loc[pos_start:pos_end, "Field"] = data.loc[pos_start:pos_end].where(data["Field"] > 1e-2)
+        data.loc[neg_start:neg_end, "Field"] = data.loc[neg_start:neg_end].where(data["Field"] < -1e-2)
+
+        pos_start, pos_end = (
+            data.loc[pos_start:pos_end, "Field"].first_valid_index(),
+            data.loc[pos_start:pos_end, "Field"].last_valid_index())
+
+        neg_start, neg_end = (
+            data.loc[neg_start:neg_end, "Field"].first_valid_index(),
+            data.loc[neg_start:neg_end, "Field"].last_valid_index())
+
+    # Data smoothing
+    if smoothing:
+        data.loc[:,"Magnetization"] = savgol_filter(
+            data["Magnetization"], smoothing_range, smoothing_polyorder
+        )
+
+
+    # Connect both pulses around H = 0
+    if connect_loops:
+        distance_positive = np.abs(data.loc[pos_start, "Magnetization"] - data.loc[pos_end, "Magnetization"])
+        distance_negative = np.abs(data.loc[neg_start, "Magnetization"] - data.loc[neg_end, "Magnetization"])
+        distance_mean = np.mean([np.abs(distance_positive), np.abs(distance_negative)])
+
+        max_signal = calc_max_kerr_rotation(data)
+
+        coefficient_positive = (distance_mean / distance_positive)
+        coefficient_negative = (distance_mean / distance_negative)
+
+        offset_positive = data.loc[pos_start, "Magnetization"] - data.loc[neg_end, "Magnetization"]
+        offset_negative = data.loc[pos_end, "Magnetization"] - data.loc[neg_start, "Magnetization"]
+        offset_mean = np.mean([offset_positive, offset_negative])
+
+        data.loc[pos_start:pos_end, "Magnetization"] = data.loc[pos_start:pos_end, "Magnetization"].apply(
+            lambda x: (x*coefficient_positive)-offset_mean/2)
+        data.loc[neg_start:neg_end, "Magnetization"] = data.loc[neg_start:neg_end, "Magnetization"].apply(
+            lambda x: (x*coefficient_negative)+offset_mean/2)
+
+        new_max_signal = calc_max_kerr_rotation(data)
+
+        data.loc[:,"Magnetization"] = data.loc[:,"Magnetization"].apply(lambda x: x*max_signal/new_max_signal)
 
     return data
 
@@ -246,17 +284,11 @@ def calc_derivative_coercivity(data: pd.DataFrame):
        float, float
     """
     data["Derivative"] = data["Magnetization"] - data["Magnetization"].shift(1)
-    data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = (
-        0  # Avoid derivative discrepancies around 0 Field
-    )
+    data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = 0  # (Avoid derivative discrepancies around 0 Field)
 
     # For positive / negative field, find index of maximum / minimum derivative and extract corresponding field
-    coercivity_positive = data.loc[
-        data.loc[data["Field"] > 0, "Derivative"].idxmax(), "Field"
-    ]
-    coercivity_negative = data.loc[
-        data.loc[data["Field"] < 0, "Derivative"].idxmin(), "Field"
-    ]
+    coercivity_positive = data.loc[data.loc[data["Field"] > 0, "Derivative"].idxmax(), "Field"]
+    coercivity_negative = data.loc[data.loc[data["Field"] < 0, "Derivative"].idxmin(), "Field"]
 
     return coercivity_positive, coercivity_negative
 
@@ -281,9 +313,7 @@ def calc_mzero_coercivity(data: pd.DataFrame):
     return coercivity_positive, coercivity_negative
 
 
-def make_database(folderpath: Path, coil_factor: float = 0.92667):
-    pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
-
+def make_database(folderpath: Path, treatment_dict: dict):
     # Regular expression to match 'p' followed by a number
     pattern = re.compile(r"p(\d+)")
 
@@ -318,16 +348,7 @@ def make_database(folderpath: Path, coil_factor: float = 0.92667):
             }
         )
 
-        data = treat_data(
-            data,
-            folderpath,
-            coil_factor=0.92667,
-            correct_offset=True,
-            smooth=True,
-            smooth_window_length=61,
-            smooth_polyorder=1,
-            filter_zero=True,
-        )
+        data = treat_data(data, folderpath, treatment_dict)
 
         # Get max Kerr rotation
         kerr_mean = calc_max_kerr_rotation(data)
@@ -336,20 +357,20 @@ def make_database(folderpath: Path, coil_factor: float = 0.92667):
         reflectivity = calc_reflectivity(data)
 
         # Get coercivity from maximum derivative
-        d_coercivity = np.mean(calc_derivative_coercivity(data))
+        d_coercivity = np.mean(np.abs(calc_derivative_coercivity(data)))
 
         # Get M=0 coercivity
-        m_coercivity = np.mean(calc_mzero_coercivity(data))
+        m_coercivity = np.mean(np.abs(calc_mzero_coercivity(data)))
 
         # Assign to database
         database.loc[i, "File Number"] = number
         database.loc[i, "Ignore"] = 0
         database.loc[i, "x_pos (mm)"] = float(path.name.split("_")[1].lstrip("x"))
         database.loc[i, "y_pos (mm)"] = float(path.name.split("_")[2].lstrip("y"))
-        database.loc[i, "Kerr Rotation (deg)"] = kerr_mean
+        database.loc[i, "Max Kerr Rotation (deg)"] = kerr_mean
         database.loc[i, "Reflectivity (V)"] = reflectivity
-        database.loc[i, "Derivative Coercivity (T)"] = d_coercivity
-        database.loc[i, "Measured Coercivity (T)"] = m_coercivity
+        database.loc[i, "Coercivity max(dM/dH) (T)"] = d_coercivity
+        database.loc[i, "Coercivity M = 0 (T)"] = m_coercivity
 
     database_path = folderpath / (folderpath.name + "_database.csv")
 
@@ -357,13 +378,13 @@ def make_database(folderpath: Path, coil_factor: float = 0.92667):
     app_version = get_version("app")
     database_version = get_version("moke")
 
-    metadata = [
-        f"Date of fitting: {date}",
-        f"Code version: {app_version}",
-        "Database type: Moke",
-        f"Moke database version = {database_version}",
-        f"Coil factor = {coil_factor}",
-    ]
+    metadata = {"Date of fitting":date,
+                "Code version":app_version,
+                "Database type":'moke',
+                "Database version":database_version
+                }
+
+    metadata.update(treatment_dict)
 
     save_with_metadata(database, database_path, metadata=metadata)
     return database_path
@@ -378,15 +399,15 @@ def heatmap_plot(database_path, mode, title="", z_min=None, z_max=None, masking=
 
     # Mode selection
     if mode == "Kerr Rotation":
-        values = "Kerr Rotation (deg)"
+        values = "Max Kerr Rotation (deg)"
     elif mode == "Reflectivity":
         values = "Reflectivity (V)"
-    elif mode == "Derivative Coercivity":
-        values = "Derivative Coercivity (T)"
-    elif mode == "Measured Coercivity":
-        values = "Measured Coercivity (T)"
+    elif mode == "Coercivity max(dM/dH)":
+        values = "Coercivity max(dM/dH) (T)"
+    elif mode == "Coercivity M = 0":
+        values = "Coercivity M = 0 (T)"
     else:
-        values = "Kerr Rotation (deg)"
+        values = "Max Kerr Rotation (deg)"
 
     # Create a dataframe formatted as the 2d map
     heatmap_data = database.pivot_table(
@@ -492,7 +513,7 @@ def loop_plot(data):
 
     # First plot
     fig.update_xaxes(title_text="Field (T)")
-    fig.update_yaxes(title_text="Kerr roation (deg)")
+    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
 
     fig.add_trace(
         go.Scatter(
@@ -519,7 +540,7 @@ def loop_derivative_plot(data):
 
     # First plot
     fig.update_xaxes(title_text="Field (T)")
-    fig.update_yaxes(title_text="Kerr roation (deg)")
+    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
 
     fig.add_trace(
         go.Scatter(
@@ -544,14 +565,15 @@ def loop_derivative_plot(data):
     return fig
 
 
-def loop_map_plot(folderpath, database_path):
+def loop_map_plot(folderpath, database_path, treatment_dict):
     database = pd.read_csv(database_path, comment="#")
+
+    info_dict = read_info_file(folderpath)
 
     x_min, x_max = database["x_pos (mm)"].min(), database["x_pos (mm)"].max()
     y_min, y_max = database["y_pos (mm)"].min(), database["y_pos (mm)"].max()
 
-    info_file = read_info_file(folderpath)
-    x_dim, y_dim = info_file["number_of_points_x"], info_file["number_of_points_y"]
+    x_dim, y_dim = info_dict["x_dimension"], info_dict["y_dimension"]
 
     step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim - 1)
     step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim - 1)
@@ -573,16 +595,14 @@ def loop_map_plot(folderpath, database_path):
         plot_bgcolor="white",
     )
 
-    pulse_voltage = info_file["pulse_voltage"] / 100
-
     for pair in list(zip(database["x_pos (mm)"], database["y_pos (mm)"])):
         target_x = pair[0]
         target_y = pair[1]
 
         data = load_target_measurement_files(
-            folderpath, target_x, target_y, measurement_id=0
+            folderpath, target_x, target_y, measurement_nb=0
         )
-        data = treat_data(data, folderpath)
+        data = treat_data(data, folderpath, treatment_dict)
         data = extract_loop_section(data)
 
         col = int((target_x / step_x + (x_dim + 1) / 2))

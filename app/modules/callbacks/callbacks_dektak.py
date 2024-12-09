@@ -36,7 +36,7 @@ def callbacks_dektak(app):
         if database_path is None and n_clicks > 0:
             command = [
                 Path(sys.executable),
-                Path(os.path.abspath("./app/modules/functions/batch_fit_dektak.py")),
+                Path(os.path.abspath("./modules/functions/batch_fit_dektak.py")),
             ]
             command.append(folderpath)
             # Launch the script in a new terminal
@@ -212,7 +212,7 @@ def callbacks_dektak(app):
     )
     def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle):
         if database_path is None:
-            return go.Figure(layout=heatmap_layout("No database found")), None, None
+            return blank_heatmap(), None, None
 
         database_path = Path(database_path)
 

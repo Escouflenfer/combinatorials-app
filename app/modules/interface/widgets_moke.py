@@ -34,6 +34,10 @@ class WidgetsMOKE:
                     className="text-mid",
                     children=[html.Span(children="test", id="moke_text_box")],
                 ),
+                html.Div(
+                    className="text_8",
+                    children=[html.Button(id='moke_make_database_button', children="Make database!", n_clicks=0)],
+                )
             ],
         )
 
@@ -50,12 +54,12 @@ class WidgetsMOKE:
                             id="moke_heatmap_select",
                             className="long-item",
                             options=[
-                                "Kerr Rotation",
+                                "Max Kerr Rotation",
                                 "Reflectivity",
-                                "Derivative Coercivity",
-                                "Measured Coercivity",
+                                "Coercivity M = 0",
+                                "Coercivity max(dM/dH)",
                             ],
-                            value="Kerr Rotation",
+                            value="Max Kerr Rotation",
                         ),
                     ],
                 ),
@@ -133,6 +137,19 @@ class WidgetsMOKE:
                     ],
                 ),
                 html.Div(
+                    className="subgrid-4",
+                    children=[
+                        html.Label('Coil Factor (T/100V)'),
+                        dcc.Input(
+                            className='long-item',
+                            id='moke_coil_factor',
+                            type='number',
+                            min=0,
+                            step=0.00001
+                        )
+                    ]
+                ),
+                html.Div(
                     className="subgrid-7",
                     children=[
                         dcc.Checklist(
@@ -140,10 +157,11 @@ class WidgetsMOKE:
                             id="moke_data_treatment_checklist",
                             options=[
                                 {"label": "Smoothing", "value": "smoothing"},
-                                {"label": "Correct offset", "value": "offset"},
-                                {"label": "Low field filter", "value": "filter"},
+                                {"label": "Correct offset", "value": "correct_offset"},
+                                {"label": "Low field filter", "value": "filter_zero"},
+                                {"label": "Connect loops", "value": "connect_loops"},
                             ],
-                            value=["smoothing", "offset", "filter"],
+                            value=["smoothing", "correct_offset", "filter_zero", "connect_loops"],
                         )
                     ]
                 ),
@@ -154,6 +172,7 @@ class WidgetsMOKE:
                         html.Label('Smoothing parameters'),
                         html.Label('Polyorder'),
                         dcc.Input(
+                            className='long-item',
                             id='moke_smoothing_polyorder',
                             type='number',
                             min=0,
@@ -161,6 +180,7 @@ class WidgetsMOKE:
                         ),
                         html.Label('Range'),
                         dcc.Input(
+                            className='long-item',
                             id='moke_smoothing_range',
                             type='number',
                             min=0,
@@ -194,8 +214,8 @@ class WidgetsMOKE:
             children=[
                 dcc.Store(id="moke_position_store", data=None),
                 dcc.Store(id="moke_database_path_store", data=None),
-                dcc.Store(id="moke_heatmap_replot_tag", data=False),
-                dcc.Store(id="moke_database_metadata_store", data=None)
+                dcc.Store(id="moke_database_metadata_store", data=None),
+                dcc.Store(id="moke_data_treatment_store", data=None)
             ]
         )
 

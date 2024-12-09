@@ -1,3 +1,5 @@
+import os
+
 from dash import Dash, dcc, html
 
 from modules.interface import (

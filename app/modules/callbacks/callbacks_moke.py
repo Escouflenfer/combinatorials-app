@@ -12,22 +12,91 @@ def callbacks_moke(app, children_moke):
     @app.callback([Output('moke_database_path_store', 'data'),
                    Output('moke_path_box', 'children'),
                    Output('moke_database_metadata_store', 'data')],
-                  Input('moke_path_store', 'data')
+                  Input('moke_make_database_button', 'n_clicks'),
+                  State('moke_path_store', 'data'),
+                  State('moke_data_treatment_store', 'data'),
                   )
-    def load_database_path(folderpath):
-        if folderpath is None:
-            raise PreventUpdate
+    def load_database_path(n_clicks, folderpath, treatment_dict):
+            if folderpath is None:
+                raise PreventUpdate
 
-        folderpath = Path(folderpath)
+            folderpath = Path(folderpath)
 
-        database_path = get_database_path(folderpath)
-        if database_path is None:
-            database_path = make_database(folderpath)
+            database_path = get_database_path(folderpath)
 
-        metadata = read_metadata(database_path)
+            if database_path is None and n_clicks == 0:
+                return None, 'No database found!', None
+            elif database_path is None and n_clicks > 0:
+                database_path = make_database(folderpath, treatment_dict)
+                metadata = read_metadata(database_path)
+                return str(database_path), str(database_path.name), metadata
 
-        return str(database_path), str(database_path.name), metadata
+            elif database_path is not None:
+                if compare_version(database_path) and n_clicks == 0:
+                    metadata = read_metadata(database_path)
+                    return str(database_path), str(database_path.name), metadata
+                elif not compare_version(database_path) and n_clicks == 0:
+                    return None, 'Database version incorrect, please recalculate database', None
+                elif n_clicks > 0:
+                    database_path = make_database(folderpath, treatment_dict)
+                    metadata = read_metadata(database_path)
+                    return str(database_path), str(database_path.name), metadata
 
+
+    @app.callback([Output('moke_data_treatment_store', 'data'),
+                   Output('moke_coil_factor', 'value'),
+                   Output('moke_smoothing_polyorder', 'value'),
+                   Output('moke_smoothing_range', 'value')],
+                  Input('moke_data_treatment_checklist', 'value'),
+                  Input('moke_coil_factor', 'value'),
+                  Input('moke_smoothing_polyorder', 'value'),
+                  Input('moke_smoothing_range', 'value'),
+                  Input('moke_database_path_store', 'data'),
+                  State('moke_database_metadata_store', 'data'),
+                  )
+
+    def store_data_treatment(treatment_checklist, coil_factor, smoothing_polyorder,
+                             smoothing_range, database_path, metadata):
+        if database_path is not None:
+            if metadata is None:
+                metadata = read_metadata(database_path)
+            if coil_factor is None:
+                try:
+                    coil_factor = metadata['coil_factor']
+                except TypeError or KeyError:
+                    print(metadata)
+            if smoothing_polyorder is None:
+                try:
+                    smoothing_polyorder = metadata['smoothing_polyorder']
+                except TypeError or KeyError:
+                    pass
+            if smoothing_range is None:
+                try:
+                    smoothing_range = metadata['smoothing_range']
+                except TypeError or KeyError:
+                    pass
+
+
+        treatment_dict = {"coil_factor" : coil_factor,
+                          "smoothing": False,
+                          "smoothing_polyorder": smoothing_polyorder,
+                          "smoothing_range": smoothing_range,
+                          "correct_offset": False,
+                          "filter_zero": False,
+                          "connect_loops": False,
+        }
+
+        if "smoothing" in treatment_checklist:
+            treatment_dict.update({"smoothing": True})
+        if "correct_offset" in treatment_checklist:
+            treatment_dict.update({"correct_offset": True})
+        if "filter_zero" in treatment_checklist:
+            treatment_dict.update({"filter_zero": True})
+        if "connect_loops" in treatment_checklist:
+            treatment_dict.update({"connect_loops": True})
+
+
+        return treatment_dict, coil_factor, smoothing_polyorder, smoothing_range
 
 
     # Callback to update profile plot based on heatmap click position
@@ -53,12 +122,13 @@ def callbacks_moke(app, children_moke):
         Input('moke_plot_select', 'value'),
         Input('moke_plot_dropdown', 'value'),
         Input('moke_position_store', 'data'),
+        Input('moke_data_treatment_store', 'data'),
         State('moke_path_store', 'data'),
         State('moke_heatmap_select', 'value'),
         State('moke_heatmap_edit', 'value'),
     )
 
-    def update_plot(selected_plot, measurement_id, position, folderpath,  heatmap_select, edit_toggle):
+    def update_plot(selected_plot, measurement_id, position, treatment_dict, folderpath,  heatmap_select, edit_toggle):
         if folderpath is None:
             raise PreventUpdate
 
@@ -72,7 +142,7 @@ def callbacks_moke(app, children_moke):
             target_x = position[0]
             target_y = position[1]
             data = load_target_measurement_files(folderpath, target_x, target_y, measurement_id)
-            data = treat_data(data, folderpath)
+            data = treat_data(data, folderpath, treatment_dict)
             if selected_plot == 'Loop':
                 fig = loop_plot(data)
             elif selected_plot == 'Raw data':
@@ -82,11 +152,11 @@ def callbacks_moke(app, children_moke):
             else:
                 fig = blank_plot()
 
-            if heatmap_select == 'Derivative Coercivity' and position is not None:
+            if heatmap_select == 'Coercivity max(dM/dH)' and position is not None:
                 pos, neg = calc_derivative_coercivity(data)
                 fig.add_vline(x=pos, line_width = 2, line_dash = 'dash', line_color = 'Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
-            if heatmap_select == 'Measured Coercivity' and position is not None:
+            if heatmap_select == 'Coercivity M = 0' and position is not None:
                 pos, neg = calc_mzero_coercivity(data)
                 fig.add_vline(x=pos, line_width=2, line_dash='dash', line_color='Crimson')
                 fig.add_vline(x=neg, line_width=2, line_dash='dash', line_color='Crimson')
@@ -98,32 +168,24 @@ def callbacks_moke(app, children_moke):
     @app.callback(
         [Output('moke_heatmap', 'figure', allow_duplicate=True),
          Output('moke_heatmap_min', 'value'),
-         Output('moke_heatmap_max', 'value'),
-         Output('moke_heatmap_replot_tag', 'data', allow_duplicate=True)],
+         Output('moke_heatmap_max', 'value')],
         Input('moke_heatmap_select', 'value'),
         Input('moke_database_path_store', 'data'),
         Input('moke_heatmap_min', 'value'),
         Input('moke_heatmap_max', 'value'),
         Input('moke_heatmap_edit','value'),
-        Input('moke_heatmap_replot_tag', 'data'),
-        State('moke_path_store', 'data'),
         prevent_initial_call=True
     )
-    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle, replot_tag, folderpath):
+    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle):
 
         if database_path is None:
-            return go.Figure(layout=heatmap_layout('No database found')), None, None, False
+            return go.Figure(layout=heatmap_layout('No database found')), None, None
 
-        folderpath = Path(folderpath)
         database_path = Path(database_path)
 
         if ctx.triggered_id in ['moke_heatmap_select', 'moke_heatmap_edit']:
             z_min = None
             z_max = None
-
-        if ctx.triggered_id == 'moke_data_replot_tag':
-            if not replot_tag:
-                raise PreventUpdate
 
         masking = True
         if edit_toggle in ['edit', 'unfiltered']:
@@ -135,7 +197,7 @@ def callbacks_moke(app, children_moke):
         z_min = significant_round(heatmap.data[0].zmin, 3)
         z_max = significant_round(heatmap.data[0].zmax, 3)
 
-        return heatmap, z_min, z_max, False
+        return heatmap, z_min, z_max
 
 
     # Callback to load measurements in dropdown menu
@@ -159,8 +221,7 @@ def callbacks_moke(app, children_moke):
 
     # Callback to deal with heatmap edit mode
     @app.callback(
-        [Output('moke_text_box', 'children', allow_duplicate=True),
-         Output('moke_heatmap_replot_tag', 'data', allow_duplicate=True)],
+        Output('moke_text_box', 'children', allow_duplicate=True),
         Input('moke_heatmap', 'clickData'),
         State('moke_heatmap_edit', 'value'),
         State('moke_database_path_store', 'data'),
@@ -203,14 +264,15 @@ def callbacks_moke(app, children_moke):
         Input('moke_loop_map_button', 'n_clicks'),
         State('moke_path_store', 'data'),
         State('moke_database_path_store', 'data'),
+        State('moke_data_treatment_store', 'data'),
         prevent_initial_call=True
     )
-    def make_loop_map(n_clicks, folderpath, database_path):
+    def make_loop_map(n_clicks, folderpath, database_path, treatment_dict):
         folderpath = Path(folderpath)
         database_path = Path(database_path)
 
         if n_clicks>0:
-            figure = loop_map_plot(folderpath, database_path)
+            figure = loop_map_plot(folderpath, database_path, treatment_dict)
             return figure
 
 

@@ -1,10 +1,11 @@
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime
 
 
-def get_version(tag):
+def get_version(tag:str):
     """
     Scan the versions.txt file to extract version information.
 
@@ -15,19 +16,16 @@ def get_version(tag):
         version (str): version of selected item
     """
 
-    version_file_path = Path("app/config", "versions.txt")
+    version_file_path = Path("config", "versions.txt")
     with open(version_file_path, "r") as version_file:
         for line in version_file:
-            try:
-                if line.startswith(tag):
-                    version = line.split("=")[1].strip()
-            except TypeError:
-                return None
-
-    return version
+            if line.startswith(tag.strip()):
+                version = line.split(" = ")[1]
+                return version
 
 
-def get_database_path(folderpath):
+
+def get_database_path(folderpath:Path):
     """
     Scan a folder to find a database file, tagged as *_database.csv
 
@@ -51,7 +49,21 @@ def get_database_path(folderpath):
     return folderpath / database_path
 
 
-def save_with_metadata(df, export_path, metadata=None):
+def compare_version(database_path: Path):
+    metadata_dict = read_metadata(database_path)
+    try:
+        tag = metadata_dict["Database type"].lower()
+        version = metadata_dict["Database version"]
+        if version.strip() == get_version(tag).strip():
+            return True
+        else:
+            return False
+
+    except KeyError:
+        return False
+
+
+def save_with_metadata(df:pd.DataFrame, export_path:Path, metadata=None):
     """
     Save a dataframe to a csv while including metadata as comments (#).
 
@@ -65,11 +77,11 @@ def save_with_metadata(df, export_path, metadata=None):
     """
 
     if metadata is None:
-        metadata = []
+        metadata = {}
 
     with open(export_path, "w") as file:
-        for line in metadata:
-            file.write(f"# {line}\n")
+        for key, line in metadata.items():
+            file.write(f"# {key} = {line} \n")
 
     df.to_csv(export_path, mode="a", index=False)
 
@@ -85,11 +97,16 @@ def read_metadata(database_path):
         metadata (list): Metadata extracted from the database
     """
 
-    metadata = []
+    metadata = {}
     with open(database_path, "r") as file:
         for line in file:
             if line.startswith("#"):
-                metadata.append(line.strip("#").strip("\n"))
+                line = line.strip('# ')
+                try:
+                    key, value = line.split(" = ")[0], line.split(" = ")[1].strip('\n')
+                except IndexError:
+                    key, value = line.split(": ")[0], line.split(": ")[1].strip('\n')
+                metadata[key] = value
 
     return metadata
 

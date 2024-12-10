@@ -9,6 +9,8 @@ import pandas as pd
 
 # import xarray as xr
 from pathlib import Path
+
+from click.formatting import iter_rows
 from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter
 from collections import defaultdict
@@ -565,7 +567,7 @@ def loop_derivative_plot(data):
     return fig
 
 
-def loop_map_plot(folderpath, database_path, treatment_dict):
+def loop_map_plot(folderpath, database_path, treatment_dict, normalize=True):
     database = pd.read_csv(database_path, comment="#")
 
     info_dict = read_info_file(folderpath)
@@ -590,33 +592,42 @@ def loop_map_plot(folderpath, database_path, treatment_dict):
     fig.update_layout(
         height=1200,
         width=1200,
-        title_text="Blobs",
+        title_text="",
         showlegend=False,
         plot_bgcolor="white",
     )
 
-    for pair in list(zip(database["x_pos (mm)"], database["y_pos (mm)"])):
-        target_x = pair[0]
-        target_y = pair[1]
+    # for pair in list(zip(database["x_pos (mm)"], database["y_pos (mm)"])):
+    for index, row in database.iterrows():
+        if row["Ignore"] == 0:
+            target_x = row["x_pos (mm)"]
+            target_y = row["y_pos (mm)"]
 
-        data = load_target_measurement_files(
-            folderpath, target_x, target_y, measurement_nb=0
-        )
-        data = treat_data(data, folderpath, treatment_dict)
-        data = extract_loop_section(data)
+            data = load_target_measurement_files(
+                folderpath, target_x, target_y, measurement_nb=0
+            )
+            data = treat_data(data, folderpath, treatment_dict)
+            data = extract_loop_section(data)
 
-        col = int((target_x / step_x + (x_dim + 1) / 2))
-        row = int((-target_y / step_y + (y_dim + 1) / 2))
+            col = int((target_x / step_x + (x_dim + 1) / 2))
+            row = int((-target_y / step_y + (y_dim + 1) / 2))
 
-        fig.add_trace(
-            go.Scatter(
-                x=data["Field"],
-                y=data["Magnetization"],
-                mode="lines",
-                line=dict(color="SlateBlue", width=1),
-            ),
-            row=row,
-            col=col,
-        )
+            fig.add_trace(
+                go.Scatter(
+                    x=data["Field"],
+                    y=data["Magnetization"],
+                    mode="lines",
+                    line=dict(color="SlateBlue", width=1),
+                ),
+                row=row,
+                col=col,
+            )
+
+            if normalize:
+                fig.update_yaxes(range=[data["Magnetization"].min(), data["Magnetization"].max()], row=row, col=col)
+            if not normalize:
+                y_max = database["Max Kerr Rotation (deg)"].max()
+                fig.update_yaxes(range=[-y_max, y_max], row=row, col=col)
+
 
     return fig

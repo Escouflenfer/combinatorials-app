@@ -126,16 +126,16 @@ class WidgetsMOKE:
                         )
                     ],
                 ),
-                html.Div(
-                    className="subgrid-3",
-                    children=[
-                        html.Button(
-                            children="Make Loop Map",
-                            id="moke_loop_map_button",
-                            n_clicks=0,
-                        ),
-                    ],
-                ),
+                # html.Div(
+                #     className="subgrid-3",
+                #     children=[
+                #         html.Button(
+                #             children="Make Loop Map",
+                #             id="moke_loop_map_button",
+                #             n_clicks=0,
+                #         ),
+                #     ],
+                # ),
                 html.Div(
                     className="subgrid-4",
                     children=[
@@ -219,6 +219,26 @@ class WidgetsMOKE:
             ]
         )
 
+        # Loop map tab
+        self.moke_loop_map = html.Div(
+            children=[
+                html.Button(
+                    children="Make Loop Map",
+                    id="moke_loop_map_button",
+                    n_clicks=0,
+                ),
+                dcc.Checklist(
+                    className='long-item',
+                    id="moke_loop_map_checklist",
+                    options=[
+                        {"label": "Normalize", "value": "normalize"}
+                    ],
+                    value=[],
+                ),
+                dcc.Graph(id="moke_loop_map_figure"),
+            ]
+        )
+
     def make_tab_from_widgets(self):
         moke_tab = dcc.Tab(
             id="moke",
@@ -264,7 +284,9 @@ class WidgetsMOKE:
                                             type="default",
                                             delay_show=500,
                                             children=[
-                                                dcc.Graph(id="moke_loop_map_figure")
+                                                html.Div(
+                                                    self.moke_loop_map,
+                                                )
                                             ],
                                         )
                                     ],

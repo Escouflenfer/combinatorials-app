@@ -19,6 +19,9 @@ from modules.callbacks import (
 
 folderpath = None
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
+
 # %%
 app = Dash(suppress_callback_exceptions=True)
 

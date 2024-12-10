@@ -265,14 +265,19 @@ def callbacks_moke(app, children_moke):
         State('moke_path_store', 'data'),
         State('moke_database_path_store', 'data'),
         State('moke_data_treatment_store', 'data'),
+        State('moke_loop_map_checklist', 'value'),
         prevent_initial_call=True
     )
-    def make_loop_map(n_clicks, folderpath, database_path, treatment_dict):
+    def make_loop_map(n_clicks, folderpath, database_path, treatment_dict, checklist):
         folderpath = Path(folderpath)
         database_path = Path(database_path)
 
+        normalize = False
+        if "normalize" in checklist:
+            normalize = True
+
         if n_clicks>0:
-            figure = loop_map_plot(folderpath, database_path, treatment_dict)
+            figure = loop_map_plot(folderpath, database_path, treatment_dict, normalize)
             return figure
 
 

@@ -30,7 +30,7 @@
 
 .long-item {
   text-align: center;
-  flex-grow: 2;
+  flex-grow: 1;
   min-width: 250px;
   width: 100%;
   font-size: 0.8em;
@@ -99,6 +99,42 @@
     padding: 5px;
 }
 
+/* Columnar subgrid for moke loop map options */
+.column-subgrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+	grid-template-areas:
+		"column-1 column-2"
+		"column-3 column-4"
+		"column-5 column-6"
+		"column-7 column-8"
+		"column-9 column-10"
+		"column-11 column-12"
+		"column-13 column-14"
+		"column-15 column-16";
+    gap: 5px;
+}
+
+/* Columnar subgrid formatting */
+.column-subgrid > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2px;
+  box-sizing: border-box;
+  font-size: 1em;
+  font-family: Arial, sans-serif;
+}
+
+/* Style for columnar subgrid items */
+.column-subgrid-item {
+    background-color: #ffe7cc;
+    border: 1px solid #000;
+    padding: 5px;
+}
+
 
 /* Assign each div to a grid area */
 .top-left {
@@ -144,6 +180,31 @@
 .bottom-right {
   grid-area: bottom-right;
 }
+
+.loop-map {
+  grid-area: middle-left;
+  grid-column: span 2;
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background-color: #e0e0e0;
+}
+
+.loop-options {
+  grid-area: top-right;
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background-color: #e0e0e0;
+}
+
+
 
 .subgrid-1 {
 	grid-area: subgrid-1
@@ -213,6 +274,69 @@
 	grid-area: text-9
 }
 
+.column-1 {
+	grid-area: column-1
+}
+
+.column-2 {
+	grid-area: column-2
+}
+
+.column-3 {
+	grid-area: column-3
+}
+
+.column-4 {
+	grid-area: column-4
+}
+
+.column-5 {
+	grid-area: column-5
+}
+
+.column-6 {
+	grid-area: column-6
+}
+
+.column-7 {
+	grid-area: column-7
+}
+
+.column-8 {
+	grid-area: column-8
+}
+
+.column-9 {
+	grid-area: column-9
+}
+
+.column-10 {
+	grid-area: column-10
+}
+
+.column-11 {
+	grid-area: column-11
+}
+
+.column-12 {
+	grid-area: column-12
+}
+
+.column-13 {
+	grid-area: column-13
+}
+
+.column-14 {
+	grid-area: column-14
+}
+
+.column-15 {
+	grid-area: column-15
+}
+
+.column-16{
+	grid-area: column-16
+}
 
 /* Responsive behavior for smaller screens */
 @media (max-width: 600px) {

@@ -93,7 +93,7 @@ def treat_data(df, savgol=True):
     df = format_dataframe(df)
     slope, df = level_data(df)
     if savgol:
-        df['Fitted Profile (nm)'] = savgol_filter(df['Fitted Profile (nm)'], 61, 1)
+        df['Fitted Profile (nm)'] = savgol_filter(df['Fitted Profile (nm)'], 30, 0)
     return slope, df
 
 
@@ -527,11 +527,12 @@ def batch_fit(folderpath):
     date = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
     app_version = get_version('app')
     database_version = get_version('dektak')
-    metadata = [f"Date of fitting: {date}",
-                f"Code version: {app_version}",
-                'Database type: Dektak'
-                f'Database version = {database_version}'
-                ]
+
+    metadata = {"Date of fitting": date,
+                "Code version": app_version,
+                "Database type": 'dektak',
+                "Database version": database_version
+                }
 
     save_with_metadata(database, database_path, metadata=metadata)
     print('Done. Database saved at ', database_path)

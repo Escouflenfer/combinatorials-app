@@ -220,9 +220,21 @@ class WidgetsMOKE:
         )
 
         # Loop map tab
-        self.moke_loop_map = html.Div(
+
+        # Widget for the loop map graph
+        self.moke_loop_map_figure = html.Div(
+            children=[
+                dcc.Graph(id="moke_loop_map_figure"),
+            ],
+            className='loop-map'
+        )
+
+        # Widget for the options on the loop map tab
+        self.moke_loop_map_options = html.Div(
+            className='column-subgrid loop-options',
             children=[
                 html.Button(
+                    className='column-1 long-item',
                     children="Make Loop Map",
                     id="moke_loop_map_button",
                     n_clicks=0,
@@ -235,7 +247,6 @@ class WidgetsMOKE:
                     ],
                     value=[],
                 ),
-                dcc.Graph(id="moke_loop_map_figure"),
             ]
         )
 
@@ -245,6 +256,7 @@ class WidgetsMOKE:
             label="MOKE",
             value="moke",
             children=[
+                self.moke_stores,
                 html.Div(
                     children=[
                         dcc.Tabs(
@@ -261,13 +273,12 @@ class WidgetsMOKE:
                                             delay_show=500,
                                             children=[
                                                 html.Div(
-                                                    [
+                                                    children=[
                                                         self.moke_left,
                                                         self.moke_center,
                                                         self.moke_right,
                                                         self.moke_heatmap,
                                                         self.moke_profile,
-                                                        self.moke_stores,
                                                     ],
                                                     className="grid-container",
                                                 )
@@ -285,12 +296,16 @@ class WidgetsMOKE:
                                             delay_show=500,
                                             children=[
                                                 html.Div(
-                                                    self.moke_loop_map,
+                                                    children=[
+                                                        self.moke_loop_map_figure,
+                                                        self.moke_loop_map_options,
+                                                    ],
+                                                    className="grid-container",
                                                 )
                                             ],
                                         )
                                     ],
-                                ),
+                                )
                             ],
                         )
                     ]

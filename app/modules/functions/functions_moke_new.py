@@ -140,8 +140,6 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
                        'check compatibility between callbacks_moke.store_data_treatment and functions_moke.treat_data')
 
 
-
-
     pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
     max_field = coil_factor / 100 * pulse_voltage
 
@@ -185,6 +183,8 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
         neg_start, neg_end = (
             data.loc[neg_start:neg_end, "Field"].first_valid_index(),
             data.loc[neg_start:neg_end, "Field"].last_valid_index())
+
+        data = data[data["Field"].notna()]
 
     # Data smoothing
     if smoothing:
@@ -289,8 +289,8 @@ def calc_derivative_coercivity(data: pd.DataFrame):
     data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = 0  # (Avoid derivative discrepancies around 0 Field)
 
     # For positive / negative field, find index of maximum / minimum derivative and extract corresponding field
-    coercivity_positive = data.loc[data.loc[data["Field"] > 0, "Derivative"].idxmax(), "Field"]
-    coercivity_negative = data.loc[data.loc[data["Field"] < 0, "Derivative"].idxmin(), "Field"]
+    coercivity_positive = data.loc[data.loc[data["Field"] > 0, "Derivative"].idxmax(skipna=True), "Field"]
+    coercivity_negative = data.loc[data.loc[data["Field"] < 0, "Derivative"].idxmin(skipna=True), "Field"]
 
     return coercivity_positive, coercivity_negative
 
@@ -306,10 +306,10 @@ def calc_mzero_coercivity(data: pd.DataFrame):
         float, float
     """
     coercivity_positive = data.loc[
-        np.abs(data.loc[data["Field"] > 0, "Magnetization"]).idxmin(), "Field"
+        np.abs(data.loc[data["Field"] > 0, "Magnetization"]).idxmin(skipna=True), "Field"
     ]
     coercivity_negative = data.loc[
-        np.abs(data.loc[data["Field"] < 0, "Magnetization"]).idxmin(), "Field"
+        np.abs(data.loc[data["Field"] < 0, "Magnetization"]).idxmin(skipna=True), "Field"
     ]
 
     return coercivity_positive, coercivity_negative
@@ -590,7 +590,7 @@ def loop_map_plot(folderpath, database_path, treatment_dict, normalize=True):
 
     # Update layout for aesthetics
     fig.update_layout(
-        height=1200,
+        height=1000,
         width=1200,
         title_text="",
         showlegend=False,

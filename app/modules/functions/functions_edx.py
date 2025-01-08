@@ -320,7 +320,7 @@ def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
         z_max = np.max(ELM)
 
 
-    fig = go.Figure(data=go.Heatmap(x=X_POS, y=Y_POS, z=ELM, colorscale="Jet",
+    fig = go.Figure(data=go.Heatmap(x=X_POS, y=Y_POS, z=ELM, colorscale="Plasma",
                                     colorbar=colorbar_layout(z_min, z_max, title='at.%')
                                     ))
     fig.update_layout(title=f"EDX Heatmap for element {element_edx}")

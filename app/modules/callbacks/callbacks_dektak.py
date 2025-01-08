@@ -41,6 +41,7 @@ def callbacks_dektak(app):
             command.append(folderpath)
             # Launch the script in a new terminal
             if sys.platform == "win32":  # Windows
+                command = f'cmd.exe /K ("{" ".join(command)}" || echo Error occurred. & pause)'
                 subprocess.Popen(command, creationflags=subprocess.CREATE_NEW_CONSOLE)
             elif sys.platform == "darwin":  # macOS
                 subprocess.Popen(" ".join([str(path) for path in command]), shell=True)

@@ -93,7 +93,7 @@ def treat_data(df, savgol=True):
     df = format_dataframe(df)
     slope, df = level_data(df)
     if savgol:
-        df['Fitted Profile (nm)'] = savgol_filter(df['Fitted Profile (nm)'], 30, 0)
+        df['Fitted Profile (nm)'] = savgol_filter(df['Fitted Profile (nm)'], 100, 0)
     return slope, df
 
 
@@ -289,7 +289,7 @@ def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=Non
         x=heatmap_data.columns,
         y=heatmap_data.index,
         z=heatmap_data.values,
-        colorscale='Rainbow',
+        colorscale='Plasma',
         colorbar=colorbar_layout(z_min, z_max, title=unit)
     )
 

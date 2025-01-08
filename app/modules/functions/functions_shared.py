@@ -123,9 +123,9 @@ def heatmap_layout(title=""):
     """
     layout = go.Layout(
         title=title,
-        titlefont=dict(size=20),
-        xaxis=dict(title="X (mm)", tickfont=dict(size=15), titlefont=dict(size=18)),
-        yaxis=dict(title="Y (mm)", tickfont=dict(size=15), titlefont=dict(size=18)),
+        titlefont=dict(size=24),
+        xaxis=dict(title="X (mm)", tickfont=dict(size=20), titlefont=dict(size=24)),
+        yaxis=dict(title="Y (mm)", tickfont=dict(size=20), titlefont=dict(size=24)),
         height=750,
         width=750,
     )
@@ -162,8 +162,8 @@ def colorbar_layout(z_min, z_max, title=""):
     z_mid = (z_min + z_max) / 2
     colorbar = dict(
         title=f"{title} <br>&nbsp;<br>",
-        tickfont=dict(size=15),
-        titlefont=dict(size=18),
+        tickfont=dict(size=20),
+        titlefont=dict(size=24),
         tickvals=[
             z_min,
             (z_min + z_mid) / 2,

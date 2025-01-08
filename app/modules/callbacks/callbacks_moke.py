@@ -2,7 +2,7 @@ from dash import Input, Output, State, Dash, ctx
 from dash.exceptions import PreventUpdate
 from pathlib import Path
 
-from ..functions.functions_moke_new import *
+from ..functions.functions_moke import *
 from ..functions.functions_shared import *
 
 '''Callbacks for MOKE tab'''

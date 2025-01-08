@@ -68,12 +68,18 @@ def load_target_measurement_files(folderpath: Path, target_x: float, target_y: f
     files = []
 
     for path in folderpath.glob("p*.txt"):
-        file_x = float(path.name.split("_")[1].lstrip("x"))
-        file_y = float(path.name.split("_")[2].lstrip("y"))
+        # Rounding positions is necessary in order to deal with the motors picometer accuracy...
+        file_x = np.round(float(path.name.split("_")[1].lstrip("x")))
+        file_y = np.round(float(path.name.split("_")[2].lstrip("y")))
+
+        target_x = np.round(target_x)
+        target_y = np.round(target_y)
+
         if file_x == target_x and file_y == target_y:
             files.append(path)
 
     for path in files:
+        print(path)
         if "magnetization" in str(path):
             mag = pd.read_table(path).dropna(axis=1, how="all")
         elif "pulse" in str(path):
@@ -81,7 +87,7 @@ def load_target_measurement_files(folderpath: Path, target_x: float, target_y: f
         elif "sum" in str(path):
             sum = pd.read_table(path).dropna(axis=1, how="all")
 
-    # measurement_id = 0 returns average over all measurements
+    # measurement_nb = 0 returns average over all measurements
     if measurement_nb == 0:
         data = pd.DataFrame(
             {
@@ -143,16 +149,16 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     # Index of pulses
     length = len(data)
 
-    positive_pulse = (340, 650)
-    negative_pulse = (1342, 1652)
+    positive_pulse = (350, 660)
+    negative_pulse = (1350, 1660)
 
     # Remove pulse noise to isolate actual pulse signal
     data["Pulse"] = data["Pulse"].replace(0.0016667, 0)
     data["Pulse"] = data["Pulse"].replace(-0.0016667, 0)
 
     # Integrate pulse during triggers to get field
-    data.loc[:length // 2, "Field"] = (data.loc[:length // 2, "Pulse"].cumsum())
-    data.loc[length // 2:, "Field"] = (data.loc[length // 2:, "Pulse"].cumsum())
+    data.loc[positive_pulse[0]:positive_pulse[1], "Field"] = (data.loc[positive_pulse[0]:positive_pulse[1], "Pulse"].cumsum())
+    data.loc[negative_pulse[0]:negative_pulse[1], "Field"] = (data.loc[negative_pulse[0]:negative_pulse[1], "Pulse"].cumsum())
 
     # Set field using coil parameters
     midpoint = len(data) // 2
@@ -185,14 +191,17 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
 
     # Data smoothing
     if smoothing:
+        data = extract_loop_section(data)
         data.loc[:,"Magnetization"] = savgol_filter(
             data["Magnetization"], smoothing_range, smoothing_polyorder
         )
 
-
     # Remove oddities around H=0 by forcing points in the positive(negative) loop to be over(under) a threshold
     if filter_zero:
-        data = pd.concat((data.loc[positive_pulse[0]:positive_pulse[1]], data.loc[negative_pulse[0]:negative_pulse[1]]))
+        data = pd.concat(
+            (data.loc[positive_pulse[0]:positive_pulse[1]], data.loc[negative_pulse[0]:negative_pulse[1]]))
+
+    print(data)
 
     return data
 
@@ -328,6 +337,10 @@ def make_database(folderpath: Path, treatment_dict: dict):
 
         data = treat_data(data, folderpath, treatment_dict)
 
+        # Get positions from file name
+        x_pos = np.round(float(path.name.split("_")[1].lstrip("x")))
+        y_pos = np.round(float(path.name.split("_")[2].lstrip("y")))
+
         # Get max Kerr rotation
         kerr_mean = calc_max_kerr_rotation(data)
 
@@ -343,8 +356,8 @@ def make_database(folderpath: Path, treatment_dict: dict):
         # Assign to database
         database.loc[i, "File Number"] = number
         database.loc[i, "Ignore"] = 0
-        database.loc[i, "x_pos (mm)"] = float(path.name.split("_")[1].lstrip("x"))
-        database.loc[i, "y_pos (mm)"] = float(path.name.split("_")[2].lstrip("y"))
+        database.loc[i, "x_pos (mm)"] = x_pos
+        database.loc[i, "y_pos (mm)"] = y_pos
         database.loc[i, "Max Kerr Rotation (deg)"] = kerr_mean
         database.loc[i, "Reflectivity (V)"] = reflectivity
         database.loc[i, "Coercivity max(dM/dH) (T)"] = d_coercivity
@@ -419,7 +432,7 @@ def heatmap_plot(database_path, mode, title="", z_min=None, z_max=None, masking=
         x=heatmap_data.columns,
         y=heatmap_data.index,
         z=heatmap_data.values,
-        colorscale="Rainbow",
+        colorscale="Plasma",
         # Set ticks for the colorbar
         colorbar=colorbar_layout(z_min, z_max, title=unit),
     )
@@ -451,31 +464,37 @@ def blank_plot():
 def data_plot(data):
     fig = go.Figure()
 
-    fig.update_xaxes(title_text="Time (s)")
+    fig.update_xaxes(title_text="Time (units)")
     fig.update_yaxes(title_text="Voltage (V)")
+
+    pulse_shift_factor = data["Pulse"].mean()
+    magnetization_shift_factor = data["Magnetization"].mean() - 0.5
+    sum_shift_factor = data["Sum"].mean() - 1
 
     fig.add_trace(
         go.Scatter(
             x=data.index,
-            y=data["Magnetization"],
-            mode="lines",
-            line=dict(color="SlateBlue", width=3),
+            y=data["Pulse"].apply(lambda x: x - pulse_shift_factor),
+            mode="lines+markers",
+            line=dict(color="Green", width=2),
         )
     )
+
     fig.add_trace(
         go.Scatter(
             x=data.index,
-            y=data["Pulse"],
-            mode="lines",
-            line=dict(color="Green", width=3),
+            y=data["Magnetization"].apply(lambda x: x - magnetization_shift_factor),
+            mode="lines+markers",
+            line=dict(color="SlateBlue", width=2),
         )
     )
+
     fig.add_trace(
         go.Scatter(
             x=data.index,
-            y=data["Sum"],
-            mode="lines",
-            line=dict(color="Crimson", width=3),
+            y=data["Sum"].apply(lambda x: x - sum_shift_factor),
+            mode="lines+markers",
+            line=dict(color="Crimson", width=2),
         )
     )
 
@@ -556,6 +575,11 @@ def loop_map_plot(folderpath, database_path, treatment_dict, normalize=True):
     step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim - 1)
     step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim - 1)
 
+    if x_dim == 1:
+        step_x = 1
+    if y_dim == 1:
+        step_y = 1
+
     fig = make_subplots(
         rows=y_dim, cols=x_dim, horizontal_spacing=0.001, vertical_spacing=0.001
     )
@@ -579,6 +603,7 @@ def loop_map_plot(folderpath, database_path, treatment_dict, normalize=True):
             target_x = row["x_pos (mm)"]
             target_y = row["y_pos (mm)"]
 
+            print(target_x, target_y)
             data = load_target_measurement_files(
                 folderpath, target_x, target_y, measurement_nb=0
             )

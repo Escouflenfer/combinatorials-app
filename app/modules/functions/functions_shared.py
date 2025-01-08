@@ -124,8 +124,8 @@ def heatmap_layout(title=""):
     layout = go.Layout(
         title=title,
         titlefont=dict(size=24),
-        xaxis=dict(title="X (mm)", tickfont=dict(size=20), titlefont=dict(size=24)),
-        yaxis=dict(title="Y (mm)", tickfont=dict(size=20), titlefont=dict(size=24)),
+        xaxis=dict(title="X (mm)", tickfont=dict(size=20), titlefont=dict(size=24), range=[-40, 40]),
+        yaxis=dict(title="Y (mm)", tickfont=dict(size=20), titlefont=dict(size=24), range=[-40, 40]),
         height=750,
         width=750,
     )

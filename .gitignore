@@ -16,5 +16,6 @@ dist/
 _autosummary/
 .vscode
 .venv
+venv
 data/
 results/

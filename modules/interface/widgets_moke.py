@@ -58,6 +58,7 @@ class WidgetsMOKE:
                                 "Reflectivity",
                                 "Coercivity M = 0",
                                 "Coercivity max(dM/dH)",
+                                "Intercept Field",
                             ],
                             value="Max Kerr Rotation",
                         ),
@@ -120,22 +121,12 @@ class WidgetsMOKE:
                     children=[
                         dcc.RadioItems(
                             id="moke_plot_select",
-                            options=["Raw data", "Loop", "Loop + Derivative"],
+                            options=["Raw data", "Loop", "Loop + Derivative", "Loop + Intercept"],
                             value="Loop",
                             style={"display": "inline-block"},
                         )
                     ],
                 ),
-                # html.Div(
-                #     className="subgrid-3",
-                #     children=[
-                #         html.Button(
-                #             children="Make Loop Map",
-                #             id="moke_loop_map_button",
-                #             n_clicks=0,
-                #         ),
-                #     ],
-                # ),
                 html.Div(
                     className="subgrid-4",
                     children=[

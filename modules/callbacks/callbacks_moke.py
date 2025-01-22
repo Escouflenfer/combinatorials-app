@@ -13,7 +13,7 @@ def callbacks_moke(app, children_moke):
                    Output('moke_path_box', 'children'),
                    Output('moke_database_metadata_store', 'data')],
                   Input('moke_make_database_button', 'n_clicks'),
-                  State('moke_path_store', 'data'),
+                  Input('moke_path_store', 'data'),
                   State('moke_data_treatment_store', 'data'),
                   )
     def load_database_path(n_clicks, folderpath, treatment_dict):
@@ -57,6 +57,9 @@ def callbacks_moke(app, children_moke):
 
     def store_data_treatment(treatment_checklist, coil_factor, smoothing_polyorder,
                              smoothing_range, database_path, metadata):
+        default_coil_factor = 1.92667
+        default_smoothing_polyorder = 2
+        default_smoothing_range = 30
         if database_path is not None:
             if metadata is None:
                 metadata = read_metadata(database_path)
@@ -64,7 +67,7 @@ def callbacks_moke(app, children_moke):
                 try:
                     coil_factor = metadata['coil_factor']
                 except TypeError or KeyError:
-                    print(metadata)
+                    pass
             if smoothing_polyorder is None:
                 try:
                     smoothing_polyorder = metadata['smoothing_polyorder']
@@ -75,6 +78,10 @@ def callbacks_moke(app, children_moke):
                     smoothing_range = metadata['smoothing_range']
                 except TypeError or KeyError:
                     pass
+        else:
+            coil_factor = default_coil_factor
+            smoothing_polyorder = default_smoothing_polyorder
+            smoothing_range = default_smoothing_range
 
 
         treatment_dict = {"coil_factor" : coil_factor,
@@ -149,6 +156,8 @@ def callbacks_moke(app, children_moke):
                 fig = data_plot(data)
             elif selected_plot == 'Loop + Derivative':
                 fig = loop_derivative_plot(data)
+            elif selected_plot == 'Loop + Intercept':
+                fig = loop_intercept_plot(data, folderpath, treatment_dict)
             else:
                 fig = blank_plot()
 

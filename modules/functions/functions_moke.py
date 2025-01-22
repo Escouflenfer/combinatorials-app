@@ -121,7 +121,7 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
 
     Parameters:
         data(pd.Dataframe) : data for which the field needs to be calculated
-        pulse_voltage(float) : Recorded pulse voltage from the measurement, can be found in info.txt file
+        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
         treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
     Returns:
         pd.Dataframe
@@ -295,6 +295,78 @@ def calc_mzero_coercivity(data: pd.DataFrame):
 
     return coercivity_positive, coercivity_negative
 
+def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
+    """
+   From a dataframe, fit for the intercept field and return the intercept field values
+
+   Parameters:
+       data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+       folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
+       treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
+
+   Returns:
+       float, float, dict
+       Returned dictionary contains the direct results from the fits for plotting
+   """
+
+    force_flat = True
+
+    coil_factor = float(treatment_dict["coil_factor"])
+    pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
+    max_field = coil_factor / 100 * pulse_voltage
+
+    sat_field = 1.75 # Should be a data treatment variable, WIP
+
+    Hmin = 0.1
+    Hmax = sat_field - 0.25
+    Hmin_sat = sat_field + 0.25
+    Hmax_sat = 0.95*max_field
+
+    non_nan = data[data['Field'].notna()].index.values
+
+    section = data.loc[non_nan, ('Magnetization', 'Field')]
+    section.reset_index(drop=True, inplace=True)
+
+    linear_section = section[(np.abs(section['Field']) > Hmin) & (np.abs(section['Field']) < Hmax)]
+    pos_sat_section = section[(section['Field'] > Hmin_sat) & (section['Field'] < Hmax_sat)]
+    neg_sat_section = section[(section['Field'] < -Hmin_sat) & (section['Field'] > -Hmax_sat)]
+
+    # 1: Linear section
+    # 2: Positive saturation section
+    # 3: Negative saturation section
+
+    x1 = linear_section['Field'].values
+    y1 = linear_section['Magnetization'].values
+    slope1, intercept1 = np.polyfit(x1, y1, 1)
+
+    x2 = pos_sat_section['Field'].values
+    y2 = pos_sat_section['Magnetization'].values
+    if force_flat:
+        slope2 = 0
+        intercept2 = np.polyfit(x2, y2, 0)
+    else:
+        slope2, intercept2 = np.polyfit(x2, y2, 1)
+
+    x3 = neg_sat_section['Field'].values
+    y3 = neg_sat_section['Magnetization'].values
+    if force_flat:
+        slope3 = 0
+        intercept3 = np.polyfit(x3, y3, 0)
+    else:
+        slope3, intercept3 = np.polyfit(x3, y3, 1)
+
+    positive_intercept_field = (intercept2 - intercept1) / (slope1 - slope2)
+    negative_intercept_field = (intercept3 - intercept1) / (slope1 - slope3)
+
+    # Make dictionary with results from the fits, can be used for plotting
+    fit_dict = {
+        "linear_section": [slope1, intercept1, x1],
+        "positive_section": [slope2, intercept2, x2],
+        "negative_section": [slope3, intercept3, x3]
+    }
+
+    return float(positive_intercept_field), float(negative_intercept_field), fit_dict
+
 
 def make_database(folderpath: Path, treatment_dict: dict):
     # Regular expression to match 'p' followed by a number
@@ -349,6 +421,10 @@ def make_database(folderpath: Path, treatment_dict: dict):
         # Get M=0 coercivity
         m_coercivity = np.mean(np.abs(calc_mzero_coercivity(data)))
 
+        # Fit for intercept field
+        intercept_pos, intercept_neg, _ = fit_intercept(data, folderpath, treatment_dict)
+        intercept = np.mean(np.abs((intercept_pos, intercept_neg)))
+
         # Assign to database
         database.loc[i, "File Number"] = number
         database.loc[i, "Ignore"] = 0
@@ -358,6 +434,7 @@ def make_database(folderpath: Path, treatment_dict: dict):
         database.loc[i, "Reflectivity (V)"] = reflectivity
         database.loc[i, "Coercivity max(dM/dH) (T)"] = d_coercivity
         database.loc[i, "Coercivity M = 0 (T)"] = m_coercivity
+        database.loc[i, "Intercept Field (T)"] = intercept
 
     database_path = folderpath / (folderpath.name + "_database.csv")
 
@@ -377,7 +454,9 @@ def make_database(folderpath: Path, treatment_dict: dict):
     return database_path
 
 
-def heatmap_plot(database_path, mode, title="", z_min=None, z_max=None, masking=False):
+def heatmap_plot(database_path: Path, mode: str, title: str = "",
+                 z_min: bool = None, z_max: bool = None, masking: bool = False):
+
     database = pd.read_csv(database_path, comment="#")
 
     # Exit if no database is found
@@ -393,6 +472,8 @@ def heatmap_plot(database_path, mode, title="", z_min=None, z_max=None, masking=
         values = "Coercivity max(dM/dH) (T)"
     elif mode == "Coercivity M = 0":
         values = "Coercivity M = 0 (T)"
+    elif mode == "Intercept Field":
+        values = "Intercept Field (T)"
     else:
         values = "Max Kerr Rotation (deg)"
 
@@ -457,7 +538,7 @@ def blank_plot():
     return fig
 
 
-def data_plot(data):
+def data_plot(data: pd.DataFrame):
     fig = go.Figure()
 
     fig.update_xaxes(title_text="Time (units)")
@@ -499,7 +580,7 @@ def data_plot(data):
     return fig
 
 
-def loop_plot(data):
+def loop_plot(data: pd.DataFrame):
     data = extract_loop_section(data)
 
     fig = go.Figure()
@@ -522,7 +603,7 @@ def loop_plot(data):
     return fig
 
 
-def loop_derivative_plot(data):
+def loop_derivative_plot(data: pd.DataFrame):
     data = extract_loop_section(data)
     data["Derivative"] = data["Magnetization"] - data["Magnetization"].shift(1)
     data.loc[np.abs(data["Field"]) < 1e-3, "Derivative"] = (
@@ -531,10 +612,10 @@ def loop_derivative_plot(data):
 
     fig = go.Figure()
 
-    # First plot
     fig.update_xaxes(title_text="Field (T)")
     fig.update_yaxes(title_text="Max Kerr rotation (deg)")
 
+    # Plot loop
     fig.add_trace(
         go.Scatter(
             x=data["Field"],
@@ -558,7 +639,116 @@ def loop_derivative_plot(data):
     return fig
 
 
-def loop_map_plot(folderpath, database_path, treatment_dict, normalize=True):
+def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
+    data = extract_loop_section(data)
+    positive_intercept_field, negative_intercept_field, fit_dict = fit_intercept(data, folderpath, treatment_dict)
+    max_field = data["Field"].max()
+
+    fig = go.Figure()
+
+    fig.update_xaxes(title_text="Field (T)")
+    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
+
+    # Plot loop
+    fig.add_trace(
+        go.Scatter(
+            x=data["Field"],
+            y=data["Magnetization"],
+            mode="markers",
+            line=dict(color="SlateBlue", width=3),
+        )
+    )
+
+    # Define ranges that will be used to extrapolate the fits
+    range_linear = np.arange(1.2 * negative_intercept_field, 1.2 * positive_intercept_field, 0.1)
+    range_positive = np.arange(0.8 * positive_intercept_field, max_field, 0.1)
+    range_negative = np.arange(-max_field, 0.8 * negative_intercept_field, 0.1)
+
+    slope_linear, intercept_linear, x_linear = fit_dict['linear_section']
+    slope_positive, intercept_positive, x_positive = fit_dict['positive_section']
+    slope_negative, intercept_negative, x_negative = fit_dict['negative_section']
+
+    # Plot linear section fit
+    fig.add_trace(
+        go.Scatter(
+            x=x_linear,
+            y=intercept_linear + slope_linear * x_linear,
+            mode="lines",
+            line=dict(color="Firebrick", width=3),
+        )
+    )
+
+    # Plot linear section extrapolation
+    fig.add_trace(
+        go.Scatter(
+            x=range_linear,
+            y=intercept_linear + slope_linear * range_linear,
+            mode="lines",
+            line=dict(color="Firebrick", width=3, dash='dash'),
+        )
+    )
+
+    # Plot positive section fit
+    fig.add_trace(
+        go.Scatter(
+            x=x_positive,
+            y=intercept_positive + slope_positive * x_positive,
+            mode="lines",
+            line=dict(color="Firebrick", width=3),
+        )
+    )
+
+    # Plot positive section extrapolation
+    fig.add_trace(
+        go.Scatter(
+            x=range_positive,
+            y=intercept_positive + slope_positive * range_positive,
+            mode="lines",
+            line=dict(color="Firebrick", width=3, dash='dash'),
+        )
+    )
+
+    # Plot negative section fit
+    fig.add_trace(
+        go.Scatter(
+            x=x_negative,
+            y=intercept_negative + slope_negative * x_negative,
+            mode="lines",
+            line=dict(color="Firebrick", width=3),
+        )
+    )
+
+    # Plot negative section extrapolation
+    fig.add_trace(
+        go.Scatter(
+            x=range_negative,
+            y=intercept_negative + slope_negative * range_negative,
+            mode="lines",
+            line=dict(color="Firebrick", width=3, dash='dash'),
+        )
+    )
+
+    # Plot intercept values
+    fig.add_vline(positive_intercept_field, line_width=2, line_color='green',
+                  annotation_text=f'{positive_intercept_field:.2f} T',
+                  annotation_position='top left',
+                  annotation_font_size=18,
+                  annotation_font_color='green')
+
+    fig.add_vline(negative_intercept_field, line_width=2, line_color='green',
+                  annotation_text=f'{negative_intercept_field:.2f} T',
+                  annotation_position='top right',
+                  annotation_font_size=18,
+                  annotation_font_color='green'
+                  )
+
+    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
+
+    return fig
+
+
+def loop_map_plot(folderpath: Path, database_path: Path, treatment_dict: dict, normalize: bool = True):
+
     database = pd.read_csv(database_path, comment="#")
 
     info_dict = read_info_file(folderpath)

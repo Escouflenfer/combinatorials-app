@@ -1,3 +1,5 @@
 25/11/2024 Moke v0.2: Updated column names, Added data treatment metadata
 
 08/01/2025 Moke v0.3: Positions will now be rounded in order to deal with our motors sub-picometer accuracy… =)
+
+21/01/2025 Moke v0.4: Added Intercept Field column

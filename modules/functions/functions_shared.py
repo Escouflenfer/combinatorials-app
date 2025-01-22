@@ -7,6 +7,42 @@ from pathlib import Path
 from datetime import datetime
 
 
+
+def detect_measurement(folderpath: Path):
+    """
+       Scan a folder to determine which type of measurement it is
+
+       Parameters:
+           folderpath (pathlib.Path): Path to the folder to scan
+
+       Returns:
+           version (str): detected measurement type
+       """
+    measurement_dict = {
+        "moke": [".txt", ".log", ".csv"],
+        "edx": [".spx", ".xlsx", ".rtj2"],
+        "dektak": [".asc2d", ".csv"],
+        "xrd": [".ras", ".raw", ".asc", ".img", ".pdf"],
+    }
+
+
+    if not folderpath.exists() or not folderpath.is_dir():
+        print("The directory does not exist or is not a directory.")
+        return None
+
+    for measurement_type, file_type in measurement_dict.items():
+        ok = True
+        for file in folderpath.rglob('[!.]*'): # Expression needed to remove hidden files from consideration
+            if file.is_file() and file.suffix.lower() not in file_type:
+                print(f"Found {file.suffix.lower()} file at odds with {measurement_type} spec")
+                ok = False
+                break
+            if not ok:
+                break
+        if ok:
+            return measurement_type
+
+
 def get_version(tag:str):
     """
     Scan the versions.txt file to extract version information.
@@ -18,7 +54,7 @@ def get_version(tag:str):
         version (str): version of selected item
     """
 
-    version_file_path = Path(os.path.abspath("../../config/versions.txt"))
+    version_file_path = Path(os.path.abspath("./config/versions.txt"))
     with open(version_file_path, "r") as version_file:
         for line in version_file:
             if line.startswith(tag.strip()):
@@ -173,11 +209,11 @@ def colorbar_layout(z_min, z_max, title=""):
             z_max,
         ],  # Tick values
         ticktext=[
-            f"{z_min:.0f}",
-            f"{(z_min + z_mid) / 2:.0f}",
-            f"{z_mid:.0f}",
-            f"{(z_max + z_mid) / 2:.0f}",
-            f"{z_max:.0f}",
+            f"{z_min:.2f}",
+            f"{(z_min + z_mid) / 2:.2f}",
+            f"{z_mid:.2f}",
+            f"{(z_max + z_mid) / 2:.2f}",
+            f"{z_max:.2f}",
         ],  # Tick text
     )
     return colorbar

@@ -187,7 +187,7 @@ def extract_fit(fitted_params):
     return position_list, height_list
 
 
-def blank_heatmap(radius=40, step=5, title=''):
+def blank_heatmap(radius=45, step=5, title=''):
     # Create a grid of x and y values
     x = np.arange(-radius, radius + step, step)
     y = np.arange(-radius, radius + step, step)
@@ -198,7 +198,7 @@ def blank_heatmap(radius=40, step=5, title=''):
     # Create a circular mask: points within the radius are set to 1
     for i in range(len(y)):
         for j in range(len(x)):
-            if np.sqrt(x[j] ** 2 + y[i] ** 2) <= radius:
+            if np.sqrt(x[j] ** 2 + y[i] ** 2) < radius:
                 z[i, j] = 1
 
     # Create the heatmap
@@ -206,7 +206,7 @@ def blank_heatmap(radius=40, step=5, title=''):
         z=z,
         x=x,
         y=y,
-        colorscale='Rainbow'
+        colorscale='Plasma'
     )
 
     # Make and show figure

@@ -1,4 +1,4 @@
 app_version = v0.2beta
 dektak_database_version = v0.1
-moke_database_version = v0.3
+moke_database_version = v0.4
 xrd_database_version = v0.1

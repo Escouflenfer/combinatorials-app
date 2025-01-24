@@ -57,8 +57,8 @@ def callbacks_moke(app, children_moke):
 
     def store_data_treatment(treatment_checklist, coil_factor, smoothing_polyorder,
                              smoothing_range, database_path, metadata):
-        default_coil_factor = 1.92667
-        default_smoothing_polyorder = 2
+        default_coil_factor = 0.92667
+        default_smoothing_polyorder = 1
         default_smoothing_range = 30
         if database_path is not None:
             if metadata is None:
@@ -79,9 +79,12 @@ def callbacks_moke(app, children_moke):
                 except TypeError or KeyError:
                     pass
         else:
-            coil_factor = default_coil_factor
-            smoothing_polyorder = default_smoothing_polyorder
-            smoothing_range = default_smoothing_range
+            if coil_factor is None:
+                coil_factor = default_coil_factor
+            if smoothing_polyorder is None:
+                smoothing_polyorder = default_smoothing_polyorder
+            if smoothing_range is None:
+                smoothing_range = default_smoothing_range
 
 
         treatment_dict = {"coil_factor" : coil_factor,

@@ -40,15 +40,7 @@ def callbacks_xrd(app, children_xrd):
         Input("xrd_heatmap_max", "value"),
     )
     def update_xrd_heatmap(foldername, datatype, z_min, z_max):
-        fig, z_min_plot, z_max_plot = plot_xrd_heatmap(foldername, datatype)
-        if z_min is None or z_max is None:
-            z_min = z_min_plot
-            z_max = z_max_plot
-
-        # Update the dimensions of the heatmap and the X-Y title axes
-        fig.update_layout(height=600, width=600, clickmode="event+select")
-        fig.update_xaxes(title="X Position")
-        fig.update_yaxes(title="Y Position")
+        fig = plot_xrd_heatmap(foldername, datatype, z_min, z_max)
 
         if datatype == "Raw XRD data":
             title = "None"
@@ -57,11 +49,8 @@ def callbacks_xrd(app, children_xrd):
         else:
             title = "Lattice (Å)"
 
-        fig.data[0].update(zmin=z_min, zmax=z_max)
-
-        if z_min is not None and z_max is not None:
-            z_min = significant_round(fig.data[0].zmin, 5)
-            z_max = significant_round(fig.data[0].zmax, 5)
+        z_min = significant_round(fig.data[0].zmin, 5)
+        z_max = significant_round(fig.data[0].zmax, 5)
 
         return fig, z_min, z_max
 

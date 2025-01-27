@@ -275,12 +275,11 @@ def save_refinement_results(foldername, header, rr_output):
     app_version = get_version("app")
     database_version = get_version("xrd")
 
-    metadata = [
-        f"Date of fitting: {date}",
-        f"Code version: {app_version}",
-        f"Database type: XRD",
-        f"XRD database version = {database_version}",
-    ]
+    metadata = {"Date of fitting":date,
+                "Code version":app_version,
+                "Database type":'xrd',
+                "Database version":database_version
+    }
 
     save_with_metadata(database, database_path, metadata=metadata)
 
@@ -326,7 +325,7 @@ def get_refinement_results(foldername):
     Returns
     -------
     list
-        List containing the header of the refinement results file.
+        list containing the header of the refinement results file.
     """
     foldername = pathlib.Path(foldername)
 
@@ -426,7 +425,7 @@ def check_xrd_refinement(foldername):
     return False
 
 
-def plot_xrd_heatmap(foldername, datatype):
+def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = None):
     """
     Plot a heatmap of XRD data.
 
@@ -447,10 +446,8 @@ def plot_xrd_heatmap(foldername, datatype):
         A figure object containing a Heatmap plot of the XRD data.
     """
 
-    empty_fig = go.Figure(data=go.Heatmap())
-    empty_fig.update_layout(height=600, width=600)
     if foldername is None:
-        return empty_fig, 0, 0
+        return go.Figure(layout=heatmap_layout())
 
     x_pos_file, y_pos_file, xrd_filename = read_xrd_files(foldername)
     coordinate_list = [[x, y] for x, y in zip(x_pos_file, y_pos_file)]
@@ -472,7 +469,7 @@ def plot_xrd_heatmap(foldername, datatype):
 
         # Check if the function did find the refined parameters file.
         if z_values is None:
-            return empty_fig
+            return go.Figure(layout=heatmap_layout())
         elif datatype.startswith("Q"):
             # To have the result in %
             z_values = [zs * 100 for zs in z_values]
@@ -480,18 +477,26 @@ def plot_xrd_heatmap(foldername, datatype):
             # To have the result in A
             z_values = [zs * 10 for zs in z_values]
 
+    # Min and max values for colorbar fixing
+    if z_min is None:
+        z_min = np.nanmin(z_values)
+    if z_max is None:
+        z_max = np.nanmax(z_values)
+
     fig = go.Figure(
         data=go.Heatmap(
             x=[coord[0] for coord in coordinate_list],
             y=[coord[1] for coord in coordinate_list],
             z=z_values,
-            text=xrd_filename,
-            colorscale="Jet",
-        )
+            colorscale="Plasma",
+            colorbar=colorbar_layout(z_min, z_max, title='c (Å)')
+        ),
+        layout=heatmap_layout(f"Nd2Fe14B XRD map")
     )
-    fig.update_layout(title=f"XRD map for {foldername}")
 
-    z_min = min(z_values)
-    z_max = max(z_values)
+    if z_min is not None:
+        fig.data[0].update(zmin=z_min)
+    if z_max is not None:
+        fig.data[0].update(zmax=z_max)
 
-    return fig, z_min, z_max
+    return fig

@@ -70,21 +70,24 @@ def callbacks_xrd(app, children_xrd):
         Input("xrd_heatmap_select", "value"),
         Input("xrd_heatmap_select", "options"),
         Input("xrd_heatmap", "clickData"),
-        Input("xrd_tth_range_slider", "value"),
-        Input("xrd_count_slider", "value"),
     )
-    def update_xrd_pattern(foldername, datatype, options, clickData, xrange, yrange):
+    def update_xrd_pattern(foldername, datatype, options, clickData):
+        foldername = pathlib.Path(foldername)
+
+        measurement_list = create_coordinate_map(foldername)
         if clickData is None:
             x_pos, y_pos = 0, 0
-            xrd_filename = "Areamap_009009.ras"
         else:
             x_pos = int(clickData["points"][0]["x"])
             y_pos = int(clickData["points"][0]["y"])
-            xrd_filename = clickData["points"][0]["text"]
 
-        # print(foldername, x_pos, y_pos)
+        for measurement in measurement_list:
+            if x_pos == measurement[0] and y_pos == measurement[1]:
+                xrd_filename = measurement[2]
+
+
         fig = plot_xrd_pattern(
-            foldername, datatype, options, xrd_filename, x_pos, y_pos
+            foldername, datatype, options, xrd_filename
         )
 
         fig.update_layout(
@@ -92,7 +95,7 @@ def callbacks_xrd(app, children_xrd):
             width=1000,
             title=f"XRD spectra for {foldername} at position ({x_pos}, {y_pos})",
         )
-        fig.update_xaxes(title="2Theta (°)", range=xrange)
-        fig.update_yaxes(title="Counts", range=yrange)
+        fig.update_xaxes(title="2Theta (°)")
+        fig.update_yaxes(title="Counts")
 
         return fig

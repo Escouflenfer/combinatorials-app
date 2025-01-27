@@ -126,36 +126,7 @@ class WidgetsXRD:
         self.xrd_right = html.Div(
             className="subgrid top-right",
             children=[
-                html.Div(
-                    className="subgrid 2",
-                    children=[
-                        html.Label("2Theta (°)"),
-                        dcc.RangeSlider(
-                            min=0,
-                            max=120,
-                            step=1,
-                            value=[20, 70],
-                            marks={i: f"{i}" for i in range(0, 120 + 10, 10)},
-                            id="xrd_tth_range_slider",
-                            className="long-item",
-                        ),
-                    ],
-                ),
-                html.Div(
-                    className="subgrid 7",
-                    children=[
-                        html.Label("Counts"),
-                        dcc.RangeSlider(
-                            min=-25000,
-                            max=200000,
-                            step=1000,
-                            value=[-4000, 40000],
-                            marks={i: f"{i}k" for i in frange(-25, 200 + 25, 25)},
-                            id="xrd_count_slider",
-                            className="long-item",
-                        ),
-                    ],
-                ),
+
             ],
         )
 
@@ -163,7 +134,6 @@ class WidgetsXRD:
         self.xrd_pattern = html.Div(
             [
                 dcc.Graph(id="xrd_plot"),
-                html.Button("Save!", id="xrd_plot_save", n_clicks=0),
             ],
             className="plot-right",
         )
@@ -172,7 +142,6 @@ class WidgetsXRD:
         self.xrd_heatmap = html.Div(
             [
                 dcc.Graph(id="xrd_heatmap"),
-                html.Button("Save!", id="xrd_heatmap_save", n_clicks=0),
             ],
             className="plot-left",
         )
@@ -187,35 +156,6 @@ class WidgetsXRD:
             ]
         )
 
-    # def get_children(self, className_moke="grid_layout_xrd"):
-    #     """
-    #     Return a Div containing all the components of the XRD widget.
-
-    #     Parameters
-    #     ----------
-    #     className_moke : str, optional
-    #         The className of the Div. Defaults to "grid_layout_xrd".
-
-    #     Returns
-    #     -------
-    #     children : Dash Div
-    #         A Div containing all the components of the XRD widget.
-    #     """
-    #     children = html.Div(
-    #         [
-    #             self.folderpath,
-    #             self.crange_slider,
-    #             self.xrange_slider,
-    #             self.yrange_slider,
-    #             self.data_type,
-    #             self.browse_button,
-    #             self.xrd_loop,
-    #             self.xrd_heatmap,
-    #         ],
-    #         className=className_moke,
-    #     )
-
-    #     return children
 
     def make_tab_from_widgets(self):
         """

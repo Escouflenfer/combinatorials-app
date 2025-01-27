@@ -46,7 +46,7 @@ def create_coordinate_map(folderpath, prefix="Areamap", suffix=".ras"):
     return pos_list
 
 
-def plot_xrd_pattern(foldername, datatype, options, xrd_filename, x_pos, y_pos):
+def plot_xrd_pattern(foldername: pathlib.Path, datatype, options, xrd_filename):
     """
     Read an XRD pattern file and return a figure object.
 
@@ -83,7 +83,7 @@ def plot_xrd_pattern(foldername, datatype, options, xrd_filename, x_pos, y_pos):
         return empty_fig
 
     # print(datatype, xrd_filename)
-    fullpath = foldername + "/" + xrd_filename
+    fullpath = foldername / xrd_filename
     xrd_data = []
     error = go.Scatter()
 
@@ -100,7 +100,7 @@ def plot_xrd_pattern(foldername, datatype, options, xrd_filename, x_pos, y_pos):
             return empty_fig
 
     else:
-        fullpath = fullpath.replace(".ras", ".dia")
+        fullpath = pathlib.Path(str(fullpath).replace(".ras", ".dia"))
         try:
             with open(fullpath, "r", encoding="iso-8859-1") as file:
                 file_header = next(file)
@@ -465,8 +465,6 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = No
             except ValueError:
                 continue
 
-        xrd_filename = filename_list
-
         # Check if the function did find the refined parameters file.
         if z_values is None:
             return go.Figure(layout=heatmap_layout())
@@ -491,7 +489,7 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = No
             colorscale="Plasma",
             colorbar=colorbar_layout(z_min, z_max, title='c (Å)')
         ),
-        layout=heatmap_layout(f"Nd2Fe14B XRD map")
+        layout=heatmap_layout(f"XRD map")
     )
 
     if z_min is not None:

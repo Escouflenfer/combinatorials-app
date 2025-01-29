@@ -1,4 +1,4 @@
-# combinatorials-app
+# Dash High-throughput Utilities
 
 [William Rigaut](https://github.com/escouflenfer)<sup>1, 2</sup>, [Pierre Le-berre](https://github.com/kellypops)<sup>1, 2</sup>
 
@@ -7,7 +7,7 @@
 
 ## About
 
-`combinatorials-app` is a Python software using Dash, providing:
+`Dash High-throughput Utilities` or DaHU for short is a Python software using Dash, providing:
 
 - reading high number of datafiles from specific instruments at Institut Néel (SmartLab diffractometer for XRD, Zeiss Ultra+ for EDX and in-house scanning MOKE)
 

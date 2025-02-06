@@ -1,3 +1,8 @@
+"""
+Class containing all Dash items and layout information for the DEKTAK tab
+"""
+
+
 from dash import html, dcc
 from natsort import natsorted
 import os

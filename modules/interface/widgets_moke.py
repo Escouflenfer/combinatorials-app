@@ -1,20 +1,9 @@
 """
-class file for edx widgets using dash module to detach it completely from Jupyter Notebooks.
-Internal use for Institut Néel and within the MaMMoS project, to read big datasets produced at Institut Néel.
-
-@Author: William Rigaut - Institut Néel (william.rigaut@neel.cnrs.fr)
+Class containing all Dash items and layout information for the MOKE tab
 """
 
-import os
 from dash import html, dcc
-import dash_bootstrap_components as dbc
-from itertools import count, takewhile
 
-
-from dash import html, dcc
-from natsort import natsorted
-import os
-import pandas as pd
 
 
 class WidgetsMOKE:

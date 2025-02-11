@@ -7,4 +7,5 @@ openpyxl
 numpy
 natsort
 pandas
+setuptools
 ./modules/

@@ -166,6 +166,24 @@ def callbacks_browser(app):
         elif n_clicks > 0:
             return current_folder_path, str(current_folder_path)
 
+
+    # Callback for hdf5 file path
+    @app.callback(
+        [
+            Output("hdf5_path_store", "data", allow_duplicate=True),
+            Output("hdf5_path_text", "children"),
+        ],
+        Input("hdf5_path_button", "n_clicks"),
+        Input("hdf5_path_store", "data"),
+        State("stored_cwd", "data"),
+        prevent_initial_call=True,
+    )
+    def set_folder_path(n_clicks, stored_folder_path, current_folder_path):
+        if n_clicks == None:
+            return stored_folder_path, str(stored_folder_path)
+        elif n_clicks > 0:
+            return current_folder_path, str(current_folder_path)
+
     # Callback to clear all paths
     @app.callback(
         [

@@ -57,7 +57,7 @@ class WidgetsHDF5:
                         html.Label("Fabrication date"),
                         dcc.Input(
                             className="long-item",
-                            id='hdf5_fabrication_date',
+                            id='hdf5_sample_date',
                             type='text',
                             placeholder='Fabrication date'
                         ),
@@ -71,7 +71,7 @@ class WidgetsHDF5:
                         html.Label("Operator Name"),
                         dcc.Input(
                             className="long-item",
-                            id='hdf5_operator_name',
+                            id='hdf5_sample_operator',
                             type='text',
                             placeholder='Operator name'
                         )
@@ -108,7 +108,7 @@ class WidgetsHDF5:
         # Stored variables
         self.hdf5_stores = html.Div(
             children=[
-                dcc.Store(id="hdf5_layer_structure_store", data=None),
+                dcc.Store(id="hdf5_sample_dict_store", data=None),
             ]
         )
 

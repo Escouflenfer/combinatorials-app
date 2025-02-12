@@ -50,7 +50,7 @@ class WidgetsBROWSER:
                 dcc.Store(id="dektak_path_store", storage_type="local"),
                 dcc.Store(id="moke_path_store", storage_type="local"),
                 dcc.Store(id="xrd_path_store", storage_type="local"),
-                dcc.Store(id="squid_path_store", storage_type="local"),
+                dcc.Store(id="hdf5_path_store", storage_type="local"),
             ]
         )
 
@@ -116,10 +116,10 @@ class WidgetsBROWSER:
 
         self.make_squid_button = html.Div(
             children=[
-                html.Button("Set SQUID folder", id="SQUID_path_button"),
+                html.Button("Set HDF5 folder", id="hdf5_path_button"),
                 html.Div(
                     "None",
-                    id="squid_path_text",
+                    id="hdf5_path_text",
                     style={"display": "inline-block", "margin-left": "10px"},
                 ),
             ],

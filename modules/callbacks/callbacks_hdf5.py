@@ -1,6 +1,9 @@
 from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 import re
+import base64
+import io
+import zipfile
 
 from ..functions.functions_hdf5 import *
 
@@ -103,5 +106,35 @@ def callbacks_hdf5(app):
             return dropdown_options, layer_details
         else:
             raise PreventUpdate
+
+
+    # Callback for unpacking uploaded measurements
+    @app.callback(
+        [Output('hdf5_measurement_type', 'value'),
+         Output('hdf5_measurement_store', 'data'),
+         Output('hdf5_text_box', 'children', allow_duplicate=True)],
+        Input('hdf5_upload', 'contents'),
+        State('hdf5_upload', 'filename'),
+        prevent_initial_call=True
+    )
+    def parse_uploaded_measurement(contents, filename):
+        if not filename.endswith('.zip'):
+            raise PreventUpdate
+
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        zip_stream = io.BytesIO(decoded)
+
+        with zipfile.ZipFile(zip_stream, 'r') as zip_file:
+            filename_list = zip_file.namelist()  # List file names in the ZIP
+            print(filename_list)
+            measurement_type = detect_measurement(filename_list)
+            extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore') for file_name in
+                               filename_list}
+            print(extracted_files)
+
+        return measurement_type, None, 'None'
+
+
 
 

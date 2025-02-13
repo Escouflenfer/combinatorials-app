@@ -7,17 +7,40 @@ class WidgetsHDF5:
 
         # Widget for the drag and drop
         self.hdf5_left = html.Div(
-            className='',
+            className='textbox top-left',
             children=[
-                html.Div([
+                html.Div(
+                    className='text-top long-item',
+                    children=[
                     dcc.Upload(
+                        className='long-item',
                         id='hdf5_upload',
                         children=html.Div([
                             'Drag and Drop or ',
                             html.A('Select Files')
-                        ])
+                        ]),
+                        style={
+                            'width': '90%',
+                            'height': '60px',
+                            'lineHeight': '60px',
+                            'borderWidth': '1px',
+                            'borderStyle': 'dashed',
+                            'borderRadius': '5px',
+                            'textAlign': 'center',
+                            'margin': '10px'
+                        },
+                        # Allow multiple files to be uploaded
+                        multiple=False
                     ),
-                ])
+                ]),
+                html.Div(
+                    className='text-7',
+                    children=[html.Button(id='hdf5_add_button', children='Add measurement', n_clicks=0)]
+                ),
+                html.Div(
+                    className='text-9',
+                    children=[dcc.Dropdown(className='long-item', id='hdf5_measurement_type', options=['EDX', 'PROFIL', 'MOKE', 'XRD'], value=None)]
+                )
             ],
         )
 
@@ -108,7 +131,7 @@ class WidgetsHDF5:
         # Stored variables
         self.hdf5_stores = html.Div(
             children=[
-                dcc.Store(id="hdf5_sample_dict_store", data=None),
+                dcc.Store(id="hdf5_measurement_store", data=None),
             ]
         )
 
@@ -124,6 +147,7 @@ class WidgetsHDF5:
                         self.hdf5_left,
                         self.hdf5_center,
                         self.hdf5_right,
+                        self.hdf5_stores,
                     ],
                     className="grid-container",
                 )

@@ -21,7 +21,6 @@ def callbacks_hdf5(app):
 
     def create_new_hdf5_file(n_clicks, data_path, sample_name, sample_date, sample_operator, layer_dropdown):
         if n_clicks > 0:
-            print('ok')
 
             sample_dict = {
                 'sample_name': sample_name,
@@ -36,8 +35,6 @@ def callbacks_hdf5(app):
                     sample_dict[f'layer {idx}'] = {'Element' :  match[0], 'Thickness' : match[1]}
             except TypeError:
                 return '', 'At least one layer is necessary to create new file'
-
-            print(sample_dict)
 
             if not all(sample_dict.values()):
                 return '', 'All data entries must be filled to create a new hdf5 file'
@@ -66,7 +63,7 @@ def callbacks_hdf5(app):
                             current_group = sample
                             counts = 0
 
-            return hdf5_path, f'Created new HDF5 file at {hdf5_path}'
+            return str(hdf5_path), f'Created new HDF5 file at {hdf5_path}'
         else:
             raise PreventUpdate
 
@@ -117,7 +114,7 @@ def callbacks_hdf5(app):
         State('hdf5_upload', 'filename'),
         prevent_initial_call=True
     )
-    def parse_uploaded_measurement(contents, filename):
+    def unpack_uploaded_measurement(contents, filename):
         if not filename.endswith('.zip'):
             raise PreventUpdate
 
@@ -127,14 +124,30 @@ def callbacks_hdf5(app):
 
         with zipfile.ZipFile(zip_stream, 'r') as zip_file:
             filename_list = zip_file.namelist()  # List file names in the ZIP
-            print(filename_list)
             measurement_type = detect_measurement(filename_list)
-            extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore') for file_name in
-                               filename_list}
-            print(extracted_files)
+            extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore') for file_name in filename_list}
 
-        return measurement_type, None, 'None'
+        output_message = f"Successfully uploaded {len(extracted_files)} files from {filename}."
+        return measurement_type, extracted_files, output_message
 
+
+
+    @app.callback(
+        [Output('hdf5_text_box', 'children', allow_duplicate=True)],
+        Input('hdf5_add_button', 'n_clicks'),
+        State('hdf5_measurement_store', 'data'),
+        State('hdf5_measurement_type', 'value'),
+        State('hdf5_path_store', 'data'),
+        prevent_initial_call=True
+    )
+
+    def add_measurement_to_file(n_clicks, measurement_store, measurement_type, hdf5_path):
+        if n_clicks > 0:
+            if measurement_type == 'EDX':
+                for file_name, file_string in measurement_store.items():
+                    write_edx_to_hdf5(hdf5_path, file_name, file_string)
+
+            return None
 
 
 

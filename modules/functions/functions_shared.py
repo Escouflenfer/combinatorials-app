@@ -124,8 +124,7 @@ def heatmap_layout(title=""):
         go.Layout(): layout object that can be passed to a figure
     """
     layout = go.Layout(
-        title=title,
-        titlefont=dict(size=24),
+        title=dict(text=title, font=dict(size=24)),
         xaxis=dict(title="X (mm)", tickfont=dict(size=24), title_font=dict(size=20), range=[-43, 43],
                    tickmode='linear', tick0=-40, dtick=10),
         yaxis=dict(title="Y (mm)", tickfont=dict(size=24), title_font=dict(size=20), range=[-43, 43],
@@ -165,9 +164,8 @@ def colorbar_layout(z_min, z_max, title=""):
     """
     z_mid = (z_min + z_max) / 2
     colorbar = dict(
-        title=f"{title} <br>&nbsp;<br>",
+        title=dict(text=f"{title} <br>&nbsp;<br>", font=dict(size=20)),
         tickfont=dict(size=22),
-        titlefont=dict(size=20),
         tickvals=[
             z_min,
             (z_min + z_mid) / 2,

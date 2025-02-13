@@ -40,7 +40,7 @@ def callbacks_hdf5(app):
                 return '', 'All data entries must be filled to create a new hdf5 file'
 
             data_path = Path(data_path)
-            hdf5_path = data_path / 'new_hdf5.hdf5'
+            hdf5_path = data_path / f'{sample_name}.hdf5'
             with h5py.File(hdf5_path, "w") as file:
                 file.attrs["default"] = "entry"
                 file.attrs["NX_class"] = "HTroot"
@@ -65,11 +65,7 @@ def callbacks_hdf5(app):
 
             return hdf5_path, f'Created new HDF5 file at {hdf5_path}'
         else:
-            return 'Oops', 'I fucked up'
-
-
-
-
+            raise PreventUpdate
 
 
 

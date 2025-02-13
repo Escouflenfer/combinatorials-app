@@ -6,6 +6,9 @@ import io
 import zipfile
 
 from ..functions.functions_hdf5 import *
+from ..hdf5_compilers.hdf5compile_base import *
+from ..hdf5_compilers.hdf5compile_edx import *
+
 
 def callbacks_hdf5(app):
 
@@ -41,29 +44,9 @@ def callbacks_hdf5(app):
 
             data_path = Path(data_path)
             hdf5_path = data_path / f'{sample_name}.hdf5'
-            with h5py.File(hdf5_path, "w") as file:
-                file.attrs["default"] = "entry"
-                file.attrs["NX_class"] = "HTroot"
-
-                htentry = file.create_group("entry")
-                htentry.attrs["NX_class"] = "HTentry"
-
-                sample = htentry.create_group("sample")
-                sample.attrs["NX_class"] = "HTsample"
-                current_group = sample
-                counts = 0
-                for key, value in get_all_keys(sample_dict):
-                    if isinstance(value, dict):
-                        counts = len(value)
-                        current_group = current_group.create_group(key)
-                    else:
-                        current_group[key] = convertFloat(value)
-                        counts -= 1
-                        if counts <= 0:
-                            current_group = sample
-                            counts = 0
-
-            return str(hdf5_path), f'Created new HDF5 file at {hdf5_path}'
+            check = create_new_hdf5(hdf5_path, sample_dict)
+            if check:
+                return str(hdf5_path), f'Created new HDF5 file at {hdf5_path}'
         else:
             raise PreventUpdate
 

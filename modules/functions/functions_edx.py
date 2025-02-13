@@ -337,3 +337,9 @@ def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
         fig.data[0].update(zmax=z_max)
 
     return fig
+
+
+
+"""
+Functions for compiling measurements into hdf5
+"""

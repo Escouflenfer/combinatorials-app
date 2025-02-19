@@ -1,7 +1,7 @@
 """
 Functions for EDX parsing
 """
-from hdf5compile_base import *
+from ..hdf5_compilers.hdf5compile_base import *
 
 def visit_items(item, edx_dict={}):
     """
@@ -238,7 +238,7 @@ def make_energy_dataset(edx_dict, channels):
     return energy
 
 
-def write_edx_to_hdf5(HDF5_path, filename, filestring, mode="a"):
+def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
     """
     Writes the contents of the EDX data file (.spx) to the given HDF5 file.
 
@@ -250,40 +250,41 @@ def write_edx_to_hdf5(HDF5_path, filename, filestring, mode="a"):
     Returns:
         None
     """
-    scan_numbers = get_position_from_name(filename)
-    wafer_positions = calculate_wafer_positions(scan_numbers)
-    edx_dict, channels = read_data_from_spx(filestring)
-    energy = make_energy_dataset(edx_dict, channels)
+    for file_name, file_string in measurement_dict.items():
+        scan_numbers = get_position_from_name(file_name)
+        wafer_positions = calculate_wafer_positions(scan_numbers)
+        edx_dict, channels = read_data_from_spx(file_string)
+        energy = make_energy_dataset(edx_dict, channels)
 
-    with h5py.File(HDF5_path, mode) as f:
-        scan_group = f"/entry/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
-        scan = f.create_group(scan_group)
+        with h5py.File(HDF5_path, mode) as f:
+            scan_group = f"/entry/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
+            scan = f.create_group(scan_group)
 
-        # Instrument group for metadata
-        instrument = scan.create_group("instrument")
-        instrument.attrs["NX_class"] = "HTinstrument"
+            # Instrument group for metadata
+            instrument = scan.create_group("instrument")
+            instrument.attrs["NX_class"] = "HTinstrument"
 
-        instrument["x_pos"] = wafer_positions[0]
-        instrument["y_pos"] = wafer_positions[1]
-        instrument["x_pos"].attrs["units"] = "mm"
-        instrument["y_pos"].attrs["units"] = "mm"
+            instrument["x_pos"] = wafer_positions[0]
+            instrument["y_pos"] = wafer_positions[1]
+            instrument["x_pos"].attrs["units"] = "mm"
+            instrument["y_pos"].attrs["units"] = "mm"
 
-        # Result group
-        results = scan.create_group("results")
-        results.attrs["NX_class"] = "HTresult"
-        set_instrument_and_result_from_dict(edx_dict, instrument, results)
+            # Result group
+            results = scan.create_group("results")
+            results.attrs["NX_class"] = "HTresult"
+            set_instrument_and_result_from_dict(edx_dict, instrument, results)
 
-        # Measurement group
-        data = scan.create_group("measurement")
-        data.attrs["NX_class"] = "HTdata"
+            # Measurement group
+            data = scan.create_group("measurement")
+            data.attrs["NX_class"] = "HTdata"
 
-        counts = data.create_dataset(
-            "counts", (len(channels),), data=channels, dtype="int"
-        )
-        energy = data.create_dataset(
-            "energy", (len(energy),), data=energy, dtype="float"
-        )
-        counts.attrs["units"] = "cps"
-        energy.attrs["units"] = "keV"
+            counts = data.create_dataset(
+                "counts", (len(channels),), data=channels, dtype="int"
+            )
+            energy = data.create_dataset(
+                "energy", (len(energy),), data=energy, dtype="float"
+            )
+            counts.attrs["units"] = "cps"
+            energy.attrs["units"] = "keV"
 
-    return None
+        return None

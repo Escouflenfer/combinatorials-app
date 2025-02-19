@@ -6,6 +6,7 @@ import h5py
 import numpy as np
 import re
 import os
+from collections import defaultdict
 
 
 def convertFloat(item):

@@ -5,6 +5,7 @@ import pathlib
 import h5py
 import numpy as np
 import re
+from collections import defaultdict
 
 
 def detect_measurement(filename_list: list):

@@ -8,6 +8,7 @@ import zipfile
 from ..functions.functions_hdf5 import *
 from ..hdf5_compilers.hdf5compile_base import *
 from ..hdf5_compilers.hdf5compile_edx import *
+from ..hdf5_compilers.hdf5compile_moke import write_moke_to_hdf5
 
 
 def callbacks_hdf5(app):
@@ -108,7 +109,13 @@ def callbacks_hdf5(app):
         with zipfile.ZipFile(zip_stream, 'r') as zip_file:
             filename_list = zip_file.namelist()  # List file names in the ZIP
             measurement_type = detect_measurement(filename_list)
-            extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore') for file_name in filename_list}
+            if measurement_type == 'EDX':
+                extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore')
+                                   for file_name in filename_list}
+            if measurement_type == 'MOKE':
+                extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
+                                   for file_name in filename_list}
+
 
         output_message = f"Successfully uploaded {len(extracted_files)} files from {filename}."
         return measurement_type, extracted_files, output_message
@@ -127,8 +134,9 @@ def callbacks_hdf5(app):
     def add_measurement_to_file(n_clicks, measurement_store, measurement_type, hdf5_path):
         if n_clicks > 0:
             if measurement_type == 'EDX':
-                for file_name, file_string in measurement_store.items():
-                    write_edx_to_hdf5(hdf5_path, file_name, file_string)
+                write_edx_to_hdf5(hdf5_path, measurement_store)
+            if measurement_type =='MOKE':
+                write_moke_to_hdf5(hdf5_path, measurement_store)
 
             return None
 

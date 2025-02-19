@@ -2,7 +2,8 @@
 Functions for MOKE parsing
 """
 
-from hdf5compile_base import *
+from ..hdf5_compilers.hdf5compile_base import *
+import io
 
 def get_scan_number(filename):
     """
@@ -67,17 +68,18 @@ def read_header_from_moke(file_string):
 
     header_dict = {}
 
-    with open(file_string, "r", encoding="iso-8859-1") as file:
-        header_dict["Sample name"] = file.readline().strip().replace("#", "")
-        header_dict["Date"] = file.readline().strip().replace("#", "")
-        for line in file:
-            key, value = line.strip().split("=")
-            header_dict[key] = value
+    lines = io.StringIO(file_string).readlines()
+
+    header_dict["Sample name"] = lines[1].strip().replace("#", "")
+    header_dict["Date"] = lines[2].strip().replace("#", "")
+    for line in lines[3:]:
+        key, value = line.strip().split("=")
+        header_dict[key] = value
 
     return header_dict
 
 
-def read_data_from_moke(filepath):
+def read_data_from_moke(file_dict):
     """
     Reads data from a MOKE data file and its associated pulse and sum data files.
 
@@ -92,21 +94,20 @@ def read_data_from_moke(filepath):
         A tuple containing three lists: magnetization data, pulse data, and sum data. Each list contains the data of the corresponding file.
     """
     mag_data, pul_data, sum_data = [], [], []
-    loop_data = []
 
-    mag_path = filepath
-    pul_path = filepath.parent / f"{filepath.name.replace('magnetization', 'pulse')}"
-    sum_path = filepath.parent / f"{filepath.name.replace('magnetization', 'sum')}"
-    loop_path = filepath.parent / f"{filepath.name.replace('magnetization', 'loop')}"
+    for file_name, file_string in file_dict.items():
+        if 'magnetization' in file_name:
+            mag_file = file_string
+        elif 'pulse' in file_name:
+            pul_file = file_string
+        elif 'sum' in file_name:
+            sum_file = file_string
 
-    # Open the 4 datafiles at the same time and write everything in lists
-    with open(mag_path, "r") as magnetization, open(pul_path, "r") as pulse, open(
-        sum_path, "r"
-    ) as reflectivity:
-
-        magnetization = magnetization.readlines()
-        pulse = pulse.readlines()
-        reflectivity = reflectivity.readlines()
+    # Open the 3 datafiles at the same time and write everything in lists
+    try:
+        magnetization = io.StringIO(mag_file).readlines()
+        pulse = io.StringIO(pul_file).readlines()
+        reflectivity = io.StringIO(sum_file).readlines()
 
         for mag, pul, sum in zip(magnetization[2:], pulse[2:], reflectivity[2:]):
             mag = mag.strip().split()
@@ -117,14 +118,11 @@ def read_data_from_moke(filepath):
             pul_data.append([float(elm) for elm in pul])
             sum_data.append([float(elm) for elm in sum])
 
-    # Reading the loop MOKE file
-    with open(loop_path, "r") as loop:
-        loop = loop.readlines()
-        for line in loop[2:]:
-            loop_line = line.strip().split()
-            loop_data.append([float(elm) for elm in loop_line])
+        return mag_data, pul_data, sum_data
+    except NameError:
+        return 'Missing files'
 
-    return mag_data, pul_data, sum_data, loop_data
+
 
 
 def get_time_from_moke(datasize):
@@ -208,7 +206,7 @@ def set_instrument_from_dict(moke_dict, node):
     return None
 
 
-def write_moke_to_hdf5(HDF5_path, file_name, file_string, mode="a"):
+def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
     """
     Writes the contents of the MOKE data file (.txt) to the given HDF5 file.
 
@@ -220,75 +218,59 @@ def write_moke_to_hdf5(HDF5_path, file_name, file_string, mode="a"):
     Returns:
         None
     """
-    scan_number = get_scan_number(filepath)
-    x_pos, y_pos = get_wafer_positions(filepath)
 
-    header_dict = read_header_from_moke(filepath)
-    mag_dict, pul_dict, sum_dict, loop_dict = read_data_from_moke(filepath)
-    time_dict = get_time_from_moke(len(mag_dict))
-    nb_aquisitions = len(mag_dict[0])
+    _ = measurement_dict.pop('log_file.log', None)
 
-    results_dict = get_results_from_moke(filepath, x_pos, y_pos)
+    info_file_string = measurement_dict.pop('info.txt', None)
+    header_dict = read_header_from_moke(info_file_string)
 
-    with h5py.File(HDF5_path, mode) as f:
-        scan_group = f"/entry/moke/scan_{scan_number}/"
-        scan = f.create_group(scan_group)
+    grouped_dict = defaultdict(dict)
+    for file_name, file_string in measurement_dict.items():
+        if file_name.endswith('.txt'):
+            p_number = file_name[1]  # extract p_number from measurement name
+            grouped_dict[p_number][file_name] = file_string  # Dictionary with measurements grouped by p_numbers
 
-        # Instrument group for metadata
-        instrument = scan.create_group("instrument")
-        instrument.attrs["NX_class"] = "HTinstrument"
-        instrument["x_pos"] = convertFloat(x_pos)
-        instrument["y_pos"] = convertFloat(y_pos)
-        instrument["x_pos"].attrs["units"] = "mm"
-        instrument["y_pos"].attrs["units"] = "mm"
+    for scan_number in grouped_dict.keys():
+        x_pos, y_pos = get_wafer_positions(next(iter(grouped_dict[scan_number])))
+        mag_dict, pul_dict, sum_dict = read_data_from_moke(grouped_dict[scan_number])
+        time_dict = get_time_from_moke(len(mag_dict))
+        nb_aquisitions = len(mag_dict[0])
 
-        set_instrument_from_dict(header_dict, instrument)
+        with h5py.File(HDF5_path, mode) as f:
+            scan_group = f"/entry/moke/scan_{scan_number}/"
+            scan = f.create_group(scan_group)
 
-        # Data group
-        data = scan.create_group("measurement")
-        data.attrs["NX_class"] = "HTmeasurement"
-        time = [convertFloat(t) for t in time_dict]
-        time_node = data.create_dataset("time", data=time, dtype="float")
-        time_node.attrs["units"] = "μm"
+            # Instrument group for metadata
+            instrument = scan.create_group("instrument")
+            instrument.attrs["NX_class"] = "HTinstrument"
+            instrument["x_pos"] = convertFloat(x_pos)
+            instrument["y_pos"] = convertFloat(y_pos)
+            instrument["x_pos"].attrs["units"] = "mm"
+            instrument["y_pos"].attrs["units"] = "mm"
 
-        for i in range(nb_aquisitions):
-            mag = [convertFloat(t[i]) for t in mag_dict]
-            mag_node = data.create_dataset(
-                f"magnetization_{i+1}", data=mag, dtype="float"
-            )
+            set_instrument_from_dict(header_dict, instrument)
 
-            pul = [convertFloat(t[i]) for t in pul_dict]
-            pul_node = data.create_dataset(f"pulse_{i+1}", data=pul, dtype="float")
+            # Data group
+            data = scan.create_group("measurement")
+            data.attrs["NX_class"] = "HTmeasurement"
+            time = [convertFloat(t) for t in time_dict]
+            time_node = data.create_dataset("time", data=time, dtype="float")
+            time_node.attrs["units"] = "μm"
 
-            sum = [convertFloat(t[i]) for t in sum_dict]
-            sum_node = data.create_dataset(
-                f"reflectivity_{i+1}", data=sum, dtype="float"
-            )
+            for i in range(nb_aquisitions):
+                mag = [convertFloat(t[i]) for t in mag_dict]
+                mag_node = data.create_dataset(
+                    f"magnetization_{i+1}", data=mag, dtype="float"
+                )
 
-            mag_node.attrs["units"] = "V"
-            pul_node.attrs["units"] = "V"
-            sum_node.attrs["units"] = "V"
+                pul = [convertFloat(t[i]) for t in pul_dict]
+                pul_node = data.create_dataset(f"pulse_{i+1}", data=pul, dtype="float")
 
-        # Results group
-        results = scan.create_group("results")
-        results.attrs["NX_class"] = "HTresults"
-        set_instrument_from_dict(results_dict, results)
-        for key in results.keys():
-            if key == "coercivity":
-                results[key].attrs["units"] = "T"
-            elif key == "reflectivity":
-                results[key].attrs["units"] = "V"
+                sum = [convertFloat(t[i]) for t in sum_dict]
+                sum_node = data.create_dataset(
+                    f"reflectivity_{i+1}", data=sum, dtype="float"
+                )
 
-        applied_field = []
-        magnetization = []
-        for field, mag in loop_dict:
-            applied_field.append(float(field))
-            magnetization.append(float(mag))
-        applied_field = results.create_dataset(
-            "applied field", data=applied_field, dtype="float"
-        )
-        magnetization = results.create_dataset(
-            "magnetization", data=magnetization, dtype="float"
-        )
-        applied_field.attrs["units"] = "T"
-        magnetization.attrs["units"] = "V"
+                mag_node.attrs["units"] = "V"
+                pul_node.attrs["units"] = "V"
+                sum_node.attrs["units"] = "V"

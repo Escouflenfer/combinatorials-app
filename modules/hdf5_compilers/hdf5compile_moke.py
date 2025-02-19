@@ -250,12 +250,12 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
 
             set_instrument_from_dict(header_dict, instrument)
 
-            # Data group
+            # Measurement group for data
             data = scan.create_group("measurement")
             data.attrs["NX_class"] = "HTmeasurement"
             time = [convertFloat(t) for t in time_dict]
             time_node = data.create_dataset("time", data=time, dtype="float")
-            time_node.attrs["units"] = "μm"
+            time_node.attrs["units"] = "μs"
 
             for i in range(nb_aquisitions):
                 mag = [convertFloat(t[i]) for t in mag_dict]

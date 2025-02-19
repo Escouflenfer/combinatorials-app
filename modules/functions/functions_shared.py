@@ -26,6 +26,36 @@ def get_version(tag:str):
                 return version
 
 
+def detect_measurement(filename_list: list):
+    """
+       Scan a folder to determine which type of measurement it is
+
+       Parameters:
+           filename_list (list): list containing all filenames to parse
+
+       Returns:
+           version (str): detected measurement type
+       """
+    measurement_dict = {
+        "MOKE": ["txt", "log", "csv"],
+        "EDX": ["spx", "xlsx", "rtj2"],
+        "PROFIL": ["asc2d", "csv"],
+        "XRD": ["ras", "raw", "asc", "img", "pdf"],
+    }
+
+    for measurement_type, file_type in measurement_dict.items():
+        ok = True
+        for filename in filename_list:
+            if filename.startswith('.'):
+                continue
+            if filename.split('.')[-1] not in file_type:
+                ok = False
+                break
+            if not ok:
+                break
+        if ok:
+            return measurement_type
+
 
 def get_database_path(folderpath:Path):
     """

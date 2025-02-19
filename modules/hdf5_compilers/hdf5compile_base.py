@@ -7,6 +7,7 @@ import numpy as np
 import re
 import os
 from collections import defaultdict
+import pandas as pd
 
 
 def convertFloat(item):

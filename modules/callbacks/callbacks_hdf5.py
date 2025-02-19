@@ -5,10 +5,11 @@ import base64
 import io
 import zipfile
 
-from ..functions.functions_hdf5 import *
+from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 from ..hdf5_compilers.hdf5compile_edx import *
-from ..hdf5_compilers.hdf5compile_moke import write_moke_to_hdf5
+from ..hdf5_compilers.hdf5compile_moke import *
+from ..hdf5_compilers.hdf5compile_dektak import *
 
 
 def callbacks_hdf5(app):
@@ -115,6 +116,9 @@ def callbacks_hdf5(app):
             if measurement_type == 'MOKE':
                 extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
                                    for file_name in filename_list}
+            if measurement_type == 'PROFIL':
+                extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
+                                   for file_name in filename_list}
 
 
         output_message = f"Successfully uploaded {len(extracted_files)} files from {filename}."
@@ -137,6 +141,8 @@ def callbacks_hdf5(app):
                 write_edx_to_hdf5(hdf5_path, measurement_store)
             if measurement_type =='MOKE':
                 write_moke_to_hdf5(hdf5_path, measurement_store)
+            if measurement_type == 'PROFIL':
+                write_dektak_to_hdf5(hdf5_path, measurement_store)
 
             return None
 

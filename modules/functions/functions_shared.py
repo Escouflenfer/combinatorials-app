@@ -174,11 +174,11 @@ def colorbar_layout(z_min, z_max, title=""):
             z_max,
         ],  # Tick values
         ticktext=[
-            f"{z_min:.2f}",
-            f"{(z_min + z_mid) / 2:.2f}",
-            f"{z_mid:.2f}",
-            f"{(z_max + z_mid) / 2:.2f}",
-            f"{z_max:.2f}",
+            f"{z_min:.0f}",
+            f"{(z_min + z_mid) / 2:.0f}",
+            f"{z_mid:.0f}",
+            f"{(z_max + z_mid) / 2:.0f}",
+            f"{z_max:.0f}",
         ],  # Tick text
     )
     return colorbar

@@ -37,11 +37,20 @@ def create_coordinate_map(folderpath, prefix="Areamap", suffix=".ras"):
         file_path = folderpath.joinpath(file)
         with open(file_path, "r", encoding="iso-8859-1") as f:
             for line in f:
+                # Smartlab header file
                 if line.startswith("*MEAS_COND_AXIS_POSITION-6"):
                     x_pos = float(line.split(" ")[1].split('"')[1])
                 elif line.startswith("*MEAS_COND_AXIS_POSITION-7"):
                     y_pos = float(line.split(" ")[1].split('"')[1])
                     break
+
+                # ESRF header file
+                elif line.startswith("#instrument/positioners/xsamp"):
+                    x_pos = round(float(line.split(" ")[1]), 1)
+                elif line.startswith("#instrument/positioners/ysamp"):
+                    y_pos = round(float(line.split(" ")[1]), 1)
+                    break
+
             pos_list.append([x_pos, y_pos, file])
     return pos_list
 
@@ -70,12 +79,23 @@ def plot_xrd_pattern(foldername: pathlib.Path, datatype, options, xrd_filename):
     fig : plotly.graph_objects.Figure
         A figure object containing a Scatter plot of the XRD data.
     """
-    marker_colors = ["green", "red", "blue", "orange", "purple", "pink", "yellow"]
+    marker_colors = [
+        "green",
+        "red",
+        "blue",
+        "orange",
+        "purple",
+        "pink",
+        "cyan",
+        "magenta",
+        "yellow",
+    ]
     names = (
         ["Counts", "Calculated", "Background"]
         + [option for option in options if option.startswith("Q")]
         + ["Amorphous Ta"]
     )
+    # print(names)
 
     empty_fig = go.Figure(data=go.Heatmap())
     empty_fig.update_layout(height=600, width=600)
@@ -91,16 +111,19 @@ def plot_xrd_pattern(foldername: pathlib.Path, datatype, options, xrd_filename):
         try:
             with open(fullpath, "r", encoding="iso-8859-1") as file:
                 for line in file:
-                    if not line.startswith("*"):
-                        theta, counts, error = line.split()
+                    if not line.startswith("*") and not line.startswith("#"):
+                        theta, counts = line.split()[0:2]
                         xrd_data.append([float(theta), float(counts)])
 
         except FileNotFoundError:
-            print(f"{fullpath} ras file not found !")
+            print(f"{fullpath} ras or xy file not found !")
             return empty_fig
 
     else:
-        fullpath = pathlib.Path(str(fullpath).replace(".ras", ".dia"))
+        if ".ras" in str(fullpath):
+            fullpath = pathlib.Path(str(fullpath).replace(".ras", ".dia"))
+        elif ".xy" in str(fullpath):
+            fullpath = pathlib.Path(str(fullpath).replace(".xy", ".dia"))
         try:
             with open(fullpath, "r", encoding="iso-8859-1") as file:
                 file_header = next(file)
@@ -160,6 +183,10 @@ def read_xrd_files(foldername):
     """
     fullpath = pathlib.Path(foldername)
     pos_list = create_coordinate_map(fullpath)
+
+    # If Smartlab data not found, we try to find ESRF data instead
+    if pos_list == []:
+        pos_list = create_coordinate_map(fullpath, prefix=fullpath.name, suffix=".xy")
 
     x_pos = [pos[0] for pos in pos_list]
     y_pos = [pos[1] for pos in pos_list]
@@ -275,10 +302,11 @@ def save_refinement_results(foldername, header, rr_output):
     app_version = get_version("app")
     database_version = get_version("xrd")
 
-    metadata = {"Date of fitting":date,
-                "Code version":app_version,
-                "Database type":'xrd',
-                "Database version":database_version
+    metadata = {
+        "Date of fitting": date,
+        "Code version": app_version,
+        "Database type": "xrd",
+        "Database version": database_version,
     }
 
     save_with_metadata(database, database_path, metadata=metadata)
@@ -333,8 +361,12 @@ def get_refinement_results(foldername):
         save_list = []
         x_pos, y_pos, xrd_filename = read_xrd_files(foldername)
 
-        for i, ras_file in enumerate(xrd_filename):
-            lst_file_path = foldername / ras_file.replace(".ras", ".lst")
+        for i, file in enumerate(xrd_filename):
+            lst_file_path = None
+            if ".ras" in file:
+                lst_file_path = foldername / file.replace(".ras", ".lst")
+            elif ".xy" in file:
+                lst_file_path = foldername / file.replace(".xy", ".lst")
             # Read the .lst file and get the refined lattice parameters
             header, rr_output = read_from_lst(lst_file_path, x_pos[i], y_pos[i])[0:2]
             if np.abs(x_pos[i]) + np.abs(y_pos[i]) <= 60:
@@ -425,7 +457,7 @@ def check_xrd_refinement(foldername):
     return False
 
 
-def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = None):
+def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max: bool = None):
     """
     Plot a heatmap of XRD data.
 
@@ -453,6 +485,7 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = No
     coordinate_list = [[x, y] for x, y in zip(x_pos_file, y_pos_file)]
 
     if datatype is None or datatype == "Raw XRD data":
+        title = ""
         z_values = np.zeros(len(x_pos_file) + len(y_pos_file))
     else:
         x_pos, y_pos, z_values = get_refined_parameter(foldername, datatype)
@@ -470,10 +503,12 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = No
             return go.Figure(layout=heatmap_layout())
         elif datatype.startswith("Q"):
             # To have the result in %
-            z_values = [zs * 100 for zs in z_values]
+            z_values = [float(zs) * 100 for zs in z_values]
+            title = "Wt%"
         else:
             # To have the result in A
-            z_values = [zs * 10 for zs in z_values]
+            z_values = [float(zs) * 10 for zs in z_values]
+            title = "Å"
 
     # Min and max values for colorbar fixing
     if z_min is None:
@@ -486,10 +521,10 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max : bool = No
             x=[coord[0] for coord in coordinate_list],
             y=[coord[1] for coord in coordinate_list],
             z=z_values,
-            colorscale="Plasma",
-            colorbar=colorbar_layout(z_min, z_max, title='c (Å)')
+            colorscale="Rainbow",
+            colorbar=colorbar_layout(z_min, z_max, title=title),
         ),
-        layout=heatmap_layout(f"XRD map")
+        layout=heatmap_layout(f"XRD map"),
     )
 
     if z_min is not None:

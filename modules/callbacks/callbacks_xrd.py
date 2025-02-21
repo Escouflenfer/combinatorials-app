@@ -14,9 +14,10 @@ from ..functions.functions_shared import *
 def callbacks_xrd(app, children_xrd):
     # XRD components
     @callback(
-        Output("xrd_heatmap_select", "options"),
-        Output("xrd_heatmap_select", "value"),
+        Output("xrd_heatmap_select", "options", allow_duplicate=False),
+        Output("xrd_heatmap_select", "value", allow_duplicate=False),
         Input("xrd_path_store", "data"),
+        prevent_initial_call=True,
     )
     def update_data_type_options(foldername):
         refinement_options = check_xrd_refinement(foldername)
@@ -74,7 +75,13 @@ def callbacks_xrd(app, children_xrd):
     def update_xrd_pattern(foldername, datatype, options, clickData):
         foldername = pathlib.Path(foldername)
 
+        # Check for both Smartlab and ESRF data
         measurement_list = create_coordinate_map(foldername)
+        if measurement_list == []:
+            measurement_list = create_coordinate_map(
+                foldername, prefix=foldername.name, suffix=".xy"
+            )
+
         if clickData is None:
             x_pos, y_pos = 0, 0
         else:
@@ -85,10 +92,7 @@ def callbacks_xrd(app, children_xrd):
             if x_pos == measurement[0] and y_pos == measurement[1]:
                 xrd_filename = measurement[2]
 
-
-        fig = plot_xrd_pattern(
-            foldername, datatype, options, xrd_filename
-        )
+        fig = plot_xrd_pattern(foldername, datatype, options, xrd_filename)
 
         fig.update_layout(
             height=650,

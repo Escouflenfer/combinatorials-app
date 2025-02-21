@@ -13,7 +13,7 @@ import re
 
 from ..functions.functions_shared import *
 
-pd.set_option('display.max_rows', 1000)
+pd.set_option("display.max_rows", 1000)
 from IPython.display import display
 
 
@@ -52,7 +52,9 @@ def read_info_file(folderpath: Path):
         return None
 
 
-def load_target_measurement_files(folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0):
+def load_target_measurement_files(
+    folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0
+):
     """
     For a given x and y position and measurement number, find and load corresponding measurement
 
@@ -115,7 +117,6 @@ def load_target_measurement_files(folderpath: Path, target_x: float, target_y: f
 
 
 def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
-
     """
     Calculate the field by integrating over the pulse signal and then normalizing by the instrumental parameters
 
@@ -138,9 +139,10 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
         connect_loops = treatment_dict["connect_loops"]
 
     except KeyError:
-        raise KeyError('Invalid data treatment dictionary, '
-                       'check compatibility between callbacks_moke.store_data_treatment and functions_moke.treat_data')
-
+        raise KeyError(
+            "Invalid data treatment dictionary, "
+            "check compatibility between callbacks_moke.store_data_treatment and functions_moke.treat_data"
+        )
 
     pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
     max_field = coil_factor / 100 * pulse_voltage
@@ -156,8 +158,12 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     data["Pulse"] = data["Pulse"].replace(-0.0016667, 0)
 
     # Integrate pulse during triggers to get field
-    data.loc[positive_pulse[0]:positive_pulse[1], "Field"] = (data.loc[positive_pulse[0]:positive_pulse[1], "Pulse"].cumsum())
-    data.loc[negative_pulse[0]:negative_pulse[1], "Field"] = (data.loc[negative_pulse[0]:negative_pulse[1], "Pulse"].cumsum())
+    data.loc[positive_pulse[0] : positive_pulse[1], "Field"] = data.loc[
+        positive_pulse[0] : positive_pulse[1], "Pulse"
+    ].cumsum()
+    data.loc[negative_pulse[0] : negative_pulse[1], "Field"] = data.loc[
+        negative_pulse[0] : negative_pulse[1], "Pulse"
+    ].cumsum()
 
     # Set field using coil parameters
     midpoint = len(data) // 2
@@ -179,8 +185,12 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     if filter_zero:
         data = data[data["Field"].notna()]
 
-        data.loc[:length//2, "Field"] = data.loc[:length//2].where(data["Field"] > 1e-2)
-        data.loc[length//2:, "Field"] = data.loc[length//2:].where(data["Field"] < -1e-2)
+        data.loc[: length // 2, "Field"] = data.loc[: length // 2].where(
+            data["Field"] > 1e-2
+        )
+        data.loc[length // 2 :, "Field"] = data.loc[length // 2 :].where(
+            data["Field"] < -1e-2
+        )
 
     # test
     if connect_loops:
@@ -195,11 +205,12 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
 
     # Data smoothing
     if smoothing:
-        data.loc[:,"Magnetization"] = savgol_filter(
+        data.loc[:, "Magnetization"] = savgol_filter(
             data["Magnetization"], smoothing_range, smoothing_polyorder
         )
 
     return data
+
 
 def extract_loop_section(data: pd.DataFrame):
     """
@@ -267,11 +278,17 @@ def calc_derivative_coercivity(data: pd.DataFrame):
        float, float
     """
     data["Derivative"] = data["Magnetization"] - data["Magnetization"].shift(1)
-    data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = 0  # (Avoid derivative discrepancies around 0 Field)
+    data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = (
+        0  # (Avoid derivative discrepancies around 0 Field)
+    )
 
     # For positive / negative field, find index of maximum / minimum derivative and extract corresponding field
-    coercivity_positive = data.loc[data.loc[data["Field"] > 0, "Derivative"].idxmax(skipna=True), "Field"]
-    coercivity_negative = data.loc[data.loc[data["Field"] < 0, "Derivative"].idxmin(skipna=True), "Field"]
+    coercivity_positive = data.loc[
+        data.loc[data["Field"] > 0, "Derivative"].idxmax(skipna=True), "Field"
+    ]
+    coercivity_negative = data.loc[
+        data.loc[data["Field"] < 0, "Derivative"].idxmin(skipna=True), "Field"
+    ]
 
     return coercivity_positive, coercivity_negative
 
@@ -287,27 +304,30 @@ def calc_mzero_coercivity(data: pd.DataFrame):
         float, float
     """
     coercivity_positive = data.loc[
-        np.abs(data.loc[data["Field"] > 0, "Magnetization"]).idxmin(skipna=True), "Field"
+        np.abs(data.loc[data["Field"] > 0, "Magnetization"]).idxmin(skipna=True),
+        "Field",
     ]
     coercivity_negative = data.loc[
-        np.abs(data.loc[data["Field"] < 0, "Magnetization"]).idxmin(skipna=True), "Field"
+        np.abs(data.loc[data["Field"] < 0, "Magnetization"]).idxmin(skipna=True),
+        "Field",
     ]
 
     return coercivity_positive, coercivity_negative
 
+
 def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     """
-   From a dataframe, fit for the intercept field and return the intercept field values
+    From a dataframe, fit for the intercept field and return the intercept field values
 
-   Parameters:
-       data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
-       folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
-       treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
+    Parameters:
+        data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
+        treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
 
-   Returns:
-       float, float, dict
-       Returned dictionary contains the direct results from the fits for plotting
-   """
+    Returns:
+        float, float, dict
+        Returned dictionary contains the direct results from the fits for plotting
+    """
 
     force_flat = True
 
@@ -315,40 +335,46 @@ def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
     max_field = coil_factor / 100 * pulse_voltage
 
-    sat_field = 1.75 # Should be a data treatment variable, WIP
+    sat_field = 1.75  # Should be a data treatment variable, WIP
 
     Hmin = 0.1
     Hmax = sat_field - 0.25
     Hmin_sat = sat_field + 0.25
-    Hmax_sat = 0.95*max_field
+    Hmax_sat = 0.95 * max_field
 
-    non_nan = data[data['Field'].notna()].index.values
+    non_nan = data[data["Field"].notna()].index.values
 
-    section = data.loc[non_nan, ('Magnetization', 'Field')]
+    section = data.loc[non_nan, ("Magnetization", "Field")]
     section.reset_index(drop=True, inplace=True)
 
-    linear_section = section[(np.abs(section['Field']) > Hmin) & (np.abs(section['Field']) < Hmax)]
-    pos_sat_section = section[(section['Field'] > Hmin_sat) & (section['Field'] < Hmax_sat)]
-    neg_sat_section = section[(section['Field'] < -Hmin_sat) & (section['Field'] > -Hmax_sat)]
+    linear_section = section[
+        (np.abs(section["Field"]) > Hmin) & (np.abs(section["Field"]) < Hmax)
+    ]
+    pos_sat_section = section[
+        (section["Field"] > Hmin_sat) & (section["Field"] < Hmax_sat)
+    ]
+    neg_sat_section = section[
+        (section["Field"] < -Hmin_sat) & (section["Field"] > -Hmax_sat)
+    ]
 
     # 1: Linear section
     # 2: Positive saturation section
     # 3: Negative saturation section
 
-    x1 = linear_section['Field'].values
-    y1 = linear_section['Magnetization'].values
+    x1 = linear_section["Field"].values
+    y1 = linear_section["Magnetization"].values
     slope1, intercept1 = np.polyfit(x1, y1, 1)
 
-    x2 = pos_sat_section['Field'].values
-    y2 = pos_sat_section['Magnetization'].values
+    x2 = pos_sat_section["Field"].values
+    y2 = pos_sat_section["Magnetization"].values
     if force_flat:
         slope2 = 0
         intercept2 = np.polyfit(x2, y2, 0)
     else:
         slope2, intercept2 = np.polyfit(x2, y2, 1)
 
-    x3 = neg_sat_section['Field'].values
-    y3 = neg_sat_section['Magnetization'].values
+    x3 = neg_sat_section["Field"].values
+    y3 = neg_sat_section["Magnetization"].values
     if force_flat:
         slope3 = 0
         intercept3 = np.polyfit(x3, y3, 0)
@@ -362,7 +388,7 @@ def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     fit_dict = {
         "linear_section": [slope1, intercept1, x1],
         "positive_section": [slope2, intercept2, x2],
-        "negative_section": [slope3, intercept3, x3]
+        "negative_section": [slope3, intercept3, x3],
     }
 
     return float(positive_intercept_field), float(negative_intercept_field), fit_dict
@@ -422,7 +448,9 @@ def make_database(folderpath: Path, treatment_dict: dict):
         m_coercivity = np.mean(np.abs(calc_mzero_coercivity(data)))
 
         # Fit for intercept field
-        intercept_pos, intercept_neg, _ = fit_intercept(data, folderpath, treatment_dict)
+        intercept_pos, intercept_neg, _ = fit_intercept(
+            data, folderpath, treatment_dict
+        )
         intercept = np.mean(np.abs((intercept_pos, intercept_neg)))
 
         # Assign to database
@@ -442,11 +470,12 @@ def make_database(folderpath: Path, treatment_dict: dict):
     app_version = get_version("app")
     database_version = get_version("moke")
 
-    metadata = {"Date of fitting":date,
-                "Code version":app_version,
-                "Database type":'moke',
-                "Database version":database_version
-                }
+    metadata = {
+        "Date of fitting": date,
+        "Code version": app_version,
+        "Database type": "moke",
+        "Database version": database_version,
+    }
 
     metadata.update(treatment_dict)
 
@@ -454,8 +483,14 @@ def make_database(folderpath: Path, treatment_dict: dict):
     return database_path
 
 
-def heatmap_plot(database_path: Path, mode: str, title: str = "",
-                 z_min: bool = None, z_max: bool = None, masking: bool = False):
+def heatmap_plot(
+    database_path: Path,
+    mode: str,
+    title: str = "",
+    z_min: bool = None,
+    z_max: bool = None,
+    masking: bool = False,
+):
 
     database = pd.read_csv(database_path, comment="#")
 
@@ -641,7 +676,9 @@ def loop_derivative_plot(data: pd.DataFrame):
 
 def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     data = extract_loop_section(data)
-    positive_intercept_field, negative_intercept_field, fit_dict = fit_intercept(data, folderpath, treatment_dict)
+    positive_intercept_field, negative_intercept_field, fit_dict = fit_intercept(
+        data, folderpath, treatment_dict
+    )
     max_field = data["Field"].max()
 
     fig = go.Figure()
@@ -660,13 +697,15 @@ def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: di
     )
 
     # Define ranges that will be used to extrapolate the fits
-    range_linear = np.arange(1.2 * negative_intercept_field, 1.2 * positive_intercept_field, 0.1)
+    range_linear = np.arange(
+        1.2 * negative_intercept_field, 1.2 * positive_intercept_field, 0.1
+    )
     range_positive = np.arange(0.8 * positive_intercept_field, max_field, 0.1)
     range_negative = np.arange(-max_field, 0.8 * negative_intercept_field, 0.1)
 
-    slope_linear, intercept_linear, x_linear = fit_dict['linear_section']
-    slope_positive, intercept_positive, x_positive = fit_dict['positive_section']
-    slope_negative, intercept_negative, x_negative = fit_dict['negative_section']
+    slope_linear, intercept_linear, x_linear = fit_dict["linear_section"]
+    slope_positive, intercept_positive, x_positive = fit_dict["positive_section"]
+    slope_negative, intercept_negative, x_negative = fit_dict["negative_section"]
 
     # Plot linear section fit
     fig.add_trace(
@@ -684,7 +723,7 @@ def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: di
             x=range_linear,
             y=intercept_linear + slope_linear * range_linear,
             mode="lines",
-            line=dict(color="Firebrick", width=3, dash='dash'),
+            line=dict(color="Firebrick", width=3, dash="dash"),
         )
     )
 
@@ -704,7 +743,7 @@ def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: di
             x=range_positive,
             y=intercept_positive + slope_positive * range_positive,
             mode="lines",
-            line=dict(color="Firebrick", width=3, dash='dash'),
+            line=dict(color="Firebrick", width=3, dash="dash"),
         )
     )
 
@@ -724,30 +763,39 @@ def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: di
             x=range_negative,
             y=intercept_negative + slope_negative * range_negative,
             mode="lines",
-            line=dict(color="Firebrick", width=3, dash='dash'),
+            line=dict(color="Firebrick", width=3, dash="dash"),
         )
     )
 
     # Plot intercept values
-    fig.add_vline(positive_intercept_field, line_width=2, line_color='green',
-                  annotation_text=f'{positive_intercept_field:.2f} T',
-                  annotation_position='top left',
-                  annotation_font_size=18,
-                  annotation_font_color='green')
+    fig.add_vline(
+        positive_intercept_field,
+        line_width=2,
+        line_color="green",
+        annotation_text=f"{positive_intercept_field:.2f} T",
+        annotation_position="top left",
+        annotation_font_size=18,
+        annotation_font_color="green",
+    )
 
-    fig.add_vline(negative_intercept_field, line_width=2, line_color='green',
-                  annotation_text=f'{negative_intercept_field:.2f} T',
-                  annotation_position='top right',
-                  annotation_font_size=18,
-                  annotation_font_color='green'
-                  )
+    fig.add_vline(
+        negative_intercept_field,
+        line_width=2,
+        line_color="green",
+        annotation_text=f"{negative_intercept_field:.2f} T",
+        annotation_position="top right",
+        annotation_font_size=18,
+        annotation_font_color="green",
+    )
 
     fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
 
     return fig
 
 
-def loop_map_plot(folderpath: Path, database_path: Path, treatment_dict: dict, normalize: bool = True):
+def loop_map_plot(
+    folderpath: Path, database_path: Path, treatment_dict: dict, normalize: bool = True
+):
 
     database = pd.read_csv(database_path, comment="#")
 
@@ -809,10 +857,13 @@ def loop_map_plot(folderpath: Path, database_path: Path, treatment_dict: dict, n
             )
 
             if normalize:
-                fig.update_yaxes(range=[data["Magnetization"].min(), data["Magnetization"].max()], row=row, col=col)
+                fig.update_yaxes(
+                    range=[data["Magnetization"].min(), data["Magnetization"].max()],
+                    row=row,
+                    col=col,
+                )
             if not normalize:
                 y_max = database["Max Kerr Rotation (deg)"].max()
                 fig.update_yaxes(range=[-y_max, y_max], row=row, col=col)
-
 
     return fig

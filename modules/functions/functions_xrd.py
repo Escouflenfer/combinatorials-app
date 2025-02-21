@@ -521,7 +521,7 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max: bool = Non
             x=[coord[0] for coord in coordinate_list],
             y=[coord[1] for coord in coordinate_list],
             z=z_values,
-            colorscale="Rainbow",
+            colorscale="Plasma",
             colorbar=colorbar_layout(z_min, z_max, title=title),
         ),
         layout=heatmap_layout(f"XRD map"),

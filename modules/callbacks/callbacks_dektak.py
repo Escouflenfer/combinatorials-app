@@ -209,16 +209,17 @@ def callbacks_dektak(app):
         Input("dektak_database_path_store", "data"),
         Input("dektak_heatmap_min", "value"),
         Input("dektak_heatmap_max", "value"),
+        Input("dektak_heatmap_precision", "value"),
         Input("dektak_heatmap_edit", "value"),
         prevent_initial_call=True,
     )
-    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle):
+    def update_heatmap(selected_plot, database_path, z_min, z_max, precision, edit_toggle):
         if database_path is None:
             return blank_heatmap(), None, None
 
         database_path = Path(database_path)
 
-        if ctx.triggered_id in ["dektak_heatmap_select", "dektak_heatmap_edit"]:
+        if ctx.triggered_id in ["dektak_heatmap_select", "dektak_heatmap_edit", "dektak_heatmap_precision"]:
             z_min = None
             z_max = None
 
@@ -234,13 +235,14 @@ def callbacks_dektak(app):
                 title=database_path.name.strip("_database.csv"),
                 z_min=z_min,
                 z_max=z_max,
+                precision=precision,
                 masking=masking,
             )
         except (FileNotFoundError, ValueError) as e:
             heatmap = blank_heatmap()
 
-        z_min = significant_round(heatmap.data[0].zmin, 4)
-        z_max = significant_round(heatmap.data[0].zmax, 4)
+        z_min = heatmap.data[0].zmin
+        z_max = heatmap.data[0].zmax
 
         return heatmap, z_min, z_max
 

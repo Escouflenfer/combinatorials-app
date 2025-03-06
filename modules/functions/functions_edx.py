@@ -13,7 +13,6 @@ from openpyxl import load_workbook
 
 from ..functions.functions_shared import *
 
-
 def make_path_name(
     foldername, x_pos, y_pos, start_x=-40, start_y=-40, step_x=5, step_y=5
 ):
@@ -161,10 +160,9 @@ def make_heatmap(data, element_edx, start_x=-40, start_y=-40, step_x=5, step_y=5
             index = row.index(element_edx)
         elif row[0].startswith("Spectrum_"):
             x_index, y_index = row[0].split("(")[-1].split(")")[0].split(",")
-            x_pos, y_pos = (
-                -((int(x_index) - 1) * step_x + start_x),
-                (int(y_index) - 1) * step_y + start_y,
-            )
+            x_pos, y_pos = (int(x_index) - 1) * step_x + start_x, (
+                int(y_index) - 1
+            ) * step_y + start_y
             if np.abs(x_pos) + np.abs(y_pos) <= 60:
                 X_POS.append(x_pos)
                 Y_POS.append(y_pos)
@@ -260,12 +258,12 @@ def get_elements(foldername, with_plot=False):
 
     # Reading in .xlsx file using openpyxl library, checking if file exists, if not returns empty list
     try:
-        wb = load_workbook(filename=Path(f"{foldername}/Global spectrum results.xlsx"))
+        wb = load_workbook(filename= Path(f"{foldername}/Global spectrum results.xlsx"))
     except FileNotFoundError:
         try:
-            wb = load_workbook(filename=Path(f"{foldername}/Résultats globaux.xlsx"))
+            wb = load_workbook(filename= Path(f"{foldername}/Résultats globaux.xlsx"))
         except FileNotFoundError:
-            return []
+                return []
     ws = wb.active
 
     # putting all the data inside lists to obtain a list of each line
@@ -287,7 +285,7 @@ def get_elements(foldername, with_plot=False):
         return elm_options
 
 
-def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
+def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None, precision=2):
     """Plotting results from element quantification inside the Global Spectrum Results.xlsx file
 
     Parameters
@@ -327,7 +325,7 @@ def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
             y=Y_POS,
             z=ELM,
             colorscale="Plasma",
-            colorbar=colorbar_layout(z_min, z_max, title=f"{element_edx} <br> at.%"),
+            colorbar=colorbar_layout(z_min, z_max, precision, title=f"{element_edx} <br> at.%"),
         )
     )
 

@@ -240,7 +240,8 @@ def blank_plot():
     return fig
 
 
-def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=None, masking=False):
+def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=None,
+                 precision=1, masking=False):
 
     # Exit if no database is found
     if database is None:
@@ -281,6 +282,7 @@ def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=Non
     if z_max is None:
         z_max = np.nanmax(heatmap_data.values)
 
+
     # Get unit from selected mode for colorbar title
     unit = values.split(' ')[-1]
 
@@ -290,7 +292,7 @@ def heatmap_plot(database, mode = 'Thickness', title = '', z_min=None, z_max=Non
         y=heatmap_data.index,
         z=heatmap_data.values,
         colorscale='Plasma',
-        colorbar=colorbar_layout(z_min, z_max, title=f"Thickness <br> {unit}")
+        colorbar=colorbar_layout(z_min, z_max, precision, title=f"Thickness <br> {unit}")
     )
 
     title = 'Thickness map <br>' + title

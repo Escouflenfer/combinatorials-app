@@ -39,6 +39,19 @@ class WidgetsDEKTAK:
                 dcc.Input(id='dektak_heatmap_min', className='long-item', type='number', placeholder='minimum value',
                           value=None)
             ]),
+            html.Div(
+                className="subgrid-8",
+                children=[
+                    html.Label("Colorbar precision"),
+                    dcc.Input(
+                        id="dektak_heatmap_precision",
+                        className="long-item",
+                        type="number",
+                        placeholder="Colorbar precision",
+                        value=1,
+                    ),
+                ]
+            ),
             html.Div(className='subgrid-9', children=[
                 html.Label(''),
                 html.Br(),

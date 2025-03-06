@@ -55,8 +55,8 @@ def callbacks_edx(app):
 
         fig = generate_heatmap(folderpath, element_edx, z_min, z_max, precision)
 
-        z_min = significant_round(fig.data[0].zmin, 2)
-        z_max = significant_round(fig.data[0].zmax, 2)
+        z_min = np.round(fig.data[0].zmin, precision)
+        z_max = np.round(fig.data[0].zmax, precision)
 
         # Update the dimensions of the heatmap and the X-Y title axes
         sample_name = folderpath.parent.name

@@ -489,6 +489,7 @@ def heatmap_plot(
     title: str = "",
     z_min: bool = None,
     z_max: bool = None,
+    precision: int = 1,
     masking: bool = False,
 ):
 
@@ -536,6 +537,9 @@ def heatmap_plot(
     if z_max is None:
         z_max = np.nanmax(heatmap_data.values)
 
+    z_min = np.round(z_min, precision)
+    z_max = np.round(z_max, precision)
+
     # Get unit from selected mode for colorbar title
     unit = values.split(" ")[-1]
 
@@ -546,7 +550,7 @@ def heatmap_plot(
         z=heatmap_data.values,
         colorscale="Plasma",
         # Set ticks for the colorbar
-        colorbar=colorbar_layout(z_min, z_max, title=unit),
+        colorbar=colorbar_layout(z_min, z_max, precision, title=unit),
     )
 
     title = f"{mode} MOKE map <br>" + title

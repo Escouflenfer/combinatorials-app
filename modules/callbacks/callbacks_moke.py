@@ -185,10 +185,11 @@ def callbacks_moke(app, children_moke):
         Input('moke_database_path_store', 'data'),
         Input('moke_heatmap_min', 'value'),
         Input('moke_heatmap_max', 'value'),
+        Input('moke_heatmap_precision', 'value'),
         Input('moke_heatmap_edit','value'),
         prevent_initial_call=True
     )
-    def update_heatmap(selected_plot, database_path, z_min, z_max, edit_toggle):
+    def update_heatmap(selected_plot, database_path, z_min, z_max, precision, edit_toggle):
 
         if database_path is None:
             return go.Figure(layout=heatmap_layout('No database found')), None, None
@@ -204,10 +205,10 @@ def callbacks_moke(app, children_moke):
             masking = False
 
         heatmap = heatmap_plot(database_path, mode=selected_plot, title=database_path.name.strip('_database.csv'),
-                               z_min=z_min, z_max=z_max, masking=masking)
+                               z_min=z_min, z_max=z_max, precision=precision, masking=masking)
 
-        z_min = significant_round(heatmap.data[0].zmin, 3)
-        z_max = significant_round(heatmap.data[0].zmax, 3)
+        z_min = heatmap.data[0].zmin
+        z_max = heatmap.data[0].zmax
 
         return heatmap, z_min, z_max
 

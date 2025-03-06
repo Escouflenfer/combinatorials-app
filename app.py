@@ -53,7 +53,7 @@ app.layout = html.Div(
         dcc.Tabs(
             id="tabs",
             value="browser",
-            children=[browser_tab, hdf5_tab, dektak_tab, edx_tab, moke_tab, xrd_tab],
+            children=[browser_tab, dektak_tab, edx_tab, moke_tab, xrd_tab],
         )
     ],
     className="window_layout",

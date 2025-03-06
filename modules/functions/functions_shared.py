@@ -180,13 +180,14 @@ def plot_layout(title=""):
     return layout
 
 
-def colorbar_layout(z_min, z_max, title=""):
+def colorbar_layout(z_min, z_max, precision=2, title=""):
     """
     Generates a standardized colorbar.
 
     Parameters:
         z_min : minimum value on the colorbar
         z_max : maximum value on the colorbar
+        precision: number of digits on the colorbar scale
         title (str): The title of the plot.
 
     Returns:
@@ -204,11 +205,11 @@ def colorbar_layout(z_min, z_max, title=""):
             z_max,
         ],  # Tick values
         ticktext=[
-            f"{z_min:.0f}",
-            f"{(z_min + z_mid) / 2:.0f}",
-            f"{z_mid:.0f}",
-            f"{(z_max + z_mid) / 2:.0f}",
-            f"{z_max:.0f}",
+            f"{z_min:.{precision}f}",
+            f"{(z_min + z_mid) / 2:.{precision}f}",
+            f"{z_mid:.{precision}f}",
+            f"{(z_max + z_mid) / 2:.{precision}f}",
+            f"{z_max:.{precision}f}",
         ],  # Tick text
     )
     return colorbar

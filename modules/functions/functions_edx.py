@@ -285,7 +285,7 @@ def get_elements(foldername, with_plot=False):
         return elm_options
 
 
-def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
+def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None, precision=2):
     """Plotting results from element quantification inside the Global Spectrum Results.xlsx file
 
     Parameters
@@ -320,8 +320,11 @@ def generate_heatmap(folderpath_edx, element_edx, z_min=None, z_max=None):
         z_max = np.max(ELM)
 
 
-    fig = go.Figure(data=go.Heatmap(x=X_POS, y=Y_POS, z=ELM, colorscale="Plasma",
-                                    colorbar=colorbar_layout(z_min, z_max, title=f'{element_edx} <br> at.%')
+    fig = go.Figure(data=go.Heatmap(x=X_POS,
+                                    y=Y_POS,
+                                    z=ELM,
+                                    colorscale="Plasma",
+                                    colorbar=colorbar_layout(z_min, z_max, precision, title=f'{element_edx} <br> at.%')
                                     ))
 
     if z_min is not None:

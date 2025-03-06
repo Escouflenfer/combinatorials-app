@@ -67,6 +67,19 @@ class WidgetsEDX:
                         ),
                     ],
                 ),
+                html.Div(
+                    className="subgrid-8",
+                    children=[
+                        html.Label("Colorbar precision"),
+                        dcc.Input(
+                            id="edx_heatmap_precision",
+                            className="long-item",
+                            type="number",
+                            placeholder="Colorbar precision",
+                            value=2,
+                        ),
+                    ]
+                )
             ],
         )
 

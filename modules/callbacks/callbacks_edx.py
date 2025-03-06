@@ -39,19 +39,21 @@ def callbacks_edx(app):
         Input("element_edx", "value"),
         Input('edx_heatmap_min', 'value'),
         Input('edx_heatmap_max', 'value'),
+        Input('edx_heatmap_precision', 'value'),
         State("edx_path_store", "data"),
     )
-    def update_heatmap_edx(element_edx, z_min, z_max, folderpath):
+    def update_heatmap_edx(element_edx, z_min, z_max, precision, folderpath):
         folderpath = Path(folderpath)
 
         if folderpath is None:
             raise PreventUpdate
 
-        if ctx.triggered_id == 'element_edx':
+        if ctx.triggered_id in ['element_edx', 'edx_heatmap_precision'] :
             z_min = None
             z_max = None
 
-        fig = generate_heatmap(folderpath, element_edx, z_min, z_max)
+
+        fig = generate_heatmap(folderpath, element_edx, z_min, z_max, precision)
 
         z_min = significant_round(fig.data[0].zmin, 2)
         z_max = significant_round(fig.data[0].zmax, 2)

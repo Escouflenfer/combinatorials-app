@@ -109,7 +109,14 @@ def callbacks_hdf5(app):
 
         with zipfile.ZipFile(zip_stream, 'r') as zip_file:
             filename_list = zip_file.namelist()  # List file names in the ZIP
-            measurement_type = detect_measurement(filename_list)
+            measurement_type, depth = delve_for_measurement(filename_list)
+
+            if measurement_type == None:
+                output_message = f'Unable to detect measurement within {filename}'
+                return measurement_type, {}, output_message
+            else:
+                filename_list = unpack_zip_directory(filename_list, depth=depth)
+
             if measurement_type == 'EDX':
                 extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore')
                                    for file_name in filename_list}

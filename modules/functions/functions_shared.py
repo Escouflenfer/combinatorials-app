@@ -26,6 +26,16 @@ def get_version(tag:str):
                 return version
 
 
+def unpack_zip_directory(filename_list: list, depth: int=1, remove_directories = True):
+    for filename in filename_list:
+        if filename.count('/') != depth:
+            filename_list.remove(filename)
+        if remove_directories and filename.endswith('/'):
+            filename_list.remove(filename)
+
+    return filename_list
+
+
 def detect_measurement(filename_list: list):
     """
        Scan a folder to determine which type of measurement it is
@@ -46,15 +56,33 @@ def detect_measurement(filename_list: list):
     for measurement_type, file_type in measurement_dict.items():
         ok = True
         for filename in filename_list:
-            if filename.startswith('.'):
+            if filename.startswith('.'):  # Skip hidden files
                 continue
-            if filename.split('.')[-1] not in file_type:
+            if filename.split('.')[-1] not in file_type: # Check extensions for exceptions to the dictionary spec
                 ok = False
                 break
             if not ok:
                 break
-        if ok:
+        if ok: # If no exceptions are found, return the measurement type
             return measurement_type
+
+
+def delve_for_measurement(filename_list):
+    measurement_type = detect_measurement(filename_list)
+    depth = 1
+    while measurement_type == None:
+        unpacked_filename_list = unpack_zip_directory(filename_list, depth=depth, remove_directories=False)
+        if unpacked_filename_list == []:
+            break
+
+        measurement_type = detect_measurement(unpacked_filename_list)
+
+        if measurement_type == None:
+            depth += 1
+
+    return measurement_type, depth
+
+
 
 
 def get_database_path(folderpath:Path):

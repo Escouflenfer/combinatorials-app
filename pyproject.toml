@@ -8,12 +8,9 @@ version = "0.5"
 description = "High throughput data vizualisation and treatment with interactive interface"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 
-authors = [
-    {name = "William Rigaut"},
-	{name = "Pierre Le Berre"}
-]
+authors = [{ name = "William Rigaut" }, { name = "Pierre Le Berre" }]
 
 classifiers = [
     "Intended Audience :: Education",
@@ -27,26 +24,37 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
-    "Topic :: Scientific/Engineering :: Visualization"
+    "Topic :: Scientific/Engineering :: Visualization",
 ]
 
 dependencies = [
-    "dash",
-	"dash_bootstrap_components",
-    "plotly",
-	"IPython",
-    "openpyxl",
-    "numpy",
-	"pandas",
-	"natsort",
-	"scipy"
+    "dash~=2.18.2",
+    "dash_bootstrap_components",
+    "plotly ~= 6.0.0",
+    "scipy~=1.15.1",
+    "IPython~=8.32.0",
+    "openpyxl~=3.1.5",
+    "numpy~=2.2.2",
+    "natsort~=8.4.0",
+    "pandas~=2.2.3",
+    "setuptools~=75.8.0",
+    "dash-bootstrap-components~=1.7.1",
+    "h5py~=3.12.1",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest"
-]
+dev = ["pytest"]
 
 
 [tool.coverage.run]
-omit = ["High-throughput-interactive-app/tests/*"]
+omit = ["combinatorials_app/tests/*"]
+
+[tool.setuptools.packages.find]
+where = ["modules"]
+include = [
+    "callbacks*",
+    "functions*",
+    "interface*",
+    "hdf5_compilers*",
+] # alternatively: `exclude = ["additional*"]`
+namespaces = false

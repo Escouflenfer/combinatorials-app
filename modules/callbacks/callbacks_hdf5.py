@@ -10,6 +10,7 @@ from ..hdf5_compilers.hdf5compile_base import *
 from ..hdf5_compilers.hdf5compile_edx import *
 from ..hdf5_compilers.hdf5compile_moke import *
 from ..hdf5_compilers.hdf5compile_dektak import *
+from ..hdf5_compilers.hdf5compile_xrd import *
 
 
 def callbacks_hdf5(app):
@@ -109,13 +110,16 @@ def callbacks_hdf5(app):
 
         with zipfile.ZipFile(zip_stream, 'r') as zip_file:
             filename_list = zip_file.namelist()  # List file names in the ZIP
-            measurement_type, depth = delve_for_measurement(filename_list)
+            print(filename_list)
+            measurement_type, depth = detect_measurement(filename_list)
+            extracted_files = defaultdict(lambda: defaultdict(dict))
 
             if measurement_type == None:
                 output_message = f'Unable to detect measurement within {filename}'
                 return measurement_type, {}, output_message
             else:
                 filename_list = unpack_zip_directory(filename_list, depth=depth)
+                print(filename_list)
 
             if measurement_type == 'EDX':
                 extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore')
@@ -126,7 +130,15 @@ def callbacks_hdf5(app):
             if measurement_type == 'PROFIL':
                 extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
                                    for file_name in filename_list}
-
+            if measurement_type == 'XRD':
+                grouped_filenames = group_files_by_position(filename_list)
+                for scan_index in grouped_filenames.keys():
+                    for file_name in grouped_filenames[scan_index]:
+                        if file_name.endswith('.img'):
+                            img = fabio.open(io.BytesIO(zip_file.read(file_name)))
+                            extracted_files[scan_index][file_name] = [img.header, img.data.tolist()]
+                        else:
+                            extracted_files[scan_index][file_name] = zip_file.read(file_name).decode('utf-8', errors='ignore')
 
         output_message = f"Successfully uploaded {len(extracted_files)} files from {filename}."
         return measurement_type, extracted_files, output_message
@@ -150,6 +162,8 @@ def callbacks_hdf5(app):
                 write_moke_to_hdf5(hdf5_path, measurement_store)
             if measurement_type == 'PROFIL':
                 write_dektak_to_hdf5(hdf5_path, measurement_store)
+            if measurement_type =='XRD':
+                write_xrd_to_hdf5(hdf5_path, measurement_store)
 
             return None
 

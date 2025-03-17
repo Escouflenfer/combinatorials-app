@@ -8,6 +8,7 @@ numpy~=2.2.2
 natsort~=8.4.0
 pandas~=2.2.3
 setuptools~=75.8.0
+fabio
 ./modules/
 
 modules~=0.1

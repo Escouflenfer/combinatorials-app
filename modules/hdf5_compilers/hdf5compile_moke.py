@@ -219,15 +219,23 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
         None
     """
 
-    _ = measurement_dict.pop('log_file.log', None)
+    for file_name, file_string in measurement_dict.items():
+        if 'log_file.log' in file_name:
+            _ = measurement_dict.pop(file_name, None)
+            break
 
-    info_file_string = measurement_dict.pop('info.txt', None)
-    header_dict = read_header_from_moke(info_file_string)
+    for file_name, file_string in measurement_dict.items():
+        if 'info.txt' in file_name:
+            info_file_string = measurement_dict.pop(file_name, None)
+            header_dict = read_header_from_moke(info_file_string)
+            break
 
     grouped_dict = defaultdict(dict)
     for file_name, file_string in measurement_dict.items():
         if file_name.endswith('.txt'):
-            p_number = file_name[1]  # extract p_number from measurement name
+            pattern = r'(?:[^/]+/)*p(\d+)'
+            match = re.search(pattern, file_name)
+            p_number = match.group(1)  # extract p_number from measurement name
             grouped_dict[p_number][file_name] = file_string  # Dictionary with measurements grouped by p_numbers
 
     for scan_number in grouped_dict.keys():

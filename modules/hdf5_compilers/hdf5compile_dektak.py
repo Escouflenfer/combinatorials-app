@@ -52,34 +52,35 @@ def set_instrument_from_dict(header_dict, node):
 
 def write_dektak_to_hdf5(hdf5_path, measurement_dict, mode='a'):
     for file_name, file_string in measurement_dict.items():
-        header_dict = read_header_from_dektak(file_string)
-        asc2d_dataframe = read_data_from_dektak(file_string)
-        scan_number = header_dict['TargetName']
+        if file_name.endswith('.asc2d'):
+            header_dict = read_header_from_dektak(file_string)
+            asc2d_dataframe = read_data_from_dektak(file_string)
+            scan_number = header_dict['TargetName']
 
-        x_pos, y_pos = position_from_tuple(scan_number)
+            x_pos, y_pos = position_from_tuple(scan_number)
 
-        with h5py.File(hdf5_path, mode) as hdf5_file:
-            scan_group = f"/entry/profil/scan_{scan_number}"
-            scan = hdf5_file.create_group(scan_group)
+            with h5py.File(hdf5_path, mode) as hdf5_file:
+                scan_group = f"/entry/profil/scan_{scan_number}"
+                scan = hdf5_file.create_group(scan_group)
 
-            # Instrument group for metadata
-            instrument = scan.create_group("instrument")
-            instrument.attrs["NX_class"] = "HTinstrument"
-            instrument["x_pos"] = convertFloat(x_pos)
-            instrument["y_pos"] = convertFloat(y_pos)
-            instrument["x_pos"].attrs["units"] = "mm"
-            instrument["y_pos"].attrs["units"] = "mm"
+                # Instrument group for metadata
+                instrument = scan.create_group("instrument")
+                instrument.attrs["NX_class"] = "HTinstrument"
+                instrument["x_pos"] = convertFloat(x_pos)
+                instrument["y_pos"] = convertFloat(y_pos)
+                instrument["x_pos"].attrs["units"] = "mm"
+                instrument["y_pos"].attrs["units"] = "mm"
 
-            set_instrument_from_dict(header_dict, instrument)
+                set_instrument_from_dict(header_dict, instrument)
 
-            # Measurement group for data
-            data = scan.create_group("measurement")
-            data.attrs["NX_class"] = "HTmeasurement"
-            for col in asc2d_dataframe.columns:
-                node = data.create_dataset(col, data=np.array(asc2d_dataframe[col]), dtype='float')
-                if col == 'Profile':
-                    node.attrs['unit'] = 'nm'
-                elif col == 'Distance':
-                    node.attrs['unit'] = 'μm'
+                # Measurement group for data
+                data = scan.create_group("measurement")
+                data.attrs["NX_class"] = "HTmeasurement"
+                for col in asc2d_dataframe.columns:
+                    node = data.create_dataset(col, data=np.array(asc2d_dataframe[col]), dtype='float')
+                    if col == 'Profile':
+                        node.attrs['unit'] = 'nm'
+                    elif col == 'Distance':
+                        node.attrs['unit'] = 'μm'
 
     return None

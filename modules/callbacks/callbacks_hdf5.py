@@ -110,7 +110,6 @@ def callbacks_hdf5(app):
 
         with zipfile.ZipFile(zip_stream, 'r') as zip_file:
             filename_list = zip_file.namelist()  # List file names in the ZIP
-            print(filename_list)
             measurement_type, depth = detect_measurement(filename_list)
             extracted_files = defaultdict(lambda: defaultdict(dict))
 

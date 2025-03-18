@@ -95,9 +95,9 @@ def callbacks_xrd(app, children_xrd):
         fig = plot_xrd_pattern(foldername, datatype, options, xrd_filename)
 
         fig.update_layout(
-            height=650,
-            width=1000,
-            title=f"XRD spectra for {foldername} at position ({x_pos}, {y_pos})",
+            height=700,
+            width=1100,
+            title=f"XRD spectra for {foldername.name} at position ({x_pos}, {y_pos})",
         )
         fig.update_xaxes(title="2Theta (°)")
         fig.update_yaxes(title="Counts")

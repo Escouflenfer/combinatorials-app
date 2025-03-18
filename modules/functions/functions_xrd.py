@@ -102,7 +102,7 @@ def plot_xrd_pattern(foldername: pathlib.Path, datatype, options, xrd_filename):
     if foldername is None:
         return empty_fig
 
-    # print(datatype, xrd_filename)
+    print(datatype, xrd_filename)
     fullpath = foldername / xrd_filename
     xrd_data = []
     error = go.Scatter()
@@ -234,7 +234,6 @@ def read_from_lst(lst_file_path, x_pos, y_pos):
                     FIT_RR_OUTPUT.append(elm.strip())
             elif line.startswith("Local parameters and GOALs for phase"):
                 current_phase = line.split()[-1]
-                # phases.append(current_phase)
                 # name of the current phase for the refined lattice parameters
                 FIT_RR_OUTPUT.append(current_phase)
             elif (
@@ -257,8 +256,6 @@ def read_from_lst(lst_file_path, x_pos, y_pos):
                 # adding the column name to the header
                 DATA_RR_OUTPUT.append(lattice[0])
                 DATA_RR_OUTPUT.append(lattice[1].rstrip())
-
-            # extracting volume fractions now (but is actually found first in the .lst file)
 
             # same stuff, getting volume fraction values, format can be 'QNd2Fe14B=0.456789' for example
             elif line.startswith("Q"):
@@ -477,6 +474,8 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max: bool = Non
     fig : plotly.graph_objects.Figure
         A figure object containing a Heatmap plot of the XRD data.
     """
+    colorscale = "Plasma"
+    heatmap_title = "Raw XRD heatmap"
 
     if foldername is None:
         return go.Figure(layout=heatmap_layout())
@@ -501,14 +500,30 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max: bool = Non
         # Check if the function did find the refined parameters file.
         if z_values is None:
             return go.Figure(layout=heatmap_layout())
+
         elif datatype.startswith("Q"):
             # To have the result in %
-            z_values = [float(zs) * 100 for zs in z_values]
             title = "Wt%"
+            factor = 100
+            colorscale = "Plasma"
+            heatmap_title = f"Weight fraction for {datatype}"
         else:
             # To have the result in A
-            z_values = [float(zs) * 10 for zs in z_values]
             title = "Å"
+            factor = 10
+            colorscale = "Rainbow"
+            heatmap_title = f"Lattice parameter for {datatype}"
+
+        # Conversion for all the values
+        z_values_tmp = []
+        for zs in z_values:
+            try:
+                zs = float(zs) * factor
+            except ValueError:
+                zs = np.nan
+
+            z_values_tmp.append(zs)
+        z_values = np.array(z_values_tmp)
 
     # Min and max values for colorbar fixing
     if z_min is None:
@@ -521,10 +536,10 @@ def plot_xrd_heatmap(foldername, datatype, z_min: bool = None, z_max: bool = Non
             x=[coord[0] for coord in coordinate_list],
             y=[coord[1] for coord in coordinate_list],
             z=z_values,
-            colorscale="Plasma",
+            colorscale=colorscale,
             colorbar=colorbar_layout(z_min, z_max, title=title),
         ),
-        layout=heatmap_layout(f"XRD map"),
+        layout=heatmap_layout(heatmap_title),
     )
 
     if z_min is not None:

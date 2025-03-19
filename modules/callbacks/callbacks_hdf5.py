@@ -118,34 +118,39 @@ def callbacks_hdf5(app):
                 return measurement_type, {}, output_message
             else:
                 filename_list = unpack_zip_directory(filename_list, depth=depth)
-                print(filename_list)
 
             if measurement_type == 'EDX':
                 extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore')
-                                   for file_name in filename_list}
+                                   for file_name in filename_list if not is_macos_system_file(file_name)}
             if measurement_type == 'MOKE':
                 extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
-                                   for file_name in filename_list}
+                                   for file_name in filename_list if not is_macos_system_file(file_name)}
             if measurement_type == 'PROFIL':
                 extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
-                                   for file_name in filename_list}
+                                   for file_name in filename_list if not is_macos_system_file(file_name)}
             if measurement_type == 'XRD':
                 grouped_filenames = group_files_by_position(filename_list)
+                print(grouped_filenames.keys())
                 for scan_index in grouped_filenames.keys():
                     for file_name in grouped_filenames[scan_index]:
-                        if file_name.endswith('.img'):
-                            img = fabio.open(io.BytesIO(zip_file.read(file_name)))
-                            extracted_files[scan_index][file_name] = [img.header, img.data.tolist()]
-                        else:
+                        if file_name.endswith('.img') and not is_macos_system_file(file_name):
+                            try:
+                                img = fabio.open(io.BytesIO(zip_file.read(file_name)))
+                                extracted_files[scan_index][file_name] = [img.header, img.data.tolist()]
+                            except TypeError:
+                                continue
+                        elif not is_macos_system_file(file_name):
                             extracted_files[scan_index][file_name] = zip_file.read(file_name).decode('utf-8', errors='ignore')
+                        else:
+                            continue
 
-        output_message = f"Successfully uploaded {len(extracted_files)} files from {filename}."
+        output_message = f"Uploaded {len(extracted_files)} files from {filename}."
         return measurement_type, extracted_files, output_message
 
 
 
     @app.callback(
-        [Output('hdf5_text_box', 'children', allow_duplicate=True)],
+        Output('hdf5_text_box', 'children', allow_duplicate=True),
         Input('hdf5_add_button', 'n_clicks'),
         State('hdf5_measurement_store', 'data'),
         State('hdf5_measurement_type', 'value'),
@@ -164,7 +169,9 @@ def callbacks_hdf5(app):
             if measurement_type =='XRD':
                 write_xrd_to_hdf5(hdf5_path, measurement_store)
 
-            return None
+            output_message = f'Added {measurement_type} measurement to {hdf5_path}.'
+
+            return output_message
 
 
 

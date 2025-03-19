@@ -44,7 +44,10 @@ def group_files_by_position(filename_list, authorized_files=None):
     grouped_dictionary = {}
     for filename in filename_list:
         if filename.split('.')[-1] in authorized_files:
-            scan_numbers = get_scan_numbers(filename)
+            try:
+                scan_numbers = get_scan_numbers(filename)
+            except AttributeError:
+                continue
             if scan_numbers in grouped_dictionary.keys():
                 grouped_dictionary[scan_numbers].append(filename)
             elif scan_numbers not in grouped_dictionary.keys():
@@ -256,9 +259,15 @@ def write_xrd_to_hdf5(hdf5_path, measurement_dict, mode="a"):
         scan_numbers = [scan_index[:3], scan_index[3:]]
         for file_name in measurement_dict[scan_index]:
             file_string = measurement_dict[scan_index][file_name]
+            if 'test' in file_name:
+                continue
             if file_name.endswith(".ras"):
                 disp_dict, file_dict, hw_dict, meas_dict, data_dict = read_data_from_ras(file_string)
-                x_pos, y_pos = meas_dict["COND_AXIS_POSITION-6"], meas_dict["COND_AXIS_POSITION-7"]
+                try:
+                    x_pos, y_pos = meas_dict["COND_AXIS_POSITION-6"], meas_dict["COND_AXIS_POSITION-7"]
+                except KeyError:
+                    print(f"Could not access x and y positions in {file_name}")
+                    x_pos, y_pos = np.nan, np.nan
             if file_name.endswith(".lst"):
                 r_coeffs_dict, global_params_dict, phases_dict = get_results_from_refinement(file_string)
             if file_name.endswith(".img"):
@@ -314,4 +323,4 @@ def write_xrd_to_hdf5(hdf5_path, measurement_dict, mode="a"):
             set_instrument_and_result_from_dict(img_header, image)
             image.create_dataset("2D_Camera_Image", img_data.shape, data=img_data)
 
-        return None
+    return None

@@ -26,6 +26,13 @@ def get_version(tag:str):
                 return version
 
 
+def is_macos_system_file(file_path):
+    if '/._' not in file_path and not file_path.startswith('._'):
+        return False
+    else:
+        return True
+
+
 def unpack_zip_directory(filename_list: list, depth: int, remove_directories = True):
     for filename in filename_list:
         if filename.count('/') != depth:

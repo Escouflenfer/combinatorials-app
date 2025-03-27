@@ -232,7 +232,7 @@ def make_energy_dataset(edx_dict, channels):
     energy_step = convertFloat(edx_dict["TRTSpectrumHeader"]["CalibLin"])
 
     energy = np.array(
-        [((i + 1) * energy_step + zero_energy) for i in range(len(channels) // 2)]
+        [((i + 1) * energy_step + zero_energy) for i in range(len(channels))]
     )
 
     return energy
@@ -250,14 +250,14 @@ def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
     Returns:
         None
     """
-    for file_name, file_string in measurement_dict.items():
-        if file_name.endswith('.spx'):
-            scan_numbers = get_position_from_name(file_name)
-            wafer_positions = calculate_wafer_positions(scan_numbers)
-            edx_dict, channels = read_data_from_spx(file_string)
-            energy = make_energy_dataset(edx_dict, channels)
+    with h5py.File(HDF5_path, mode) as f:
+        for file_name, file_string in measurement_dict.items():
+            if file_name.endswith('.spx'):
+                scan_numbers = get_position_from_name(file_name)
+                wafer_positions = calculate_wafer_positions(scan_numbers)
+                edx_dict, channels = read_data_from_spx(file_string)
+                energy = make_energy_dataset(edx_dict, channels)
 
-            with h5py.File(HDF5_path, mode) as f:
                 scan_group = f"/entry/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
                 scan = f.create_group(scan_group)
 
@@ -288,4 +288,4 @@ def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
                 counts.attrs["units"] = "cps"
                 energy.attrs["units"] = "keV"
 
-    return None
+        return None

@@ -7,18 +7,6 @@ from dash import html, dcc
 
 class WidgetsEDX:
 
-    xrange_slider_min = 0
-    xrange_slider_max = 20
-    xrange_slider_step = 0.1
-    xrange_slider_value = [0, 10]
-    xrange_slider_markStep = 5
-
-    yrange_slider_min = 0
-    yrange_slider_max = 50000
-    yrange_slider_step = 1000
-    yrange_slider_value = [0, 10000]
-    yrange_slider_markStep = 10000
-
     def __init__(self, folderpath):
         # Folderpath for the EDX spectras
         self.folderpath = folderpath
@@ -85,42 +73,6 @@ class WidgetsEDX:
 
         # Slider Xrange component
         self.plot_sliders = html.Div(
-            children=[
-                html.Label("Counts"),
-                dcc.RangeSlider(
-                    min=self.yrange_slider_min,
-                    max=self.yrange_slider_max,
-                    step=self.yrange_slider_step,
-                    value=self.yrange_slider_value,
-                    marks={
-                        i: f"{i}"
-                        for i in range(
-                            self.yrange_slider_min,
-                            self.yrange_slider_max + self.yrange_slider_markStep,
-                            self.yrange_slider_markStep,
-                        )
-                    },
-                    className="dropdown-item",
-                    id="yrange_slider",
-                ),
-                html.Label("Energy Range"),
-                dcc.RangeSlider(
-                    min=self.xrange_slider_min,
-                    max=self.xrange_slider_max,
-                    step=self.xrange_slider_step,
-                    value=self.xrange_slider_value,
-                    marks={
-                        i: f"{i}"
-                        for i in range(
-                            self.xrange_slider_min,
-                            self.xrange_slider_max + self.xrange_slider_markStep,
-                            self.xrange_slider_markStep,
-                        )
-                    },
-                    className="dropdown-item",
-                    id="xrange_slider",
-                ),
-            ],
             className="top-right",
         )
 

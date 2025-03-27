@@ -620,7 +620,6 @@ def loop_plot(data: pd.DataFrame):
 
     fig = go.Figure()
 
-    # First plot
     fig.update_xaxes(title_text="Field (T)")
     fig.update_yaxes(title_text="Max Kerr rotation (deg)")
 

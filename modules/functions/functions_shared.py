@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
+import h5py
 from datetime import datetime
 
 
@@ -68,6 +69,12 @@ def detect_measurement(filename_list: list):
                 depth = filename.count('/')
                 return measurement_type, depth
     return None
+
+
+def get_sample_info_from_hdf5(hdf5_path):
+    info_dict = {}
+
+    return info_dict
 
 
 def get_database_path(folderpath:Path):

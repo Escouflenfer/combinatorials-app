@@ -74,6 +74,10 @@ def detect_measurement(filename_list: list):
 def get_sample_info_from_hdf5(hdf5_path):
     info_dict = {}
 
+    with h5py.File(hdf5_path, "r") as f:
+        sample_group = f['entry/sample']
+
+        info_dict['sample_name'] = sample_group['sample_name'][()]
     return info_dict
 
 

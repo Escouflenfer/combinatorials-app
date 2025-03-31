@@ -83,7 +83,7 @@ def callbacks_edx(app):
         target_x = position[0]
         target_y = position[1]
 
-        spectrum_df = get_spectra_from_hdf5(hdf5_path, target_x, target_y)
-        fig = plot_spectra_from_dataframe(spectrum_df)
+        spectrum_df = edx_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
+        fig = edx_plot_measurement_from_dataframe(spectrum_df)
 
         return fig

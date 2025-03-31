@@ -103,7 +103,7 @@ def edx_make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, pre
     return fig
 
 
-def get_spectra_from_hdf5(hdf5_path, target_x, target_y):
+def edx_get_measurement_from_hdf5(hdf5_path, target_x, target_y):
     if not check_for_edx(hdf5_path):
         raise KeyError("EDX not found in file. Please check your file")
 
@@ -122,7 +122,7 @@ def get_spectra_from_hdf5(hdf5_path, target_x, target_y):
                 return spectrum_dataframe
 
 
-def plot_spectra_from_dataframe(df):
+def edx_plot_measurement_from_dataframe(df):
     fig = go.Figure(layout = plot_layout(''))
 
     fig.add_trace(

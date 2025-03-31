@@ -261,3 +261,13 @@ def significant_round(num, sig_figs):
 
     # Shift number, round, and shift back
     return round(num * shift_factor) / shift_factor
+
+
+def derivate_dataframe(df, column):
+    # Ensure the DataFrame has the column 'Total Profile (nm)'
+    if column not in df.columns:
+        raise ValueError(f"The DataFrame must contain a 'f{column}' column. "
+                         "Make sure to run Format_dataframe function first.")
+    # Calculate point to point derivative
+    df['Derivative'] = df[column].diff().fillna(0)
+    return df

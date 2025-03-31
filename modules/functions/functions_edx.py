@@ -68,7 +68,7 @@ def edx_make_results_dataframe_from_hdf5(hdf5_path):
     return result_dataframe
 
 
-def edx_make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precision=2):
+def edx_make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precision=2, plot_title = "", colorbar_title = ""):
     if values is None:
         values = df.columns[2]
 
@@ -89,11 +89,11 @@ def edx_make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, pre
         z=heatmap_data.values,
         colorscale="Plasma",
         # Set ticks for the colorbar
-        colorbar=colorbar_layout(z_min, z_max, precision, title='at. %'),
+        colorbar=colorbar_layout(z_min, z_max, precision, title=colorbar_title),
     )
 
     # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=heatmap_layout(''))
+    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title=plot_title))
 
     if z_min is not None:
         fig.data[0].update(zmin=z_min)

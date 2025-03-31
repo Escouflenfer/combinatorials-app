@@ -204,7 +204,7 @@ def plot_layout(title=""):
     return layout
 
 
-def colorbar_layout(z_min, z_max, precision=2, title=""):
+def colorbar_layout(z_min, z_max, precision=0, title=""):
     """
     Generates a standardized colorbar.
 

@@ -283,27 +283,6 @@ def callbacks_dektak(app):
         except KeyError:
             return "Invalid database. Please delete and reload to make a new one"
 
-    # WIP
-    # @app.callback(
-    #     Output('dektak_text_box', 'children', allow_duplicate=True),
-    #     Input('dektak_plot', 'clickData'),
-    #     State('dektak_plot_edit', 'value'),
-    #     State('dektak_database_path_store', 'data'),
-    #     State('dektak_path_store', 'data'),
-    #     State('dektak_position_store', 'data'),
-    # )
-    #
-    # def plot_edit_mode(clickData, edit_toggle, database_path, folderpath, position):
-    #     database_path = Path(database_path)
-    #     folderpath = Path(folderpath)
-    #
-    #     if edit_toggle != 'edit':
-    #         raise PreventUpdate
-    #
-    #     target_x = position[0]
-    #     target_y = position[1]
-    #
-    #     database = pd.read_csv(database_path, comment='#')
 
     # Callback to save heatmap
     @app.callback(

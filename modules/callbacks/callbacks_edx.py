@@ -53,7 +53,7 @@ def callbacks_edx(app):
             z_max = None
 
         edx_df = edx_make_results_dataframe_from_hdf5(hdf5_path)
-        fig = edx_make_heatmap_from_dataframe(edx_df, values=element_edx, z_min=z_min, z_max=z_max, precision=precision)
+        fig = make_heatmap_from_dataframe(edx_df, values=element_edx, z_min=z_min, z_max=z_max, precision=precision)
 
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)

@@ -1,6 +1,7 @@
 """
 Functions for DEKTAK parsing
 """
+from ..functions.functions_dektak import check_for_profil
 from ..hdf5_compilers.hdf5compile_base import *
 import io
 
@@ -51,15 +52,15 @@ def set_instrument_from_dict(header_dict, node):
 
 
 def write_dektak_to_hdf5(hdf5_path, measurement_dict, mode='a'):
-    for file_name, file_string in measurement_dict.items():
-        if file_name.endswith('.asc2d'):
-            header_dict = read_header_from_dektak(file_string)
-            asc2d_dataframe = read_data_from_dektak(file_string)
-            scan_number = header_dict['TargetName']
+    with h5py.File(hdf5_path, mode) as hdf5_file:
+        for file_name, file_string in measurement_dict.items():
+            if file_name.endswith('.asc2d'):
+                header_dict = read_header_from_dektak(file_string)
+                asc2d_dataframe = read_data_from_dektak(file_string)
+                scan_number = header_dict['TargetName']
 
-            x_pos, y_pos = position_from_tuple(scan_number)
+                x_pos, y_pos = position_from_tuple(scan_number)
 
-            with h5py.File(hdf5_path, mode) as hdf5_file:
                 scan_group = f"/entry/profil/scan_{scan_number}"
                 scan = hdf5_file.create_group(scan_group)
 
@@ -82,5 +83,27 @@ def write_dektak_to_hdf5(hdf5_path, measurement_dict, mode='a'):
                         node.attrs['unit'] = 'nm'
                     elif col == 'Distance':
                         node.attrs['unit'] = 'μm'
+
+    return None
+
+
+
+def write_dektak_results_to_hdf5(hdf5_path, results_dict, target_x, target_y):
+    if not check_for_profil(hdf5_path):
+        raise KeyError("Profilometry not found in file. Please check your file")
+
+    with h5py.File(hdf5_path, mode='a') as hdf5_file:
+        profil_group = hdf5_file['entry/profil']
+        for position, position_group in profil_group.items():
+            instrument_group = position_group.get('instrument')
+            if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+                results = position_group.create_group("results")
+                try:
+                    for key, result in results_dict.items():
+                        results[key] = result
+                        results["Measured Height"].attrs["units"] = "nm"
+                except KeyError:
+                    raise KeyError('Given results dictionary not compatible with current version of this function.'
+                                   'Check compatibility.')
 
     return None

@@ -68,41 +68,6 @@ def edx_make_results_dataframe_from_hdf5(hdf5_path):
     return result_dataframe
 
 
-def edx_make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precision=2, plot_title = "", colorbar_title = ""):
-    if values is None:
-        values = df.columns[2]
-
-    heatmap_data = df.pivot_table(
-        index="y_pos (mm)",
-        columns="x_pos (mm)",
-        values=values,
-    )
-
-    if z_min is None:
-        z_min = np.nanmin(heatmap_data.values)
-    if z_max is None:
-        z_max = np.nanmax(heatmap_data.values)
-
-    heatmap = go.Heatmap(
-        x=heatmap_data.columns,
-        y=heatmap_data.index,
-        z=heatmap_data.values,
-        colorscale="Plasma",
-        # Set ticks for the colorbar
-        colorbar=colorbar_layout(z_min, z_max, precision, title=colorbar_title),
-    )
-
-    # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title=plot_title))
-
-    if z_min is not None:
-        fig.data[0].update(zmin=z_min)
-    if z_max is not None:
-        fig.data[0].update(zmax=z_max)
-
-    return fig
-
-
 def edx_get_measurement_from_hdf5(hdf5_path, target_x, target_y):
     if not check_for_edx(hdf5_path):
         raise KeyError("EDX not found in file. Please check your file")

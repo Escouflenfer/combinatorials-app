@@ -28,7 +28,7 @@ class WidgetsEDX:
                         html.Label("Currently plotting:"),
                         html.Br(),
                         dcc.Dropdown(
-                            id="element_edx",
+                            id="edx_heatmap_select",
                             className="long-item",
                             options=[],
                             placeholder="Select Element",
@@ -78,7 +78,7 @@ class WidgetsEDX:
 
         # EDX spectra graph that will be modified by user interaction
         self.edx_spectra = html.Div(
-            [dcc.Graph(id="edx_spectra")], className="plot-right"
+            [dcc.Graph(id="edx_plot")], className="plot-right"
         )
 
         # EDX heatmap

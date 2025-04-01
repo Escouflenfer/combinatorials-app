@@ -10,7 +10,7 @@ def callbacks_edx(app):
                   Input('edx_heatmap', 'clickData'),
                   prevent_initial_call=True
                   )
-    def update_position(heatmapclick):
+    def edx_update_position(heatmapclick):
         if heatmapclick is None:
             return None
         target_x = heatmapclick['points'][0]['x']
@@ -25,7 +25,7 @@ def callbacks_edx(app):
     @app.callback([Output("element_edx", "options"),
                    Output("element_edx", "value")],
                   Input("edx_path_store", "data"))
-    def update_element_edx(hdf5_path):
+    def edx_update_element_list(hdf5_path):
         if hdf5_path is None:
             raise PreventUpdate
         edx_element_list = get_quantified_elements(hdf5_path)
@@ -36,13 +36,13 @@ def callbacks_edx(app):
         [Output("edx_heatmap", "figure"),
          Output('edx_heatmap_min', 'value'),
          Output('edx_heatmap_max', 'value')],
-        Input("element_edx", "value"),
+        Input("edx_heatmap_select", "value"),
         Input('edx_heatmap_min', 'value'),
         Input('edx_heatmap_max', 'value'),
         Input('edx_heatmap_precision', 'value'),
         State("edx_path_store", "data"),
     )
-    def update_heatmap_edx(element_edx, z_min, z_max, precision, hdf5_path):
+    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, hdf5_path):
         hdf5_path = Path(hdf5_path)
 
         if hdf5_path is None:
@@ -53,7 +53,7 @@ def callbacks_edx(app):
             z_max = None
 
         edx_df = edx_make_results_dataframe_from_hdf5(hdf5_path)
-        fig = make_heatmap_from_dataframe(edx_df, values=element_edx, z_min=z_min, z_max=z_max, precision=precision)
+        fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
 
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)
@@ -66,13 +66,13 @@ def callbacks_edx(app):
         return fig, z_min, z_max
 
 
-    #   EDX spectra
+    # EDX plot
     @app.callback(
-        Output("edx_spectra", "figure"),
+        Output("edx_plot", "figure"),
         Input("edx_path_store", "data"),
         Input("edx_position_store", "data"),
     )
-    def update_spectra(hdf5_path, position):
+    def edx_update_plot(hdf5_path, position):
         if hdf5_path is None:
             raise PreventUpdate
         if position is None:
@@ -83,7 +83,7 @@ def callbacks_edx(app):
         target_x = position[0]
         target_y = position[1]
 
-        spectrum_df = edx_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
-        fig = edx_plot_measurement_from_dataframe(spectrum_df)
+        measurement_df = edx_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
+        fig = edx_plot_measurement_from_dataframe(measurement_df)
 
         return fig

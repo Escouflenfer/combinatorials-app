@@ -298,6 +298,8 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
            np.array: P(x) for every x within range [x_start, x_end]
        """
     x = np.arange(x_start, x_end, x_step)
+    # print(x.shape)
+    # result = coefficient_list[0] + coefficient_list[1] * x + coefficient_list[2] * np.power(x, 2) + coefficient_list[3] * np.power(x, 3)
     result = np.zeros_like(x, dtype=np.float64)  # Initialize result as array
 
     for coefficient in reversed(coefficient_list):
@@ -339,4 +341,22 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
         fig.data[0].update(zmax=z_max)
 
     return fig
+
+
+
+def check_hdf5_for_results(hdf5_path, dataset_name, mode='any'):
+    if mode not in ['any', 'all']:
+        raise ValueError("Mode must be either 'any' or 'all'")
+
+    with h5py.File(hdf5_path, "r") as f:
+        target_group = f[f'/entry/{dataset_name}']
+        for position, position_group in target_group.items():
+            if mode == 'any' and 'results' in position_group:
+                return True
+            if mode == 'all' and 'results' not in position_group:
+                return False
+        if mode == 'any':
+            return False
+        if mode == 'all':
+            return True
 

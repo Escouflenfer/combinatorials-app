@@ -22,9 +22,9 @@ def callbacks_edx(app):
 
 
     # Callback to get elements for the dropdown menu
-    @app.callback([Output("element_edx", "options"),
-                   Output("element_edx", "value")],
-                  Input("edx_path_store", "data"))
+    @app.callback([Output("edx_heatmap_select", "options"),
+                   Output("edx_heatmap_select", "value")],
+                  Input("hdf5_path_store", "data"))
     def edx_update_element_list(hdf5_path):
         if hdf5_path is None:
             raise PreventUpdate
@@ -40,7 +40,7 @@ def callbacks_edx(app):
         Input('edx_heatmap_min', 'value'),
         Input('edx_heatmap_max', 'value'),
         Input('edx_heatmap_precision', 'value'),
-        State("edx_path_store", "data"),
+        State("hdf5_path_store", "data"),
     )
     def edx_update_heatmap(heatmap_select, z_min, z_max, precision, hdf5_path):
         hdf5_path = Path(hdf5_path)
@@ -48,7 +48,7 @@ def callbacks_edx(app):
         if hdf5_path is None:
             raise PreventUpdate
 
-        if ctx.triggered_id in ['element_edx', 'edx_heatmap_precision'] :
+        if ctx.triggered_id in ['edx_heatmap_select', 'edx_heatmap_precision'] :
             z_min = None
             z_max = None
 
@@ -69,7 +69,7 @@ def callbacks_edx(app):
     # EDX plot
     @app.callback(
         Output("edx_plot", "figure"),
-        Input("edx_path_store", "data"),
+        Input("hdf5_path_store", "data"),
         Input("edx_position_store", "data"),
     )
     def edx_update_plot(hdf5_path, position):

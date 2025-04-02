@@ -19,7 +19,7 @@ def profil_get_measurement_from_hdf5(hdf5_path, target_x, target_y):
         raise KeyError("Profilometry not found in file. Please check your file")
 
     with h5py.File(hdf5_path, "r") as f:
-        profil_group = f['entry/profil']
+        profil_group = f['/entry/profil']
         for position, position_group in profil_group.items():
             instrument_group = position_group.get('instrument')
             if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
@@ -44,9 +44,8 @@ def profil_get_results_from_hdf5(hdf5_path, target_x, target_y):
         for position, position_group in profil_group.items():
             instrument_group = position_group.get('instrument')
             if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-                try:
-                    results_group = position_group.get('result')
-                except KeyError:
+                results_group = position_group.get('results')
+                if results_group is None:
                     raise KeyError('Results group not found in file')
                 for value, value_group in results_group.items():
                     data_dict[value] = value_group[()]
@@ -108,7 +107,7 @@ def profil_measurement_dataframe_fit_poly(df, est_height, degree = 3):
     return results_dict
 
 
-def profil_batch_fit(hdf5_path, parameters_dict):
+def profil_batch_fit_poly(hdf5_path, parameters_dict):
     if not check_for_profil(hdf5_path):
         raise KeyError("Profilometry not found in file. Please check your file")
 
@@ -146,7 +145,7 @@ def profil_batch_fit(hdf5_path, parameters_dict):
                 raise KeyError('Given results dictionary not compatible with current version of this function.'
                                'Check compatibility with fit function')
 
-    return None
+    return True
 
 
 def profil_make_results_dataframe_from_hdf5(hdf5_path):
@@ -182,6 +181,7 @@ def profil_make_results_dataframe_from_hdf5(hdf5_path):
 
 def profil_plot_measurement_from_dataframe(df, results_dict={}):
     slope, df = profil_measurement_dataframe_treat(df)
+
     # Plot the data
     fig = make_subplots(
         rows=2,
@@ -223,27 +223,30 @@ def profil_plot_measurement_from_dataframe(df, results_dict={}):
     fig.add_trace(
         go.Scatter(
             x=df['Distance (um)'],
-            y=df['Adjusted profile (nm)'],
+            y=df['Adjusted Profile (nm)'],
             mode='lines',
             line=dict(color="SlateBlue", width=2),
         ), row = 2, col = 1
     )
 
     if 'Top fit coefficients' in results_dict.keys():
+        polynomial = calc_poly(results_dict['Top fit coefficients'], x_end=df['Distance (um)'].iloc[-1], x_start=0, x_step=df['Distance (um)'].iloc[-1]/len(df['Distance (um)']))
         fig.add_trace(
             go.Scatter(
                 x=df['Distance (um)'],
-                y=calc_poly(results_dict['Top fit coefficients'], df['Distance (um)'].iloc[-1]),
+                y=polynomial,
                 mode='lines',
                 line=dict(color="Crimson", width=2),
             ), row = 2, col = 1
         )
 
     if 'Bottom fit coefficients' in results_dict.keys():
+        polynomial = calc_poly(results_dict['Bottom fit coefficients'], x_end=df['Distance (um)'].iloc[-1], x_start=0,
+                               x_step=df['Distance (um)'].iloc[-1] / len(df['Distance (um)']))
         fig.add_trace(
             go.Scatter(
                 x=df['Distance (um)'],
-                y=calc_poly(results_dict['Bottom fit coefficients'], df['Distance (um)'].iloc[-1]),
+                y=polynomial,
                 mode='lines',
                 line=dict(color="Crimson", width=2),
             ), row=2, col=1

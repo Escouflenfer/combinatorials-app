@@ -34,8 +34,8 @@ browser_tab = children_browser.make_tab_from_widgets()
 children_hdf5 = widgets_hdf5.WidgetsHDF5(folderpath)
 hdf5_tab = children_hdf5.make_tab_from_widgets()
 
-children_dektak = widgets_dektak.WidgetsDEKTAK(folderpath)
-dektak_tab = children_dektak.make_tab_from_widgets()
+children_profil = widgets_profil.WidgetsPROFIL(folderpath)
+profil_tab = children_profil.make_tab_from_widgets()
 
 children_edx = widgets_edx.WidgetsEDX(folderpath)
 edx_tab = children_edx.make_tab_from_widgets()
@@ -53,7 +53,7 @@ app.layout = html.Div(
         dcc.Tabs(
             id="tabs",
             value="browser",
-            children=[browser_tab, hdf5_tab, dektak_tab, edx_tab, moke_tab, xrd_tab],
+            children=[browser_tab, hdf5_tab, profil_tab, edx_tab, moke_tab, xrd_tab],
         )
     ],
     className="window_layout",
@@ -62,7 +62,7 @@ app.layout = html.Div(
 
 callbacks_browser.callbacks_browser(app)
 callbacks_hdf5.callbacks_hdf5(app)
-callbacks_dektak.callbacks_dektak(app)
+callbacks_profil.callbacks_profil(app)
 callbacks_edx.callbacks_edx(app)
 callbacks_moke.callbacks_moke(app, children_moke)
 callbacks_xrd.callbacks_xrd(app, children_xrd)

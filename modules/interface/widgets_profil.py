@@ -8,7 +8,7 @@ from natsort import natsorted
 import os
 import pandas as pd
 
-class Widgetsprofil:
+class WidgetsPROFIL:
 
     def __init__(self, folderpath):
         self.folderpath = folderpath
@@ -30,7 +30,7 @@ class Widgetsprofil:
                 html.Label('Currently plotting:'),
                 html.Br(),
                 dcc.Dropdown(id='profil_heatmap_select', className='long-item',
-                             options=['Thickness', 'Gradient', 'Standard Deviation'], value='Thickness')
+                             options=[{'label': 'Thickness', 'value': ''}], value='Measured Height (nm)')
             ]),
             html.Div(className='subgrid-7', children=[
                 html.Label('Colorbar bounds'),
@@ -71,6 +71,7 @@ class Widgetsprofil:
             html.Div(className='subgrid-1', children=[
                 html.Label('Estimate height'),
                 dcc.Input(id='profil_fit_height', type='number', placeholder='Height estimate', value=None),
+                dcc.Input(id='profil_fit_degree', type='number', placeholder='Degree', value=None),
                 html.Button('Fit!', id='profil_fit_button', n_clicks=0)
             ]),
 
@@ -79,9 +80,9 @@ class Widgetsprofil:
                 html.Br(),
                 dcc.Checklist(
                     id='profil_plot_select',
-                    options=[{'label': 'Adjustment Slope', 'value': 'Adjustment Slope'},
-                             {'label': 'Profile Fits', 'value': 'Profile Fits'}],
-                    value='filter',
+                    options=[{'label': 'Adjusting Slope', 'value': 'Adjusting Slope'},
+                             {'label': 'Profile Fits', 'value': 'Profile Fits'},],
+                    value=['Adjusting Slope', 'Profile Fits'],
                     style={'display': 'inline-block'}
                 ),
             ])

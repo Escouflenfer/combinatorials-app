@@ -1,7 +1,7 @@
 import sys
 import os
 
-from functions_dektak import *
+from functions_profil import *
 
 folderpath = None
 

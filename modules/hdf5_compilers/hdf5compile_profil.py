@@ -1,7 +1,7 @@
 """
 Functions for DEKTAK parsing
 """
-from ..functions.functions_dektak import check_for_profil
+from ..functions.functions_profil import check_for_profil
 from ..hdf5_compilers.hdf5compile_base import *
 import io
 

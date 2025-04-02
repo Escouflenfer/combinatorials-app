@@ -4,7 +4,7 @@ from dash import Dash, dcc, html
 
 from modules.interface import (
     widgets_browser,
-    widgets_dektak,
+    widgets_profil,
     widgets_edx,
     widgets_moke,
     widgets_xrd,
@@ -12,7 +12,7 @@ from modules.interface import (
 )
 from modules.callbacks import (
     callbacks_browser,
-    callbacks_dektak,
+    callbacks_profil,
     callbacks_edx,
     callbacks_moke,
     callbacks_xrd,

@@ -1,5 +1,5 @@
 """
-Class containing all Dash items and layout information for the DEKTAK tab
+Class containing all Dash items and layout information for the profil tab
 """
 
 
@@ -8,35 +8,35 @@ from natsort import natsorted
 import os
 import pandas as pd
 
-class WidgetsDEKTAK:
+class Widgetsprofil:
 
     def __init__(self, folderpath):
         self.folderpath = folderpath
 
         # Widget for the text box
-        self.dektak_center = html.Div(className='textbox top-center', children=[
+        self.profil_center = html.Div(className='textbox top-center', children=[
                     html.Div(className='text-top', children=[
-                        html.Span(children='test', id='dektak_path_box')
+                        html.Span(children='test', id='profil_path_box')
                     ]),
 
                     html.Div(className='text-mid', children=[
-                        html.Span(children='test', id='dektak_text_box')
+                        html.Span(children='test', id='profil_text_box')
                     ])
             ])
 
         # Heatmap plot options
-        self.dektak_left = html.Div(className='subgrid top-left', children=[
+        self.profil_left = html.Div(className='subgrid top-left', children=[
             html.Div(className='subgrid-2', children=[
                 html.Label('Currently plotting:'),
                 html.Br(),
-                dcc.Dropdown(id='dektak_heatmap_select', className='long-item',
+                dcc.Dropdown(id='profil_heatmap_select', className='long-item',
                              options=['Thickness', 'Gradient', 'Standard Deviation'], value='Thickness')
             ]),
             html.Div(className='subgrid-7', children=[
                 html.Label('Colorbar bounds'),
-                dcc.Input(id='dektak_heatmap_max', className='long-item', type='number', placeholder='maximum value',
+                dcc.Input(id='profil_heatmap_max', className='long-item', type='number', placeholder='maximum value',
                           value=None),
-                dcc.Input(id='dektak_heatmap_min', className='long-item', type='number', placeholder='minimum value',
+                dcc.Input(id='profil_heatmap_min', className='long-item', type='number', placeholder='minimum value',
                           value=None)
             ]),
             html.Div(
@@ -44,7 +44,7 @@ class WidgetsDEKTAK:
                 children=[
                     html.Label("Colorbar precision"),
                     dcc.Input(
-                        id="dektak_heatmap_precision",
+                        id="profil_heatmap_precision",
                         className="long-item",
                         type="number",
                         placeholder="Colorbar precision",
@@ -56,7 +56,7 @@ class WidgetsDEKTAK:
                 html.Label(''),
                 html.Br(),
                 dcc.RadioItems(
-                    id='dektak_heatmap_edit',
+                    id='profil_heatmap_edit',
                     options=[{'label': 'Unfiltered', 'value': 'unfiltered'},
                              {'label': 'Filtered', 'value': 'filter'},
                              {'label': 'Edit mode', 'value': 'edit'}],
@@ -67,18 +67,18 @@ class WidgetsDEKTAK:
         ])
 
         # Widget for fitting parameters and buttons
-        self.dektak_right = html.Div(className='subgrid top-right', children=[
+        self.profil_right = html.Div(className='subgrid top-right', children=[
             html.Div(className='subgrid-1', children=[
                 html.Label('Estimate height'),
-                dcc.Input(id='dektak_fit_height', type='number', placeholder='Height estimate', value=None),
-                html.Button('Fit!', id='dektak_fit_button', n_clicks=0)
+                dcc.Input(id='profil_fit_height', type='number', placeholder='Height estimate', value=None),
+                html.Button('Fit!', id='profil_fit_button', n_clicks=0)
             ]),
 
             html.Div(className='subgrid-9', children=[
                 html.Label('PLACEHOLDER'),
                 html.Br(),
                 dcc.Checklist(
-                    id='dektak_plot_select',
+                    id='profil_plot_select',
                     options=[{'label': 'Adjustment Slope', 'value': 'Adjustment Slope'},
                              {'label': 'Profile Fits', 'value': 'Profile Fits'}],
                     value='filter',
@@ -87,36 +87,46 @@ class WidgetsDEKTAK:
             ])
         ])
 
+        # EDX spectra graph that will be modified by user interaction
+        self.profil_plot = html.Div(
+            [dcc.Graph(id="profil_plot")], className="plot-right"
+        )
+
+        # EDX heatmap
+        self.profil_heatmap = html.Div(
+            [dcc.Graph(id="profil_heatmap")], className="plot-left"
+        )
+
         # Stored variables
-        self.dektak_stores = html.Div(children=[
-            dcc.Store(id='dektak_position_store', data=None),
-            dcc.Store(id='dektak_database_path_store', data=None),
-            dcc.Store(id='dektak_file_path_store', data=None),
-            dcc.Store(id='dektak_parameters_store', data=None),
-            dcc.Store(id='dektak_database_metadata_store', data=None)
+        self.profil_stores = html.Div(children=[
+            dcc.Store(id='profil_position_store', data=None),
+            dcc.Store(id='profil_database_path_store', data=None),
+            dcc.Store(id='profil_file_path_store', data=None),
+            dcc.Store(id='profil_parameters_store', data=None),
+            dcc.Store(id='profil_database_metadata_store', data=None)
         ])
 
 
 
     def make_tab_from_widgets(self):
-        dektak_tab = dcc.Tab(
-            id="dektak",
-            label="DEKTAK",
-            value="dektak",
+        profil_tab = dcc.Tab(
+            id="profil",
+            label="profil",
+            value="profil",
             children=[html.Div(children=[
                 dcc.Loading(
-                    id="loading-dektak",
+                    id="loading-profil",
                     type="default",
                     delay_show=500,
                     children=[
                         html.Div(
                             [
-                                self.dektak_left,
-                                self.dektak_center,
-                                self.dektak_right,
-                                self.dektak_heatmap,
-                                self.dektak_plot,
-                                self.dektak_stores
+                                self.profil_left,
+                                self.profil_center,
+                                self.profil_right,
+                                self.profil_heatmap,
+                                self.profil_plot,
+                                self.profil_stores
                             ],
                             className="grid-container",
                         )
@@ -125,5 +135,5 @@ class WidgetsDEKTAK:
             ])]
         )
 
-        return dektak_tab
+        return profil_tab
 

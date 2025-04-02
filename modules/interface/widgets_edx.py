@@ -76,8 +76,8 @@ class WidgetsEDX:
             className="top-right",
         )
 
-        # EDX spectra graph that will be modified by user interaction
-        self.edx_spectra = html.Div(
+        # EDX plot
+        self.edx_plot = html.Div(
             [dcc.Graph(id="edx_plot")], className="plot-right"
         )
 
@@ -111,7 +111,7 @@ class WidgetsEDX:
                         self.element,
                         self.plot_sliders,
                         self.edx_heatmap,
-                        self.edx_spectra,
+                        self.edx_plot,
                         self.edx_stores,
                     ],
                     className="grid-container",

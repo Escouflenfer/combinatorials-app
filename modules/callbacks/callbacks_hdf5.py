@@ -9,7 +9,7 @@ from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 from ..hdf5_compilers.hdf5compile_edx import *
 from ..hdf5_compilers.hdf5compile_moke import *
-from ..hdf5_compilers.hdf5compile_dektak import *
+from ..hdf5_compilers.hdf5compile_profil import *
 from ..hdf5_compilers.hdf5compile_xrd import *
 
 

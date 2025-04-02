@@ -5,20 +5,20 @@ import subprocess
 import plotly.graph_objects as go
 
 from dash.exceptions import PreventUpdate
-from ..functions.functions_dektak import *
+from ..functions.functions_profil import *
 
-"""Callbacks for DEKTAK tab"""
+"""Callbacks for profil tab"""
 
 
-def callbacks_dektak(app):
+def callbacks_profil(app):
 
     # Callback to update current position based on heatmap click
     @app.callback(
-        Output("dektak_position_store", "data"),
-        Input("dektak_heatmap", "clickData"),
+        Output("profil_position_store", "data"),
+        Input("profil_heatmap", "clickData"),
         prevent_initial_call=True,
     )
-    def update_position(clickData):
+    def profil_update_position(clickData):
         if clickData is None:
             return None
         target_x = clickData["points"][0]["x"]
@@ -32,25 +32,25 @@ def callbacks_dektak(app):
     # Callback for heatmap plot selection
     @app.callback(
         [
-            Output("dektak_heatmap", "figure", allow_duplicate=True),
-            Output("dektak_heatmap_min", "value"),
-            Output("dektak_heatmap_max", "value"),
+            Output("profil_heatmap", "figure", allow_duplicate=True),
+            Output("profil_heatmap_min", "value"),
+            Output("profil_heatmap_max", "value"),
         ],
-        Input("dektak_heatmap_select", "value"),
-        Input("dektak_heatmap_min", "value"),
-        Input("dektak_heatmap_max", "value"),
-        Input("dektak_heatmap_precision", "value"),
-        Input("dektak_heatmap_edit", "value"),
+        Input("profil_heatmap_select", "value"),
+        Input("profil_heatmap_min", "value"),
+        Input("profil_heatmap_max", "value"),
+        Input("profil_heatmap_precision", "value"),
+        Input("profil_heatmap_edit", "value"),
         State('hdf5_path_store', 'data'),
         prevent_initial_call=True,
     )
-    def update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path):
+    def profil_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path):
         hdf5_path = Path(hdf5_path)
 
         if hdf5_path is None:
             raise PreventUpdate
 
-        if ctx.triggered_id in ["dektak_heatmap_select", "dektak_heatmap_edit", "dektak_heatmap_precision"]:
+        if ctx.triggered_id in ["profil_heatmap_select", "profil_heatmap_edit", "profil_heatmap_precision"]:
             z_min = None
             z_max = None
 
@@ -68,11 +68,11 @@ def callbacks_dektak(app):
 
     # Profile plot
     @app.callback(
-        Output("dektak_plot", "figure"),
+        Output("profil_plot", "figure"),
         Input("hdf5_path_store", "data"),
-        Input("dektak_position_store", "data"),
+        Input("profil_position_store", "data"),
     )
-    def edx_update_plot(hdf5_path, position):
+    def profil_update_plot(hdf5_path, position):
         if hdf5_path is None:
             raise PreventUpdate
         if position is None:
@@ -91,11 +91,11 @@ def callbacks_dektak(app):
 
     # Callback to deal with heatmap edit mode
     @app.callback(
-        Output("dektak_text_box", "children", allow_duplicate=True),
-        Input("dektak_heatmap", "clickData"),
-        State("dektak_heatmap_edit", "value"),
-        State("dektak_database_path_store", "data"),
-        State("dektak_database_metadata_store", "data"),
+        Output("profil_text_box", "children", allow_duplicate=True),
+        Input("profil_heatmap", "clickData"),
+        State("profil_heatmap_edit", "value"),
+        State("profil_database_path_store", "data"),
+        State("profil_database_metadata_store", "data"),
         prevent_initial_call=True,
     )
     def heatmap_edit_mode(clickData, edit_toggle, database_path, metadata):

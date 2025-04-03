@@ -118,8 +118,6 @@ def callbacks_profil(app):
             vertical_spacing=0.1
         )
 
-        print(measurement_df)
-
         fig = profil_plot_total_profile_from_dataframe(fig, measurement_df, options_dict)
         fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, options_dict)
         fig = profil_plot_measured_heights_from_dict(fig, results_dict)

@@ -266,7 +266,6 @@ def profil_plot_adjusted_profile_from_dataframe(fig, df, results_dict=None, posi
     )
 
     if "fit_parameters" in results_dict.keys():
-        print(results_dict["fit_parameters"])
         fig.add_trace(
             go.Scatter(
                 x=df["distance_(um)"],

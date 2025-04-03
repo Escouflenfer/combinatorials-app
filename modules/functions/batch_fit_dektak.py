@@ -1,9 +1,6 @@
 import sys
-import os
 
 from functions_profil import *
-
-folderpath = None
 
 # Change working directory to app.py in order to properly resolve relative file pathing
 
@@ -12,14 +9,12 @@ os.chdir(Path(__file__).parent.parent.parent)
 # try:
 if __name__ == "__main__":
     # Fetch arguments passed to the script
-    folderpath = sys.argv[1] if len(sys.argv) > 1 else "DefaultArg1"
-    print(folderpath)
+    hdf5_path = sys.argv[1]
+    fit_height = int(sys.argv[2])
+    nb_steps = int(sys.argv[3])
 
-if folderpath is not None:
-    batch_fit(folderpath)
-else:
-    print("Folder path has not been set")
-# except Exception as e:
-#     print(f'{e}')
-# finally:
-#     input('lol')
+
+    if hdf5_path is not None:
+        profil_batch_fit_steps(hdf5_path, fit_height, nb_steps)
+    else:
+        print("HDF5 path has not been set")

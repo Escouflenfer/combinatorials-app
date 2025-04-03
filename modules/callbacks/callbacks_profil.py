@@ -1,10 +1,7 @@
-import sys, os
-
 from dash import Input, Output, State, ctx
-import subprocess
-import plotly.graph_objects as go
-
 from dash.exceptions import PreventUpdate
+from plotly.subplots import make_subplots
+
 from ..functions.functions_profil import *
 
 """Callbacks for profil tab"""
@@ -102,14 +99,32 @@ def callbacks_profil(app):
         measurement_df = profil_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
         results_dict = profil_get_results_from_hdf5(hdf5_path, target_x, target_y)
 
-        options_dict = {}
-        if 'Adjusting Slope' in plot_options:
-            options_dict['Adjusting Slope'] = results_dict['Adjusting Slope']
-        if 'Profile Fits' in plot_options:
-            options_dict['Top fit coefficients'] = results_dict['Top fit coefficients']
-            options_dict['Bottom fit coefficients'] = results_dict['Bottom fit coefficients']
+        _, measurement_df = profil_measurement_dataframe_treat(measurement_df, slope=results_dict['adjusting_slope'])
 
-        fig = profil_plot_measurement_from_dataframe(measurement_df, options_dict)
+        options_dict = {}
+        if 'adjusting_slope' in plot_options:
+            options_dict['adjusting_slope'] = results_dict['adjusting_slope']
+        if 'fit_parameters' in plot_options:
+            options_dict['fit_parameters'] = results_dict['fit_parameters']
+
+
+        # Plot the data
+        fig = make_subplots(
+            rows=3,
+            cols=1,
+            row_heights=[0.3, 0.4, 0.3],
+            subplot_titles=("Total profile", "Fitted data", "Measured thicknesses"),
+            shared_xaxes=True,
+            vertical_spacing=0.1
+        )
+
+        print(measurement_df)
+
+        fig = profil_plot_total_profile_from_dataframe(fig, measurement_df, options_dict)
+        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, options_dict)
+        fig = profil_plot_measured_heights_from_dict(fig, results_dict)
+
+        fig.update_layout(plot_layout(title=''))
 
         return fig
 
@@ -120,7 +135,7 @@ def callbacks_profil(app):
          Output("hdf5_path_store", "data", allow_duplicate=True)],
         Input("profil_fit_button", "n_clicks"),
         State("profil_fit_height", "value"),
-        State("profil_fit_degree", "value"),
+        State("profil_fit_nb_steps", "value"),
         State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
@@ -128,48 +143,8 @@ def callbacks_profil(app):
     def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path):
         if hdf5_path is None:
             raise PreventUpdate
-        parameters_dict={
-            "Estimated height": fit_height,
-            "Degree": fit_degree,
-        }
+
         if n_clicks > 0:
-            check = profil_batch_fit_poly(hdf5_path, parameters_dict)
+            check = profil_batch_fit_steps(hdf5_path, fit_height, fit_degree)
             if check:
                 return 'Successfully refitted data', hdf5_path
-
-    # # Callback to deal with heatmap edit mode
-    # @app.callback(
-    #     Output("profil_text_box", "children", allow_duplicate=True),
-    #     Input("profil_heatmap", "clickData"),
-    #     State("profil_heatmap_edit", "value"),
-    #     State("profil_database_path_store", "data"),
-    #     State("profil_database_metadata_store", "data"),
-    #     prevent_initial_call=True,
-    # )
-    # def heatmap_edit_mode(clickData, edit_toggle, database_path, metadata):
-    #     database_path = Path(database_path)
-    #
-    #     if edit_toggle != "edit":
-    #         raise PreventUpdate
-    #
-    #     target_x = clickData["points"][0]["x"]
-    #     target_y = clickData["points"][0]["y"]
-    #
-    #     database = pd.read_csv(database_path, comment="#")
-    #
-    #     test = (database["x_pos (mm)"] == target_x) & (
-    #         database["y_pos (mm)"] == target_y
-    #     )
-    #     row_number = database[test].index[0]
-    #
-    #     try:
-    #         if database.loc[row_number, "Ignore"] == 0:
-    #             database.loc[row_number, "Ignore"] = 1
-    #             save_with_metadata(database, database_path, metadata)
-    #             return f"Point x = {target_x}, y = {target_y} set to ignore"
-    #         else:
-    #             database.loc[row_number, "Ignore"] = 0
-    #             save_with_metadata(database, database_path, metadata)
-    #             return f"Point x = {target_x}, y = {target_y} no longer ignored"
-    #     except KeyError:
-    #         return "Invalid database. Please delete and reload to make a new one"

@@ -276,10 +276,9 @@ def derivate_dataframe(df, column):
        """
     # Ensure the DataFrame has the column 'Total Profile (nm)'
     if column not in df.columns:
-        raise ValueError(f"The DataFrame must contain a 'f{column}' column. "
-                         "Make sure to run Format_dataframe function first.")
+        raise ValueError(f"The DataFrame must contain a 'f{column}' column.")
     # Calculate point to point derivative
-    df['Derivative'] = df[column].diff().fillna(0)
+    df['derivative'] = df[column].diff().fillna(0)
     return df
 
 
@@ -298,12 +297,10 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
            np.array: P(x) for every x within range [x_start, x_end]
        """
     x = np.arange(x_start, x_end, x_step)
-    # print(x.shape)
-    # result = coefficient_list[0] + coefficient_list[1] * x + coefficient_list[2] * np.power(x, 2) + coefficient_list[3] * np.power(x, 3)
-    result = np.zeros_like(x, dtype=np.float64)  # Initialize result as array
+    result = np.zeros_like(x, dtype=np.float64)
 
     for coefficient in reversed(coefficient_list):
-        result = result * x + coefficient  # Vectorized multiplication and addition
+        result = result * x + coefficient
 
     return result
 
@@ -360,3 +357,6 @@ def check_hdf5_for_results(hdf5_path, dataset_name, mode='any'):
         if mode == 'all':
             return True
 
+def pairwise(list):
+    a = iter(list)
+    return zip(a, a)

@@ -21,8 +21,8 @@ def read_header_from_dektak(file_string):
 def read_data_from_dektak(file_string, header_length=46):
     file = io.StringIO(file_string)
     asc2d_dataframe = pd.read_csv(file, skiprows=header_length)
-    asc2d_dataframe.rename(columns={' z(raw/unitless)': 'Profile'}, inplace=True)
-    asc2d_dataframe.rename(columns={'y(um)': 'Distance'}, inplace=True)
+    asc2d_dataframe.rename(columns={' z(raw/unitless)': 'profile'}, inplace=True)
+    asc2d_dataframe.rename(columns={'y(um)': 'distance'}, inplace=True)
     return asc2d_dataframe
 
 def position_from_tuple(scan_number):
@@ -79,9 +79,9 @@ def write_dektak_to_hdf5(hdf5_path, measurement_dict, mode='a'):
                 data.attrs["NX_class"] = "HTmeasurement"
                 for col in asc2d_dataframe.columns:
                     node = data.create_dataset(col, data=np.array(asc2d_dataframe[col]), dtype='float')
-                    if col == 'Profile':
+                    if col == 'profile':
                         node.attrs['unit'] = 'nm'
-                    elif col == 'Distance':
+                    elif col == 'distance':
                         node.attrs['unit'] = 'μm'
 
     return None
@@ -101,7 +101,7 @@ def write_dektak_results_to_hdf5(hdf5_path, results_dict, target_x, target_y):
                 try:
                     for key, result in results_dict.items():
                         results[key] = result
-                        results["Measured Height"].attrs["units"] = "nm"
+                        results["measured_height"].attrs["units"] = "nm"
                 except KeyError:
                     raise KeyError('Given results dictionary not compatible with current version of this function.'
                                    'Check compatibility.')

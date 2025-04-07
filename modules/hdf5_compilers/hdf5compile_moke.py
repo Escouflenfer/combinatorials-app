@@ -1,7 +1,7 @@
 """
 Functions for MOKE parsing
 """
-
+from ..functions.functions_moke import moke_integrate_pulse_array
 from ..hdf5_compilers.hdf5compile_base import *
 import io
 
@@ -70,9 +70,9 @@ def read_header_from_moke(file_string):
 
     lines = io.StringIO(file_string).readlines()
 
-    header_dict["Sample name"] = lines[1].strip().replace("#", "")
-    header_dict["Date"] = lines[2].strip().replace("#", "")
-    for line in lines[3:]:
+    header_dict["Sample name"] = lines[0].strip().replace("#", "")
+    header_dict["Date"] = lines[1].strip().replace("#", "")
+    for line in lines[2:]:
         key, value = line.strip().split("=")
         header_dict[key] = value
 
@@ -265,20 +265,63 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
             time_node = data.create_dataset("time", data=time, dtype="float")
             time_node.attrs["units"] = "μs"
 
+            # Prepare arrays to generate mean
+            integrated_pulse_arrays = []
+            pulse_arrays = []
+            mag_arrays = []
+            sum_arrays = []
+
+            # Create shot groups in HDF5
             for i in range(nb_aquisitions):
+                shot_group = data.create_group(f"shot_{i+1}")
                 mag = [convertFloat(t[i]) for t in mag_dict]
-                mag_node = data.create_dataset(
+                mag_node = shot_group.create_dataset(
                     f"magnetization_{i+1}", data=mag, dtype="float"
                 )
+                mag_arrays.append(mag)
 
                 pul = [convertFloat(t[i]) for t in pul_dict]
-                pul_node = data.create_dataset(f"pulse_{i+1}", data=pul, dtype="float")
+                pul_node = shot_group.create_dataset(
+                    f"pulse_{i+1}", data=pul, dtype="float"
+                )
+                pulse_arrays.append(pul)
+
+                integrated_pulse = moke_integrate_pulse_array(pul)
+                integrated_pulse_node = shot_group.create_dataset(
+                    f"integrated_pulse_{i+1}", data=integrated_pulse, dtype="float"
+                )
+                integrated_pulse_arrays.append(integrated_pulse)
 
                 sum = [convertFloat(t[i]) for t in sum_dict]
-                sum_node = data.create_dataset(
+                sum_node = shot_group.create_dataset(
                     f"reflectivity_{i+1}", data=sum, dtype="float"
                 )
+                sum_arrays.append(sum)
 
                 mag_node.attrs["units"] = "V"
                 pul_node.attrs["units"] = "V"
                 sum_node.attrs["units"] = "V"
+
+            # Add mean of measurements to HDF5
+            mean_integrated_pulse = np.mean(np.stack(integrated_pulse_arrays), axis=0)
+            mean_pulse = np.mean(np.stack(pulse_arrays), axis=0)
+            mean_magnetization = np.mean(np.stack(mag_arrays), axis=0)
+            mean_reflectivity = np.mean(np.stack(sum_arrays), axis=0)
+
+            shot_group = data.create_group("shot_mean")
+            shot_group.create_dataset(
+                "integrated_pulse_mean", data=mean_integrated_pulse, dtype="float"
+            )
+            pulse_mean_node = shot_group.create_dataset(
+                "pulse_mean", data=mean_pulse, dtype="float"
+            )
+            mag_mean_node = shot_group.create_dataset(
+                "magnetization_mean", data=mean_magnetization, dtype="float"
+            )
+            sum_mean_node = shot_group.create_dataset(
+                "reflectivity_mean", data=mean_reflectivity, dtype="float"
+            )
+
+            pulse_mean_node.attrs["units"] = "V"
+            mag_mean_node.attrs["units"] = "V"
+            sum_mean_node.attrs["units"] = "V"

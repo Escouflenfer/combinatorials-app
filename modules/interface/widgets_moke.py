@@ -43,13 +43,13 @@ class WidgetsMOKE:
                             id="moke_heatmap_select",
                             className="long-item",
                             options=[
-                                "Max Kerr Rotation",
-                                "Reflectivity",
-                                "Coercivity M = 0",
-                                "Coercivity max(dM/dH)",
-                                "Intercept Field",
+                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation"},
+                                {"label": "Reflectivity", "value": "reflectivity"},
+                                {"label": "Coercivity M = 0", "value": "coercivity_m0"},
+                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh"},
+                                {"label": "Intercept Field", "value": "intercept_field"},
                             ],
-                            value="Max Kerr Rotation",
+                            value="max_kerr_rotation",
                         ),
                     ],
                 ),
@@ -110,8 +110,13 @@ class WidgetsMOKE:
                     children=[
                         dcc.RadioItems(
                             id="moke_plot_select",
-                            options=["Raw data", "Loop", "Loop + Derivative", "Loop + Intercept"],
-                            value="Loop",
+                            options=[
+                                {"label": "Oscilloscope Data", "value": "oscilloscope_data"},
+                                {"label": "M(H) Loop", "value": "loop"},
+                                {"label": "M(H) Loop + Derivative", "value": "derivative"},
+                                {"label": "M(H) Loop + Intercepts", "value": "intercepts"},
+                            ],
+                            value="loop",
                             style={"display": "inline-block"},
                         )
                     ],
@@ -175,7 +180,6 @@ class WidgetsMOKE:
         self.moke_heatmap = html.Div(
             children=[
                 dcc.Graph(id="moke_heatmap"),
-                html.Button("Save!", id="moke_heatmap_save", n_clicks=0),
             ],
             className="plot-left",
         )
@@ -184,7 +188,6 @@ class WidgetsMOKE:
         self.moke_profile = html.Div(
             children=[
                 dcc.Graph(id="moke_plot"),
-                html.Button("Save!", id="moke_plot_save", n_clicks=0),
             ],
             className="plot-right",
         )

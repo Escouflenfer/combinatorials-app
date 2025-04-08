@@ -288,7 +288,7 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
        range [x_start, x_end].
 
        Parameters:
-           coefficient_list (list or numpy.array): list of coefficients such that list[i] is the i-order coefficient
+           coefficient_list (list or numpy array): list of coefficients such that list[i] is the i-order coefficient
            x_end (int): end of the x_range on which to evaluate the polynomial
            x_start (int): start of the x_range on which to evaluate the polynomial
            x_step (int): step size of the x_range on which to evaluate the polynomial
@@ -357,6 +357,22 @@ def check_hdf5_for_results(hdf5_path, dataset_name, mode='any'):
         if mode == 'all':
             return True
 
+
 def pairwise(list):
     a = iter(list)
     return zip(a, a)
+
+
+def save_results_dict_to_hdf5(hdf5_results_group, results_dict):
+    for key, value in results_dict.items():
+        if isinstance(value, dict):
+            # Create a group and recurse
+            subgroup = hdf5_results_group.create_group(key)
+            save_results_dict_to_hdf5(value, subgroup)
+        else:
+            # Convert value to something storable (e.g., string, number, array)
+            if isinstance(value, (int, float, str, np.ndarray, list, tuple)):
+                hdf5_results_group.create_dataset(key, data=value)
+            else:
+                # Fallback: store as string representation
+                hdf5_results_group.create_dataset(key, data=str(value))

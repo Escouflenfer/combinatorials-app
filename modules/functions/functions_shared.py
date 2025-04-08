@@ -376,3 +376,10 @@ def save_results_dict_to_hdf5(hdf5_results_group, results_dict):
             else:
                 # Fallback: store as string representation
                 hdf5_results_group.create_dataset(key, data=str(value))
+
+
+def get_target_position_group(measurement_group, target_x, target_y):
+    for position, position_group in measurement_group.items():
+        instrument_group = position_group.get("instrument")
+        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+            return position_group

@@ -9,6 +9,117 @@ from ..functions.functions_shared import *
 
 def callbacks_moke(app, children_moke):
 
+    # Callback to update mokee plot based on heatmap click position
+    @app.callback(Output('moke_position_store', 'data'),
+                  Input('moke_heatmap', 'clickData'),
+                  prevent_initial_call=True
+                  )
+    def update_position(clickData):
+        if clickData is None:
+            return None
+        target_x = clickData['points'][0]['x']
+        target_y = clickData['points'][0]['y']
+
+        position = (target_x, target_y)
+
+        return position
+
+
+
+    # Callback to check if HDF5 has results
+    @app.callback(
+        Output("moke_text_box", "children", allow_duplicate=True),
+        Input("hdf5_path_store", "data"),
+        prevent_initial_call=True,
+    )
+    def moke_check_for_results(hdf5_path):
+        if check_hdf5_for_results(hdf5_path, 'moke', mode='all'):
+            return 'Found results for all points'
+        elif check_hdf5_for_results(hdf5_path, 'moke', mode='any'):
+            return 'Found results for some points'
+        else:
+            return'No results found'
+
+
+    # Callback for heatmap plot selection
+    @app.callback(
+        [
+            Output("moke_heatmap", "figure", allow_duplicate=True),
+            Output("moke_heatmap_min", "value"),
+            Output("moke_heatmap_max", "value"),
+        ],
+        Input("moke_heatmap_select", "value"),
+        Input("moke_heatmap_min", "value"),
+        Input("moke_heatmap_max", "value"),
+        Input("moke_heatmap_precision", "value"),
+        Input("moke_heatmap_edit", "value"),
+        Input('hdf5_path_store', 'data'),
+        prevent_initial_call=True,
+    )
+    def moke_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path):
+        hdf5_path = Path(hdf5_path)
+
+        if hdf5_path is None:
+            raise PreventUpdate
+
+        if ctx.triggered_id in ["moke_heatmap_select", "moke_heatmap_edit", "moke_heatmap_precision"]:
+            z_min = None
+            z_max = None
+
+        masking = True
+        if edit_toggle in ["edit", "unfiltered"]:
+            masking = False
+
+        moke_df = moke_make_results_dataframe_from_hdf5(hdf5_path)
+        fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
+
+        z_min = np.round(fig.data[0].zmin, precision)
+        z_max = np.round(fig.data[0].zmax, precision)
+
+        return fig, z_min, z_max
+
+
+    # Profile plot
+    @app.callback(
+        Output("moke_plot", "figure"),
+        Input("hdf5_path_store", "data"),
+        Input("moke_position_store", "data"),
+        Input("moke_plot_select", "value")
+    )
+    def moke_update_plot(hdf5_path, position, plot_options):
+        if hdf5_path is None:
+            raise PreventUpdate
+        if position is None:
+            raise PreventUpdate
+
+        hdf5_path = Path(hdf5_path)
+
+        target_x = position[0]
+        target_y = position[1]
+
+        measurement_df = moke_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
+        results_dict = moke_get_results_from_hdf5(hdf5_path, target_x, target_y)
+
+
+        return fig
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @app.callback([Output('moke_database_path_store', 'data'),
                    Output('moke_path_box', 'children'),
                    Output('moke_database_metadata_store', 'data')],
@@ -109,20 +220,6 @@ def callbacks_moke(app, children_moke):
         return treatment_dict, coil_factor, smoothing_polyorder, smoothing_range
 
 
-    # Callback to update profile plot based on heatmap click position
-    @app.callback(Output('moke_position_store', 'data'),
-                  Input('moke_heatmap', 'clickData'),
-                  prevent_initial_call=True
-                  )
-    def update_position(clickData):
-        if clickData is None:
-            return None
-        target_x = clickData['points'][0]['x']
-        target_y = clickData['points'][0]['y']
-
-        position = (target_x, target_y)
-
-        return position
 
 
 

@@ -25,42 +25,57 @@ def moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y, index=1):
         raise KeyError("Moke not found in file. Please check your file")
 
     moke_group = hdf5_file["/entry/moke"]
-    for position, position_group in moke_group.items():
-        instrument_group = position_group.get("instrument")
-        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-            measurement_group = position_group.get("measurement")
-            time_array = measurement_group[f"time"][()]
+    position_group = get_target_position_group(moke_group, target_x, target_y)
+    measurement_group = position_group.get("measurement")
+    time_array = measurement_group[f"time"][()]
 
-            if index == 0:
-                mean_shot_group = measurement_group.get(["shot_mean"])
+    if index == 0:
+        mean_shot_group = measurement_group.get(["shot_mean"])
 
-                magnetization_array = mean_shot_group["magnetization_mean"][()]
-                pulse_array = mean_shot_group["pulse_mean"][()]
-                reflectivity_array = mean_shot_group["reflectivity_mean"][()]
-                integrated_pulse_array = mean_shot_group["integrated_pulse_mean"][()]
+        magnetization_array = mean_shot_group["magnetization_mean"][()]
+        pulse_array = mean_shot_group["pulse_mean"][()]
+        reflectivity_array = mean_shot_group["reflectivity_mean"][()]
+        integrated_pulse_array = mean_shot_group["integrated_pulse_mean"][()]
 
-                measurement_dataframe = pd.DataFrame(
-                    {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
-                     "integrated_pulse": integrated_pulse_array, "time": time_array})
+        measurement_dataframe = pd.DataFrame(
+            {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
+             "integrated_pulse": integrated_pulse_array, "time": time_array})
 
-                return measurement_dataframe
+        return measurement_dataframe
 
-            elif index > 0:
-                shot_group = measurement_group.get(f"shot_{index}")
+    elif index > 0:
+        shot_group = measurement_group.get(f"shot_{index}")
 
-                if shot_group is None:
-                    raise KeyError("Failed to retrieve shot group, index is probably out of bounds")
+        if shot_group is None:
+            raise KeyError("Failed to retrieve shot group, index is probably out of bounds")
 
-                magnetization_array = shot_group[f"magnetization_{index}"][()]
-                pulse_array = shot_group[f"pulse_{index}"][()]
-                reflectivity_array = shot_group[f"reflectivity_{index}"][()]
-                integrated_pulse_array = shot_group[f"integrated_pulse_{index}"][()]
+        magnetization_array = shot_group[f"magnetization_{index}"][()]
+        pulse_array = shot_group[f"pulse_{index}"][()]
+        reflectivity_array = shot_group[f"reflectivity_{index}"][()]
+        integrated_pulse_array = shot_group[f"integrated_pulse_{index}"][()]
 
-                measurement_dataframe = pd.DataFrame(
-                    {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
-                     "integrated_pulse": integrated_pulse_array, "time": time_array})
+        measurement_dataframe = pd.DataFrame(
+            {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
+             "integrated_pulse": integrated_pulse_array, "time": time_array})
 
-                return measurement_dataframe
+        return measurement_dataframe
+
+
+def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
+    if not check_for_moke(hdf5_file):
+        raise KeyError("Moke not found in file. Please check your file")
+
+    data_dict = {}
+
+    moke_group = hdf5_file["/entry/moke"]
+    position_group = get_target_position_group(moke_group, target_x, target_y)
+    results_group = position_group.get("results")
+    if results_group is None:
+        raise KeyError("results group not found in file")
+    for value, value_group in results_group.items():
+        data_dict[value] = value_group[()]
+
+    return data_dict
 
 
 def moke_get_voltage_from_hdf5(hdf5_file, target_x, target_y):
@@ -73,7 +88,6 @@ def moke_get_voltage_from_hdf5(hdf5_file, target_x, target_y):
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
             pulse_voltage = instrument_group["Pulse_voltage(V)"][()]
             return pulse_voltage
-
 
 
 def moke_integrate_pulse_array(pulse_array):
@@ -355,21 +369,47 @@ def moke_results_dict_to_hdf5(hdf5_file, results_dict):
     moke_group = hdf5_file["moke_group"]
     for position, position_group in moke_group.items():
         if position in results_dict.keys():
-            position_results_dict = results_dict[position]
 
             if "results" in position_group:
                 del position_group["results"]
 
             results_group = position_group.create_group("results")
-            save_results_dict_to_hdf5(results_group, results_dict)
+            save_results_dict_to_hdf5(results_group, results_dict[position])
 
     return True
 
 
+def moke_make_results_dataframe_from_hdf5(hdf5_file):
+    if not check_for_moke(hdf5_file):
+        raise KeyError("Moke not found in file. Please check your file")
 
+    data_dict_list = []
 
+    moke_group = hdf5_file['entry/moke']
 
+    for position, position_group in moke_group.items():
+        instrument_group = position_group.get("instrument")
+        # Exclude spots outside the wafer
+        if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
 
+            results_group = position_group.get("results")
+
+            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
+
+            if results_group is None:
+                continue
+
+            for value, value_group in results_group.items():
+                if "units" in value.attrs:
+                    units = value.attrs["units"]
+                else:
+                    units = "arb"
+                data_dict[f"{value}_({units})"] = value_group[()]
+            data_dict_list.append(data_dict)
+
+    result_dataframe = pd.DataFrame(data_dict_list)
+
+    return result_dataframe
 
 
 

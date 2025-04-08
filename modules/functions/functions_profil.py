@@ -209,8 +209,11 @@ def profil_make_results_dataframe_from_hdf5(hdf5_path):
                     continue
 
                 for value, value_group in results_group.items():
-                    if value == "measured_height":
-                        data_dict["measured_height_(nm)"] = value_group[()]
+                    if "units" in value.attrs:
+                        units = value.attrs["units"]
+                    else:
+                        units = "arb"
+                    data_dict[f"{value}_({units})"] = value_group[()]
                 data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)

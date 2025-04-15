@@ -48,7 +48,11 @@ def callbacks_moke(app, children_moke):
     )
     def moke_load_heatmap_plot_options(hdf5_path):
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            options_list = moke_make_results_dataframe_from_hdf5(hdf5_file).columns()
+            options_list = moke_make_results_dataframe_from_hdf5(hdf5_file).columns
+            if "x_pos (mm)" in options_list:
+                options_list.remove("x_pos (mm)")
+            if "y_pos (mm)" in options_list:
+                options_list.remove("y_pos (mm)")
             return options_list
 
 
@@ -69,25 +73,26 @@ def callbacks_moke(app, children_moke):
     )
     def moke_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path):
         hdf5_path = Path(hdf5_path)
-
         if hdf5_path is None:
             raise PreventUpdate
 
-        if ctx.triggered_id in ["moke_heatmap_select", "moke_heatmap_edit", "moke_heatmap_precision"]:
-            z_min = None
-            z_max = None
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
 
-        masking = True
-        if edit_toggle in ["edit", "unfiltered"]:
-            masking = False
+            if ctx.triggered_id in ["moke_heatmap_select", "moke_heatmap_edit", "moke_heatmap_precision"]:
+                z_min = None
+                z_max = None
 
-        moke_df = moke_make_results_dataframe_from_hdf5(hdf5_path)
-        fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
+            masking = True
+            if edit_toggle in ["edit", "unfiltered"]:
+                masking = False
 
-        z_min = np.round(fig.data[0].zmin, precision)
-        z_max = np.round(fig.data[0].zmax, precision)
+            moke_df = moke_make_results_dataframe_from_hdf5(hdf5_file)
+            fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
 
-        return fig, z_min, z_max
+            z_min = np.round(fig.data[0].zmin, precision)
+            z_max = np.round(fig.data[0].zmax, precision)
+
+            return fig, z_min, z_max
 
 
     # # Profile plot

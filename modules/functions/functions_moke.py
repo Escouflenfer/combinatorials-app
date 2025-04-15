@@ -409,11 +409,18 @@ def moke_make_results_dataframe_from_hdf5(hdf5_file):
                 continue
 
             for value, value_group in results_group.items():
-                if "units" in value.attrs:
+                if "units" in value_group.attrs:
                     units = value.attrs["units"]
                 else:
                     units = "arb"
-                data_dict[f"{value}_({units})"] = value_group[()]
+
+                if value == "parameters":
+                    continue
+                elif isinstance(value_group, h5py.Group):
+                    data_dict[f"{value}_({units})"] = value_group['mean'][()]
+                elif isinstance(value_group, h5py.Dataset):
+                    data_dict[f"{value}_({units})"] = value_group[()]
+
             data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)

@@ -45,8 +45,12 @@ def get_wafer_positions(filename):
     tuple
         A tuple containing the x and y wafer positions.
     """
-    x_pos = filename.split("_")[1].split("x")[-1]
-    y_pos = filename.split("_")[2].split("y")[-1]
+    pattern = r"p\d+_x(-?\d+(?:\.\d+)?)_y(-?\d+(?:\.\d+)?)"
+    print(filename)
+    match = re.search(pattern, filename)
+
+    x_pos = float(match.group(1))
+    y_pos = float(match.group(2))
 
     return x_pos, y_pos
 

@@ -74,6 +74,19 @@ class WidgetsMOKE:
                     ],
                 ),
                 html.Div(
+                    className="subgrid-8",
+                    children=[
+                        html.Label("Colorbar precision"),
+                        dcc.Input(
+                            id="moke_heatmap_precision",
+                            className="long-item",
+                            type="number",
+                            placeholder="Colorbar precision",
+                            value=1,
+                        ),
+                    ]
+                ),
+                html.Div(
                     className="subgrid-9",
                     children=[
                         html.Label(""),

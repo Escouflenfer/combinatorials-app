@@ -120,10 +120,10 @@ def moke_treat_measurement_dataframe(measurement_df, options_dict):
     midpoint = len(measurement_df) // 2
     max_field = pulse_voltage * coil_factor / 100
 
-    measurement_df.loc[:midpoint, "field (T)"] = measurement_df.loc[:midpoint, "integrated_pulse"].apply(
+    measurement_df.loc[:midpoint, "field"] = measurement_df.loc[:midpoint, "integrated_pulse"].apply(
         lambda x: -x * max_field / np.abs(measurement_df["integrated_pulse"].min())
     )
-    measurement_df.loc[midpoint:, "field (T)"] = measurement_df.loc[midpoint:, "integrated_pulse"].apply(
+    measurement_df.loc[midpoint:, "field"] = measurement_df.loc[midpoint:, "integrated_pulse"].apply(
         lambda x: -x * max_field / np.abs(measurement_df["integrated_pulse"].max())
     )
 
@@ -139,10 +139,10 @@ def moke_treat_measurement_dataframe(measurement_df, options_dict):
         length = len(measurement_df)
         measurement_df = measurement_df[measurement_df["field"].notna()]
 
-        measurement_df.loc[: length // 2, "field"] = measurement_df.loc[: length // 2].where(
+        measurement_df.loc[: length // 2, "field"] = measurement_df.loc[: length // 2, "field"].where(
             measurement_df["field"] > 1e-2
         )
-        measurement_df.loc[length // 2 :, "field"] = measurement_df.loc[length // 2 :].where(
+        measurement_df.loc[length // 2 :, "field"] = measurement_df.loc[length // 2 :, "field"].where(
             measurement_df["field"] < -1e-2
         )
 
@@ -318,9 +318,9 @@ def moke_fit_intercept(data: pd.DataFrame, treatment_dict: dict):
 
     # Make dictionary with results from the fits, can be used for plotting
     fit_dict = {
-        "linear_section": [slope1, intercept1, x1],
-        "positive_section": [slope2, intercept2, x2],
-        "negative_section": [slope3, intercept3, x3],
+        "linear_section": [float(intercept1), float(slope1)],
+        "positive_section": [float(intercept2), float(slope2)],
+        "negative_section": [float(intercept3), float(slope3)],
     }
 
     return float(positive_intercept_field), float(negative_intercept_field), fit_dict
@@ -330,10 +330,10 @@ def moke_batch_fit(hdf5_file, treatment_dict):
     if not check_for_moke(hdf5_file):
         raise KeyError("Moke not found in file. Please check your file")
 
-    moke_group = hdf5_file["moke_group"]
+    moke_group = hdf5_file["entry/moke"]
     results_dict = {}
     for position, position_group in moke_group.items():
-        mean_shot_group = position_group.get(["measurement/shot_mean"])
+        mean_shot_group = position_group.get("measurement/shot_mean")
 
         magnetization_array = mean_shot_group["magnetization_mean"][()]
         pulse_array = mean_shot_group["pulse_mean"][()]
@@ -362,18 +362,27 @@ def moke_batch_fit(hdf5_file, treatment_dict):
     return results_dict
 
 
-def moke_results_dict_to_hdf5(hdf5_file, results_dict):
+def moke_results_dict_to_hdf5(hdf5_file, results_dict, treatment_dict=None):
+    if treatment_dict is None:
+        treatment_dict = {}
+
     if not check_for_moke(hdf5_file):
         raise KeyError("Moke not found in file. Please check your file")
 
-    moke_group = hdf5_file["moke_group"]
-    for position, position_group in moke_group.items():
+    moke_group = hdf5_file["entry/moke"]
+
+    for position in list(moke_group.keys()):
+        position_group = moke_group[position]
         if position in results_dict.keys():
 
             if "results" in position_group:
                 del position_group["results"]
 
             results_group = position_group.create_group("results")
+            parameters_group = results_group.create_group("parameters")
+            for key, value in treatment_dict.items():
+                parameters_group.create_dataset(key, data=value)
+
             save_results_dict_to_hdf5(results_group, results_dict[position])
 
     return True
@@ -410,6 +419,70 @@ def moke_make_results_dataframe_from_hdf5(hdf5_file):
     result_dataframe = pd.DataFrame(data_dict_list)
 
     return result_dataframe
+
+
+def moke_plot_oscilloscope_from_dataframe(fig, df):
+
+    pulse_shift_factor = df["pulse"].mean()
+    magnetization_shift_factor = df["magnetization"].mean() - 0.5
+    reflectivity_shift_factor = df["reflectivity"].mean() - 1
+
+    fig.update_xaxes(title_text="Time (units)")
+    fig.update_yaxes(title_text="Voltage (V)")
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["time"],
+            y=df["magnetization"].apply(lambda x: x - magnetization_shift_factor),
+            mode="lines",
+            line=dict(color="SlateBlue", width=2),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["time"],
+            y=df["reflectivity"].apply(lambda x: x - reflectivity_shift_factor),
+            mode="lines",
+            line=dict(color="Crimson", width=2),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["time"],
+            y=df["pulse"].apply(lambda x: x - pulse_shift_factor),
+            mode="lines",
+            line=dict(color="Green", width=2),
+        )
+    )
+    return fig
+
+
+def moke_plot_loop_from_dataframe(fig, df):
+    fig.update_xaxes(title_text="Field (T)")
+    fig.update_yaxes(title_text="Kerr rotation (deg)")
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["field"],
+            y=df["magnetization"],
+            mode="markers",
+            line=dict(color="SlateBlue", width=3),
+        )
+    )
+    return fig
+
+# def moke_plot_result_from_dict(fig, results_dict, mode):
+#     if mode not in results_dict.keys():
+#         raise KeyError(f"Selected mode not in provided dictionary. Possible modes are {results_dict.keys()}")
+#
+#     fig.add_trace(
+#
+#     )
+#
+#     return fig
+
 
 
 

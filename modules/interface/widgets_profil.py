@@ -108,7 +108,7 @@ class WidgetsPROFIL:
     def make_tab_from_widgets(self):
         profil_tab = dcc.Tab(
             id="profil",
-            label="profil",
+            label="PROFIL",
             value="profil",
             children=[html.Div(children=[
                 dcc.Loading(

@@ -146,47 +146,6 @@ def get_time_from_moke(datasize):
     return time
 
 
-def get_results_from_moke(filepath, x_pos_wafer, y_pos_wafer):
-    """
-    Reads the results of a MOKE measurement from a results file and returns the coercivity and reflectivity values for the given wafer positions.
-
-    Parameters
-    ----------
-    filepath : str or Path
-        The filepath to the MOKE data file.
-    x_pos_wafer : int
-        The x position of the wafer.
-    y_pos_wafer : int
-        The y position of the wafer.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the coercivity and reflectivity values for the given wafer positions.
-    """
-    results_dict = {}
-    result_path = None
-    # Check if there is a results file
-    for file in os.listdir(filepath.parent):
-        if file.endswith("MOKE.dat"):
-            result_path = filepath.parent / file
-            break
-
-    if result_path is None:
-        return results_dict
-    else:
-        with open(result_path, "r") as file:
-            file.readline()
-            for line in file:
-                x, y, coercivity, reflectivity = line.strip().split()
-                if float(x) == float(x_pos_wafer) and float(y) == float(y_pos_wafer):
-                    results_dict["coercivity"] = round(float(coercivity), 2)
-                    results_dict["reflectivity"] = round(float(reflectivity), 2)
-                    break
-
-    return results_dict
-
-
 def set_instrument_from_dict(moke_dict, node):
     """
     Writes the contents of the moke_dict dictionary to the HDF5 node.

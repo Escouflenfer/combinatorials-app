@@ -341,7 +341,7 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
 
 
 
-def check_hdf5_for_results(hdf5_path, dataset_name, mode='any'):
+def check_hdf5_for_results(hdf5_path, dataset_name, mode='any', return_list=False):
     if mode not in ['any', 'all']:
         raise ValueError("Mode must be either 'any' or 'all'")
 
@@ -366,11 +366,11 @@ def pairwise(list):
 def save_results_dict_to_hdf5(hdf5_results_group, results_dict):
     for key, value in results_dict.items():
         if isinstance(value, dict):
+            print(value)
             # Create a group and recurse
             subgroup = hdf5_results_group.create_group(key)
-            save_results_dict_to_hdf5(value, subgroup)
+            save_results_dict_to_hdf5(subgroup, value)
         else:
-            # Convert value to something storable (e.g., string, number, array)
             if isinstance(value, (int, float, str, np.ndarray, list, tuple)):
                 hdf5_results_group.create_dataset(key, data=value)
             else:

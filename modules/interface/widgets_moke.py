@@ -43,13 +43,13 @@ class WidgetsMOKE:
                             id="moke_heatmap_select",
                             className="long-item",
                             options=[
-                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation"},
-                                {"label": "Reflectivity", "value": "reflectivity"},
-                                {"label": "Coercivity M = 0", "value": "coercivity_m0"},
-                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh"},
-                                {"label": "Intercept Field", "value": "intercept_field"},
+                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation_(arb)"},
+                                {"label": "Reflectivity", "value": "reflectivity_(arb)"},
+                                {"label": "Coercivity M = 0", "value": "coercivity_m0_(T)"},
+                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh_(T)"},
+                                {"label": "Intercept Field", "value": "intercept_field_(T)"},
                             ],
-                            value="max_kerr_rotation",
+                            value="max_kerr_rotation_(arb)",
                         ),
                     ],
                 ),
@@ -124,7 +124,7 @@ class WidgetsMOKE:
                         dcc.RadioItems(
                             id="moke_plot_select",
                             options=[
-                                {"label": "Oscilloscope Data", "value": "oscilloscope_data"},
+                                {"label": "Oscilloscope Data", "value": "oscilloscope"},
                                 {"label": "M(H) Loop", "value": "loop"},
                                 {"label": "M(H) Loop + Derivative", "value": "derivative"},
                                 {"label": "M(H) Loop + Intercepts", "value": "intercepts"},
@@ -211,7 +211,8 @@ class WidgetsMOKE:
                 dcc.Store(id="moke_position_store", data=None),
                 dcc.Store(id="moke_database_path_store", data=None),
                 dcc.Store(id="moke_database_metadata_store", data=None),
-                dcc.Store(id="moke_data_treatment_store", data=None)
+                dcc.Store(id="moke_data_treatment_store", data=None),
+                dcc.Store(id="moke_initial_load_trigger", data="load")
             ]
         )
 

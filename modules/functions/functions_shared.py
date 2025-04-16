@@ -366,7 +366,6 @@ def pairwise(list):
 def save_results_dict_to_hdf5(hdf5_results_group, results_dict):
     for key, value in results_dict.items():
         if isinstance(value, dict):
-            print(value)
             # Create a group and recurse
             subgroup = hdf5_results_group.create_group(key)
             save_results_dict_to_hdf5(subgroup, value)
@@ -383,3 +382,7 @@ def get_target_position_group(measurement_group, target_x, target_y):
         instrument_group = position_group.get("instrument")
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
             return position_group
+
+
+def abs_mean(value_list):
+    return np.mean(np.abs(value_list))

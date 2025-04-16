@@ -41,21 +41,6 @@ def callbacks_moke(app, children_moke):
             return'No results found'
 
 
-    # Callback to load heatmap selection options
-    @app.callback(
-        Output("moke_heatmap_select", "options"),
-        Input("hdf5_path_store", "data"),
-    )
-    def moke_load_heatmap_plot_options(hdf5_path):
-        with h5py.File(hdf5_path, 'r') as hdf5_file:
-            options_list = moke_make_results_dataframe_from_hdf5(hdf5_file).columns
-            if "x_pos (mm)" in options_list:
-                options_list.remove("x_pos (mm)")
-            if "y_pos (mm)" in options_list:
-                options_list.remove("y_pos (mm)")
-            return options_list
-
-
     # Callback for heatmap selection
     @app.callback(
         [
@@ -95,31 +80,39 @@ def callbacks_moke(app, children_moke):
             return fig, z_min, z_max
 
 
-    # # Profile plot
-    # @app.callback(
-    #     Output("moke_plot", "figure"),
-    #     Input("hdf5_path_store", "data"),
-    #     Input("moke_position_store", "data"),
-    #     Input("moke_plot_select", "value"),
-    #     Input("moke_data_treatment_store", "data")
-    # )
-    # def moke_update_plot(hdf5_path, position, plot_options, treatment_dict):
-    #     if hdf5_path is None:
-    #         raise PreventUpdate
-    #     if position is None:
-    #         raise PreventUpdate
-    #
-    #     target_x = position[0]
-    #     target_y = position[1]
-    #
-    #     hdf5_path = Path(hdf5_path)
-    #
-    #     with hdf5_path.open('r') as hdf5_file:
-    #         measurement_df = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
-    #         results_dict = moke_get_results_from_hdf5(hdf5_file, target_x, target_y)
-    #
-    #
-    #         return fig
+    # Profile plot
+    @app.callback(
+        Output("moke_plot", "figure"),
+        Input("hdf5_path_store", "data"),
+        Input("moke_position_store", "data"),
+        Input("moke_plot_select", "value"),
+        Input("moke_data_treatment_store", "data")
+    )
+    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict):
+        if hdf5_path is None or position is None:
+            raise PreventUpdate
+
+        target_x = position[0]
+        target_y = position[1]
+
+        hdf5_path = Path(hdf5_path)
+
+        fig = go.Figure()
+
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            measurement_df = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
+            results_dict = moke_get_results_from_hdf5(hdf5_file, target_x, target_y)
+
+            measurement_df = moke_treat_measurement_dataframe(measurement_df, treatment_dict)
+
+            if plot_options == "oscilloscope":
+                fig = moke_plot_oscilloscope_from_dataframe(fig, measurement_df)
+            else:
+                fig = moke_plot_loop_from_dataframe(fig, measurement_df)
+
+            fig.update_layout(plot_layout(title=''))
+
+            return fig
 
 
     @app.callback(
@@ -141,53 +134,6 @@ def callbacks_moke(app, children_moke):
                 return "Great Success!"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # @app.callback([Output('moke_database_path_store', 'data'),
-    #                Output('moke_path_box', 'children'),
-    #                Output('moke_database_metadata_store', 'data')],
-    #               Input('moke_make_database_button', 'n_clicks'),
-    #               Input('moke_path_store', 'data'),
-    #               State('moke_data_treatment_store', 'data'),
-    #               )
-    # def load_database_path(n_clicks, folderpath, treatment_dict):
-    #         if folderpath is None:
-    #             raise PreventUpdate
-    #
-    #         folderpath = Path(folderpath)
-    #
-    #         database_path = get_database_path(folderpath)
-    #
-    #         if database_path is None and n_clicks == 0:
-    #             return None, 'No database found!', None
-    #         elif database_path is None and n_clicks > 0:
-    #             database_path = make_database(folderpath, treatment_dict)
-    #             metadata = read_metadata(database_path)
-    #             return str(database_path), str(database_path.name), metadata
-    #
-    #         elif database_path is not None:
-    #             if compare_version(database_path) and n_clicks == 0:
-    #                 metadata = read_metadata(database_path)
-    #                 return str(database_path), str(database_path.name), metadata
-    #             elif not compare_version(database_path) and n_clicks == 0:
-    #                 return None, 'Database version incorrect, please recalculate database', None
-    #             elif n_clicks > 0:
-    #                 database_path = make_database(folderpath, treatment_dict)
-    #                 metadata = read_metadata(database_path)
-    #                 return str(database_path), str(database_path.name), metadata
-    #
-    #
     @app.callback([Output('moke_data_treatment_store', 'data'),
                    Output('moke_coil_factor', 'value'),
                    Output('moke_smoothing_polyorder', 'value'),
@@ -204,7 +150,7 @@ def callbacks_moke(app, children_moke):
                              smoothing_range, database_path, metadata):
         default_coil_factor = 0.92667
         default_smoothing_polyorder = 1
-        default_smoothing_range = 30
+        default_smoothing_range = 10
         if database_path is not None:
             if metadata is None:
                 metadata = read_metadata(database_path)

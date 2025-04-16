@@ -73,7 +73,12 @@ def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
     if results_group is None:
         raise KeyError("results group not found in file")
     for value, value_group in results_group.items():
-        data_dict[value] = value_group[()]
+        if value == "parameters":
+            continue
+        elif isinstance(value_group, h5py.Group):
+            data_dict[f"{value}"] = value_group['mean'][()]
+        elif isinstance(value_group, h5py.Dataset):
+            data_dict[f"{value}"] = value_group[()]
 
     return data_dict
 
@@ -146,15 +151,24 @@ def moke_treat_measurement_dataframe(measurement_df, options_dict):
             measurement_df["field"] < -1e-2
         )
 
-    # Rearrange loops from (0, +H, 0, -H, 0) to (-H, 0, +H, 0, -H). Enables connection over 0
     if connect_loops:
-        max_index = measurement_df["field"].idxmax()
-        min_index = measurement_df["field"].idxmin()
+        # Step 1: Remove NaNs (if filtering left them)
+        measurement_df = measurement_df[measurement_df["field"].notna()]
 
-        descending = measurement_df.loc[max_index:min_index, :]
-        ascending = pd.concat((measurement_df.loc[min_index:, :], measurement_df.loc[:max_index, :]))
+        # Step 2: Split into two halves (assuming they're in time order)
+        midpoint = len(measurement_df) // 2
+        first_pulse = measurement_df.iloc[:midpoint]  # 0 → -X → 0
+        second_pulse = measurement_df.iloc[midpoint:]  # 0 → +X → 0
 
-        measurement_df = pd.concat((descending, ascending))
+        # Step 3: Rearrange: +X → 0 → -X → 0 → +X (start from end of second pulse)
+        reordered = pd.concat([second_pulse, first_pulse], ignore_index=True)
+
+        # Step 4 (optional): Loop continuity — duplicate first few points at end
+        wrap_points = 1  # number of points to "wrap"
+        if len(reordered) >= wrap_points:
+            reordered = pd.concat([reordered, reordered.iloc[:wrap_points]], ignore_index=True)
+
+        measurement_df = reordered
 
     # Smoothing
     if smoothing:
@@ -162,7 +176,29 @@ def moke_treat_measurement_dataframe(measurement_df, options_dict):
             measurement_df["magnetization"], smoothing_range, smoothing_polyorder
         )
 
+
     return measurement_df
+
+
+def extract_loop_section(data: pd.DataFrame):
+    """
+    From a dataframe, select only the parts where the field is defined, resulting in a section containing only the loop
+
+    Parameters:
+        data(pd.Dataframe) : source dataframe with a 'field' column
+    Returns:
+        pd.Dataframe
+    """
+    # Keep only the points where field is defined, removing points outside of pulse
+    try:
+        non_nan = data[data["field"].notna()].index.values
+        loop_section = data.loc[non_nan, :]
+        loop_section.reset_index(drop=True, inplace=True)
+        return loop_section
+    except NameError:
+        raise NameError("field column not defined")
+
+
 
 def moke_calc_max_kerr_rotation(data: pd.DataFrame):
     """
@@ -354,9 +390,9 @@ def moke_batch_fit(hdf5_file, treatment_dict):
         results_dict[f"{position}"] = {
             "max_kerr_rotation":max_kerr_rotation,
             "reflectivity":reflectivity,
-            "coercivity_m0":{"negative":coercivity_m0[0], "positive":coercivity_m0[1], "mean":np.mean(coercivity_m0)},
-            "coercivity_dmdh":{"negative":coercivity_dmdh[0], "positive":coercivity_dmdh[1], "mean":np.mean(coercivity_dmdh)},
-            "intercepts":{"negative":intercepts[0], "positive":intercepts[1], "mean":np.mean(intercepts[:2]), "coefficients":intercepts[2]},
+            "coercivity_m0":{"negative":coercivity_m0[0], "positive":coercivity_m0[1], "mean":abs_mean(coercivity_m0)},
+            "coercivity_dmdh":{"negative":coercivity_dmdh[0], "positive":coercivity_dmdh[1], "mean":abs_mean(coercivity_dmdh)},
+            "intercepts":{"negative":intercepts[0], "positive":intercepts[1], "mean":abs_mean(intercepts[:2]), "coefficients":intercepts[2]},
         }
             
     return results_dict
@@ -489,30 +525,3 @@ def moke_plot_loop_from_dataframe(fig, df):
 #     )
 #
 #     return fig
-
-
-
-
-
-
-
-
-
-
-# def extract_loop_section(data: pd.DataFrame):
-#     """
-#     From a dataframe, select only the parts where the field is defined, resulting in a section containing only the loop
-#
-#     Parameters:
-#         data(pd.Dataframe) : source dataframe with a 'field' column
-#     Returns:
-#         pd.Dataframe
-#     """
-#     # Keep only the points where field is defined, removing points outside of pulse
-#     try:
-#         non_nan = data[data["field"].notna()].index.values
-#         loop_section = data.loc[non_nan, :]
-#         loop_section.reset_index(drop=True, inplace=True)
-#         return loop_section
-#     except NameError:
-#         raise NameError("field column not defined")

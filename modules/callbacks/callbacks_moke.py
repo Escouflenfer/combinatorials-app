@@ -9,7 +9,7 @@ from ..functions.functions_shared import *
 
 def callbacks_moke(app, children_moke):
 
-    # Callback to update mokee plot based on heatmap click position
+    # Callback to update moke plot based on heatmap click position
     @app.callback(Output('moke_position_store', 'data'),
                   Input('moke_heatmap', 'clickData'),
                   prevent_initial_call=True
@@ -86,9 +86,10 @@ def callbacks_moke(app, children_moke):
         Input("hdf5_path_store", "data"),
         Input("moke_position_store", "data"),
         Input("moke_plot_select", "value"),
-        Input("moke_data_treatment_store", "data")
+        Input("moke_data_treatment_store", "data"),
+        Input("moke_heatmap_select", "value"),
     )
-    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict):
+    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict, heatmap_select):
         if hdf5_path is None or position is None:
             raise PreventUpdate
 
@@ -103,16 +104,27 @@ def callbacks_moke(app, children_moke):
             measurement_df = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
             results_dict = moke_get_results_from_hdf5(hdf5_file, target_x, target_y)
 
-            measurement_df = moke_treat_measurement_dataframe(measurement_df, treatment_dict)
+        measurement_df = moke_treat_measurement_dataframe(measurement_df, treatment_dict)
 
-            if plot_options == "oscilloscope":
-                fig = moke_plot_oscilloscope_from_dataframe(fig, measurement_df)
-            else:
-                fig = moke_plot_loop_from_dataframe(fig, measurement_df)
+        if plot_options == "oscilloscope":
+            fig = moke_plot_oscilloscope_from_dataframe(fig, measurement_df)
+        elif plot_options == "loop":
+            fig = moke_plot_loop_from_dataframe(fig, measurement_df)
+        elif plot_options == "stored_result":
+            fig = moke_plot_loop_from_dataframe(fig, measurement_df)
+            if heatmap_select == "coercivity_m0_(T)":
+                moke_plot_vlines(fig, values=[results_dict["coercivity_m0"]["negative"],
+                                              results_dict["coercivity_m0"]["positive"]])
+            if heatmap_select == "coercivity_dmdh_(T)":
+                moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
+                                              results_dict["coercivity_dmdh"]["positive"]])
+            if heatmap_select == "intercept_field_(T)":
+                moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
+                                              results_dict["coercivity_dmdh"]["positive"]])
 
-            fig.update_layout(plot_layout(title=''))
+        fig.update_layout(plot_layout(title=''))
 
-            return fig
+        return fig
 
 
     @app.callback(

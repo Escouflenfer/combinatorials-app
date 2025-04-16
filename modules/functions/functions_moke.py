@@ -65,21 +65,12 @@ def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
     if not check_for_moke(hdf5_file):
         raise KeyError("Moke not found in file. Please check your file")
 
-    data_dict = {}
-
     moke_group = hdf5_file["/entry/moke"]
     position_group = get_target_position_group(moke_group, target_x, target_y)
     results_group = position_group.get("results")
     if results_group is None:
         raise KeyError("results group not found in file")
-    for value, value_group in results_group.items():
-        if value == "parameters":
-            continue
-        elif isinstance(value_group, h5py.Group):
-            data_dict[f"{value}"] = value_group['mean'][()]
-        elif isinstance(value_group, h5py.Dataset):
-            data_dict[f"{value}"] = value_group[()]
-
+    data_dict = hdf5_group_to_dict(results_group)
     return data_dict
 
 
@@ -379,7 +370,7 @@ def moke_batch_fit(hdf5_file, treatment_dict):
         measurement_dataframe = pd.DataFrame({"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
                                               "integrated_pulse": integrated_pulse_array})
 
-        moke_treat_measurement_dataframe(measurement_dataframe, treatment_dict)
+        measurement_dataframe = moke_treat_measurement_dataframe(measurement_dataframe, treatment_dict)
 
         max_kerr_rotation = moke_calc_max_kerr_rotation(measurement_dataframe)
         reflectivity = moke_calc_reflectivity(measurement_dataframe)
@@ -392,7 +383,7 @@ def moke_batch_fit(hdf5_file, treatment_dict):
             "reflectivity":reflectivity,
             "coercivity_m0":{"negative":coercivity_m0[0], "positive":coercivity_m0[1], "mean":abs_mean(coercivity_m0)},
             "coercivity_dmdh":{"negative":coercivity_dmdh[0], "positive":coercivity_dmdh[1], "mean":abs_mean(coercivity_dmdh)},
-            "intercepts":{"negative":intercepts[0], "positive":intercepts[1], "mean":abs_mean(intercepts[:2]), "coefficients":intercepts[2]},
+            "intercept_field":{"negative":intercepts[0], "positive":intercepts[1], "mean":abs_mean(intercepts[:2]), "coefficients":intercepts[2]},
         }
             
     return results_dict
@@ -516,12 +507,16 @@ def moke_plot_loop_from_dataframe(fig, df):
     )
     return fig
 
-# def moke_plot_result_from_dict(fig, results_dict, mode):
-#     if mode not in results_dict.keys():
-#         raise KeyError(f"Selected mode not in provided dictionary. Possible modes are {results_dict.keys()}")
-#
-#     fig.add_trace(
-#
-#     )
-#
-#     return fig
+
+def moke_plot_vlines(fig, values):
+    for value in values:
+        fig.add_vline(
+            value,
+            line_width=2,
+            line_color="Firebrick",
+            annotation_text=f"{value:.2f} T",
+            annotation_font_size=14,
+            annotation_font_color="Firebrick",
+        )
+
+    return fig

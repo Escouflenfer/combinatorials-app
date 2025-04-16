@@ -126,8 +126,8 @@ class WidgetsMOKE:
                             options=[
                                 {"label": "Oscilloscope Data", "value": "oscilloscope"},
                                 {"label": "M(H) Loop", "value": "loop"},
-                                {"label": "M(H) Loop + Derivative", "value": "derivative"},
-                                {"label": "M(H) Loop + Intercepts", "value": "intercepts"},
+                                {"label": "M(H) Loop + Stored Result", "value": "stored_result"},
+                                {"label": "M(H) Loop + Live Result", "value": "live_result"},
                             ],
                             value="loop",
                             style={"display": "inline-block"},

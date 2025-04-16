@@ -284,7 +284,7 @@ def derivate_dataframe(df, column):
 
 def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
     """
-       Evaluate a n-degree polynomial using Horner's method. Works with arrays, returning P(x) for every x within
+       Evaluate an n-degree polynomial using Horner's method. Works with arrays, returning P(x) for every x within
        range [x_start, x_end].
 
        Parameters:
@@ -386,3 +386,25 @@ def get_target_position_group(measurement_group, target_x, target_y):
 
 def abs_mean(value_list):
     return np.mean(np.abs(value_list))
+
+
+def hdf5_group_to_dict(hdf5_group):
+    """
+    Recursively converts a h5py.Group into a nested dictionary.
+    Datasets are read into memory.
+    """
+    nested_dict = {}
+
+    for key, item in hdf5_group.items():
+        if isinstance(item, h5py.Dataset):
+            nested_dict[key] = item[()]
+        elif isinstance(item, h5py.Group):
+            nested_dict[key] = hdf5_group_to_dict(item)
+
+    return nested_dict
+
+
+
+
+
+

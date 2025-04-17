@@ -343,21 +343,29 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
 
 
 
-def check_hdf5_for_results(hdf5_path, dataset_name, mode='any', return_list=False):
+def check_group_for_results(hdf5_group, mode='any', return_list=False):
     if mode not in ['any', 'all']:
         raise ValueError("Mode must be either 'any' or 'all'")
 
-    with h5py.File(hdf5_path, "r") as f:
-        target_group = f[f'/{dataset_name}']
-        for position, position_group in target_group.items():
-            if mode == 'any' and 'results' in position_group:
-                return True
-            if mode == 'all' and 'results' not in position_group:
-                return False
-        if mode == 'any':
-            return False
-        if mode == 'all':
+    for position, position_group in hdf5_group.items():
+        if mode == 'any' and 'results' in position_group:
             return True
+        if mode == 'all' and 'results' not in position_group:
+            return False
+    if mode == 'any':
+        return False
+    if mode == 'all':
+        return True
+
+
+def get_hdf5_datasets(hdf5_file, dataset_type):
+    dataset_list = []
+    for dataset, dataset_group in hdf5_file.items():
+        if 'HT_type' in dataset_group.attrs:
+            if dataset_type == dataset_group.attrs['HT_type']:
+                dataset_list.append(dataset)
+
+    return dataset_list
 
 
 def pairwise(list):

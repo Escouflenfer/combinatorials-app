@@ -17,7 +17,13 @@ class WidgetsMOKE:
             children=[
                 html.Div(
                     className="text-top",
-                    children=[html.Span(children="test", id="moke_path_box")],
+                    children=[dcc.Dropdown(
+                        id="moke_select_dataset",
+                        className="long-item",
+                        options=[],
+                        value=None,
+                    )
+                    ],
                 ),
                 html.Div(
                     className="text-mid",
@@ -43,13 +49,13 @@ class WidgetsMOKE:
                             id="moke_heatmap_select",
                             className="long-item",
                             options=[
-                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation_(arb)"},
-                                {"label": "Reflectivity", "value": "reflectivity_(arb)"},
-                                {"label": "Coercivity M = 0", "value": "coercivity_m0_(T)"},
-                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh_(T)"},
-                                {"label": "Intercept Field", "value": "intercept_field_(T)"},
+                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation"},
+                                {"label": "Reflectivity", "value": "reflectivity"},
+                                {"label": "Coercivity M = 0", "value": "coercivity_m0"},
+                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh"},
+                                {"label": "Intercept Field", "value": "intercept_field"},
                             ],
-                            value="max_kerr_rotation_(arb)",
+                            value="max_kerr_rotation",
                         ),
                     ],
                 ),

@@ -20,8 +20,7 @@ def check_for_moke(hdf5_file):
         return False
 
 
-def moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y, index=1):
-    moke_group = hdf5_file["/moke"]
+def moke_get_measurement_from_hdf5(moke_group, target_x, target_y, index=1):
     position_group = get_target_position_group(moke_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
     time_array = measurement_group[f"time"][()]
@@ -58,8 +57,7 @@ def moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y, index=1):
         return measurement_dataframe
 
 
-def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
-    moke_group = hdf5_file["/moke"]
+def moke_get_results_from_hdf5(moke_group, target_x, target_y):
     position_group = get_target_position_group(moke_group, target_x, target_y)
     results_group = position_group.get("results")
     if results_group is None:
@@ -68,11 +66,12 @@ def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
     return data_dict
 
 
-def moke_get_instrument_dict_from_hdf5(hdf5_file, target_x, target_y):
+def moke_get_instrument_dict_from_hdf5(moke_group, target_x, target_y):
     instrument_dict = {}
 
-    moke_group = hdf5_file["/moke"]
     for position, position_group in moke_group.items():
+        if "scan_parameters" in position:
+            continue
         instrument_group = position_group.get("instrument")
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
             for value, value_group in instrument_group.items():
@@ -347,10 +346,12 @@ def moke_fit_intercept(data: pd.DataFrame, treatment_dict: dict):
     return float(positive_intercept_field), float(negative_intercept_field), fit_dict
 
 
-def moke_batch_fit(hdf5_file, treatment_dict):
-    moke_group = hdf5_file["/moke"]
+def moke_batch_fit(moke_group, treatment_dict):
     results_dict = {}
     for position, position_group in moke_group.items():
+        if "scan_parameters" in position:
+            continue
+
         mean_shot_group = position_group.get("measurement/shot_mean")
 
         magnetization_array = mean_shot_group["magnetization_mean"][()]
@@ -380,13 +381,13 @@ def moke_batch_fit(hdf5_file, treatment_dict):
     return results_dict
 
 
-def moke_results_dict_to_hdf5(hdf5_file, results_dict, treatment_dict=None):
+def moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict=None):
     if treatment_dict is None:
         treatment_dict = {}
 
-    moke_group = hdf5_file["/moke"]
-
     for position in list(moke_group.keys()):
+        if "scan_parameters" in position:
+            continue
         position_group = moke_group[position]
         if position in results_dict.keys():
 
@@ -403,12 +404,12 @@ def moke_results_dict_to_hdf5(hdf5_file, results_dict, treatment_dict=None):
     return True
 
 
-def moke_make_results_dataframe_from_hdf5(hdf5_file):
+def moke_make_results_dataframe_from_hdf5(moke_group):
     data_dict_list = []
 
-    moke_group = hdf5_file['/moke']
-
     for position, position_group in moke_group.items():
+        if "scan_parameters" in position:
+            continue
         instrument_group = position_group.get("instrument")
         # Exclude spots outside the wafer
         if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
@@ -429,13 +430,14 @@ def moke_make_results_dataframe_from_hdf5(hdf5_file):
                 if value == "parameters":
                     continue
                 elif isinstance(value_group, h5py.Group):
-                    data_dict[f"{value}_({units})"] = value_group['mean'][()]
+                    data_dict[f"{value}"] = value_group['mean'][()]
                 elif isinstance(value_group, h5py.Dataset):
-                    data_dict[f"{value}_({units})"] = value_group[()]
+                    data_dict[f"{value}"] = value_group[()]
 
             data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)
+    print(result_dataframe)
 
     return result_dataframe
 

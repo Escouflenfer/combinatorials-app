@@ -10,7 +10,7 @@ class WidgetsHDF5:
             className='textbox top-left',
             children=[
                 html.Div(
-                    className='text-top long-item',
+                    className='text-top',
                     children=[
                     dcc.Upload(
                         className='long-item',
@@ -33,6 +33,19 @@ class WidgetsHDF5:
                         multiple=False
                     ),
                 ]),
+                html.Div(
+                    className='text-mid long-item',
+                    children=[
+                        html.Label("Dataset Name"),
+                        dcc.Input(
+                            id="hdf5_dataset_name",
+                            className="long_item",
+                            type="text",
+                            placeholder="Dataset Name",
+                            value=None
+                        )
+                    ]
+                ),
                 html.Div(
                     className='text-7',
                     children=[html.Button(id='hdf5_add_button', children='Add measurement', n_clicks=0)]

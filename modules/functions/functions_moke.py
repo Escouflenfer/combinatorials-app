@@ -74,17 +74,20 @@ def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
     return data_dict
 
 
-def moke_get_voltage_from_hdf5(hdf5_file, target_x, target_y):
+def moke_get_instrument_dict_from_hdf5(hdf5_file, target_x, target_y):
     if not check_for_moke(hdf5_file):
         raise KeyError("Moke not found in file. Please check your file")
+
+    instrument_dict = {}
 
     moke_group = hdf5_file["/entry/moke"]
     for position, position_group in moke_group.items():
         instrument_group = position_group.get("instrument")
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-            pulse_voltage = instrument_group["Pulse_voltage(V)"][()]
-            return pulse_voltage
+            for value, value_group in instrument_group.items():
+                instrument_dict[value] = value_group[()]
 
+    return instrument_dict
 
 def moke_integrate_pulse_array(pulse_array):
     field_array = np.zeros_like(np.array(pulse_array))
@@ -456,7 +459,6 @@ def moke_make_results_dataframe_from_hdf5(hdf5_file):
 
 
 def moke_plot_oscilloscope_from_dataframe(fig, df):
-
     pulse_shift_factor = df["pulse"].mean()
     magnetization_shift_factor = df["magnetization"].mean() - 0.5
     reflectivity_shift_factor = df["reflectivity"].mean() - 1
@@ -520,3 +522,31 @@ def moke_plot_vlines(fig, values):
         )
 
     return fig
+
+
+# def moke_plot_loop_map(hdf5_file, normalize = False):
+#     results_dataframe = moke_make_results_dataframe_from_hdf5(hdf5_file)
+#     instrument
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 from pathlib import Path
 import h5py
 from datetime import datetime
+import re
+import stringcase
 
 
 def get_version(tag:str):
@@ -402,9 +404,6 @@ def hdf5_group_to_dict(hdf5_group):
             nested_dict[key] = hdf5_group_to_dict(item)
 
     return nested_dict
-
-
-
 
 
 

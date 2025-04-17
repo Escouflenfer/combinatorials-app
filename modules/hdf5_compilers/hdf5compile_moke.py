@@ -4,6 +4,7 @@ Functions for MOKE parsing
 from ..functions.functions_moke import moke_integrate_pulse_array
 from ..hdf5_compilers.hdf5compile_base import *
 import io
+import stringcase
 
 def get_scan_number(filename):
     """
@@ -74,7 +75,7 @@ def read_header_from_moke(file_string):
 
     lines = io.StringIO(file_string).readlines()
 
-    header_dict["Sample name"] = lines[0].strip().replace("#", "")
+    header_dict["Dataset name"] = lines[0].strip().replace("#", "")
     header_dict["Date"] = lines[1].strip().replace("#", "")
     for line in lines[2:]:
         key, value = line.strip().split("=")
@@ -164,66 +165,90 @@ def set_instrument_from_dict(moke_dict, node):
         if isinstance(value, dict):
             set_instrument_from_dict(value, node.create_group(key))
         else:
-            node[key] = value
+            pattern = r"^(.*?)\s*(?:\((.*?)\))?$"
+            match = re.search(pattern, key)
+            if match:
+                name, unit = match.groups()
+                name = stringcase.snakecase(name)
+                node[name] = value
+                node[name].attrs['unit'] = str(unit)
+            else:
+                node[key] = value
 
     return None
 
-
-def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
+def write_moke_to_hdf5(HDF5_path, measurement_dict, dataset_name = None, mode="a"):
     """
     Writes the contents of the MOKE data file (.txt) to the given HDF5 file.
 
     Args:
         HDF5_path (str or Path): The path to the HDF5 file to write the data to.
-        filepath (str or Path): The path to the MOKE data file (.txt).
+        measurement_dict (dict): Dictionary formatted as dict[filename] = file string.
+        dataset_name (str): Name for the HDF5 group. If None, the name put into the moke will be used
         mode (str, optional): The mode to open the HDF5 file in. Defaults to "a".
 
     Returns:
         None
     """
 
+    found_info = False
+    header_dict =  {}
     for file_name, file_string in measurement_dict.items():
+        # Check the dictionary for log_file.log and remove it if it is found
         if 'log_file.log' in file_name:
             _ = measurement_dict.pop(file_name, None)
-            break
-
-    for file_name, file_string in measurement_dict.items():
+        # Check the dictionary for info.txt file and read it into a dict
         if 'info.txt' in file_name:
             info_file_string = measurement_dict.pop(file_name, None)
             header_dict = read_header_from_moke(info_file_string)
+            found_info = True
+            if dataset_name is None:
+                dataset_name = header_dict["Dataset name"]
             break
 
+    # Make sure that info.txt has been found
+    if not found_info:
+        raise Exception("Could not find info.txt file. Check measurement.")
+
+    # Sort the dictionary by measurement "p_number" (index), and group measurements by indexes.
+    # Example filename: p1_x-15.0_y45.0_magnetization.txt
     grouped_dict = defaultdict(dict)
     for file_name, file_string in measurement_dict.items():
         if file_name.endswith('.txt'):
             pattern = r'(?:[^/]+/)*p(\d+)'
             match = re.search(pattern, file_name)
-            p_number = match.group(1)  # extract p_number from measurement name
+            p_number = match.group(1)  # Extract p_number from measurement name
             grouped_dict[p_number][file_name] = file_string  # Dictionary with measurements grouped by p_numbers
 
-    for scan_number in grouped_dict.keys():
-        x_pos, y_pos = get_wafer_positions(next(iter(grouped_dict[scan_number])))
-        mag_dict, pul_dict, sum_dict = read_data_from_moke(grouped_dict[scan_number])
-        time_dict = get_time_from_moke(len(mag_dict))
-        nb_aquisitions = len(mag_dict[0])
+    with h5py.File(HDF5_path, mode) as hdf5_file:
+        # Create the root group for the measurement
+        moke_group = hdf5_file.create_group(f"{dataset_name}")
+        moke_group.attrs["HT_type"] = "moke"
 
-        with h5py.File(HDF5_path, mode) as f:
-            scan_group = f"/entry/moke/scan_{scan_number}/"
-            scan = f.create_group(scan_group)
+        # Create a scan_parameters group in moke with the contents of info.txt
+        scan_parameters_group = moke_group.create_group("scan_parameters")
+        set_instrument_from_dict(header_dict, scan_parameters_group)
+
+        # For every position, write measurement to HDF5
+        for scan_number in grouped_dict.keys():
+            x_pos, y_pos = get_wafer_positions(next(iter(grouped_dict[scan_number])))
+            mag_dict, pul_dict, sum_dict = read_data_from_moke(grouped_dict[scan_number])
+            time_dict = get_time_from_moke(len(mag_dict))
+            nb_acquisitions = len(mag_dict[0])
+
+            scan = moke_group.create_group(f"({x_pos}, {y_pos})")
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")
-            instrument.attrs["NX_class"] = "HTinstrument"
+            instrument.attrs["HT_class"] = "HTinstrument"
             instrument["x_pos"] = convertFloat(x_pos)
             instrument["y_pos"] = convertFloat(y_pos)
             instrument["x_pos"].attrs["units"] = "mm"
             instrument["y_pos"].attrs["units"] = "mm"
 
-            set_instrument_from_dict(header_dict, instrument)
-
             # Measurement group for data
             data = scan.create_group("measurement")
-            data.attrs["NX_class"] = "HTmeasurement"
+            data.attrs["HT_class"] = "HTmeasurement"
             time = [convertFloat(t) for t in time_dict]
             time_node = data.create_dataset("time", data=time, dtype="float")
             time_node.attrs["units"] = "μs"
@@ -235,7 +260,7 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, mode="a"):
             sum_arrays = []
 
             # Create shot groups in HDF5
-            for i in range(nb_aquisitions):
+            for i in range(nb_acquisitions):
                 shot_group = data.create_group(f"shot_{i+1}")
                 mag = [convertFloat(t[i]) for t in mag_dict]
                 mag_node = shot_group.create_dataset(

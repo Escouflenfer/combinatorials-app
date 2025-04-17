@@ -95,6 +95,7 @@ def callbacks_hdf5(app):
     @app.callback(
         [Output('hdf5_measurement_type', 'value'),
          Output('hdf5_measurement_store', 'data'),
+         Output("hdf5_dataset_name", "value"),
          Output('hdf5_text_box', 'children', allow_duplicate=True)],
         Input('hdf5_upload', 'contents'),
         State('hdf5_upload', 'filename'),
@@ -145,7 +146,9 @@ def callbacks_hdf5(app):
                             continue
 
         output_message = f"Uploaded {len(extracted_files)} files from {filename}."
-        return measurement_type, extracted_files, output_message
+        dataset_name = filename.split('.')[0]
+
+        return measurement_type, extracted_files, dataset_name, output_message
 
 
 
@@ -155,15 +158,16 @@ def callbacks_hdf5(app):
         State('hdf5_measurement_store', 'data'),
         State('hdf5_measurement_type', 'value'),
         State('hdf5_path_store', 'data'),
+        State("hdf5_dataset_name", "value"),
         prevent_initial_call=True
     )
 
-    def add_measurement_to_file(n_clicks, measurement_store, measurement_type, hdf5_path):
+    def add_measurement_to_file(n_clicks, measurement_store, measurement_type, hdf5_path, dataset_name):
         if n_clicks > 0:
             if measurement_type == 'EDX':
                 write_edx_to_hdf5(hdf5_path, measurement_store)
             if measurement_type =='MOKE':
-                write_moke_to_hdf5(hdf5_path, measurement_store)
+                write_moke_to_hdf5(hdf5_path, measurement_store, dataset_name=dataset_name)
             if measurement_type == 'PROFIL':
                 write_dektak_to_hdf5(hdf5_path, measurement_store)
             if measurement_type =='XRD':

@@ -6,7 +6,7 @@ from functions_shared import *
 
 def check_for_profil(hdf5_path):
     with h5py.File(hdf5_path, "r") as f:
-        if "profil" in f["entry"].keys():
+        if "profil" in f.keys():
             return True
         else:
             return False
@@ -17,7 +17,7 @@ def profil_get_measurement_from_hdf5(hdf5_path, target_x, target_y):
         raise KeyError("Profilometry not found in file. Please check your file")
 
     with h5py.File(hdf5_path, "r") as f:
-        profil_group = f["/entry/profil"]
+        profil_group = f["//profil"]
         for position, position_group in profil_group.items():
             instrument_group = position_group.get("instrument")
             if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
@@ -38,7 +38,7 @@ def profil_get_results_from_hdf5(hdf5_path, target_x, target_y):
     data_dict = {}
 
     with h5py.File(hdf5_path, "r") as f:
-        profil_group = f["entry/profil"]
+        profil_group = f["/profil"]
         for position, position_group in profil_group.items():
             instrument_group = position_group.get("instrument")
             if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
@@ -160,7 +160,7 @@ def profil_batch_fit_steps(hdf5_path, est_height, nb_steps):
         raise KeyError("Profilometry not found in file. Please check your file")
 
     with h5py.File(hdf5_path, mode="a") as hdf5_file:
-        profil_group = hdf5_file["entry/profil"]
+        profil_group = hdf5_file["/profil"]
         for position, position_group in profil_group.items():
             measurement_group = position_group.get("measurement")
 
@@ -194,7 +194,7 @@ def profil_make_results_dataframe_from_hdf5(hdf5_path):
     data_dict_list = []
 
     with h5py.File(hdf5_path, mode="r") as hdf5_file:
-        profil_group = hdf5_file["entry/profil"]
+        profil_group = hdf5_file["/profil"]
 
         for position, position_group in profil_group.items():
             instrument_group = position_group.get("instrument")
@@ -384,7 +384,7 @@ ARCHIVE FOR POLYNOMIAL FIT, MIGHT COME BACK TO IT SOMEDAY
 #         raise KeyError("Profilometry not found in file. Please check your file")
 #
 #     with h5py.File(hdf5_path, mode="a") as hdf5_file:
-#         profil_group = hdf5_file["entry/profil"]
+#         profil_group = hdf5_file["/profil"]
 #         for position, position_group in profil_group.items():
 #             measurement_group = position_group.get("measurement")
 #

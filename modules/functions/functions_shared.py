@@ -77,7 +77,7 @@ def get_sample_info_from_hdf5(hdf5_path):
     info_dict = {}
 
     with h5py.File(hdf5_path, "r") as f:
-        sample_group = f['entry/sample']
+        sample_group = f['/sample']
 
         info_dict['sample_name'] = sample_group['sample_name'][()]
     return info_dict
@@ -348,7 +348,7 @@ def check_hdf5_for_results(hdf5_path, dataset_name, mode='any', return_list=Fals
         raise ValueError("Mode must be either 'any' or 'all'")
 
     with h5py.File(hdf5_path, "r") as f:
-        target_group = f[f'/entry/{dataset_name}']
+        target_group = f[f'/{dataset_name}']
         for position, position_group in target_group.items():
             if mode == 'any' and 'results' in position_group:
                 return True

@@ -61,7 +61,7 @@ def write_dektak_to_hdf5(hdf5_path, measurement_dict, mode='a'):
 
                 x_pos, y_pos = position_from_tuple(scan_number)
 
-                scan_group = f"/entry/profil/scan_{scan_number}"
+                scan_group = f"/profil/scan_{scan_number}"
                 scan = hdf5_file.create_group(scan_group)
 
                 # Instrument group for metadata

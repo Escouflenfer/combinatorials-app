@@ -78,16 +78,11 @@ def create_new_hdf5(hdf5_path, sample_metadata):
     Returns:
         None
     """
-    with h5py.File(hdf5_path, "w") as f:
-        f.attrs["default"] = "entry"
-        f.attrs["NX_class"] = "HTroot"
+    with h5py.File(hdf5_path, "w") as hdf5_file:
+        hdf5_file.attrs["HT_class"] = "HTroot"
 
-        htentry = f.create_group("entry")
-        htentry.attrs["NX_class"] = "HTentry"
-        htentry.attrs["default"] = "edx"
-
-        sample = htentry.create_group("sample")
-        sample.attrs["NX_class"] = "HTsample"
+        sample = hdf5_file.create_group("sample")
+        sample.attrs["HT_class"] = "HTsample"
         current_group = sample
         counts = 0
         for key, value in get_all_keys(sample_metadata):

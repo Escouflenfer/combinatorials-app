@@ -274,7 +274,7 @@ def write_xrd_to_hdf5(hdf5_path, measurement_dict, mode="a"):
                 img_header, img_data = file_string[0], np.array(file_string[1])
 
         with h5py.File(hdf5_path, mode) as f:
-            scan_group = f"/entry/xrd/scan_{scan_numbers[0]},{scan_numbers[1]}/"
+            scan_group = f"/xrd/scan_{scan_numbers[0]},{scan_numbers[1]}/"
             scan = f.create_group(scan_group)
 
             # Instrument group for metadata

@@ -258,7 +258,7 @@ def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
                 edx_dict, channels = read_data_from_spx(file_string)
                 energy = make_energy_dataset(edx_dict, channels)
 
-                scan_group = f"/entry/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
+                scan_group = f"/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
                 scan = f.create_group(scan_group)
 
                 # Instrument group for metadata

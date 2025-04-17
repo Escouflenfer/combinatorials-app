@@ -14,17 +14,14 @@ from ..functions.functions_shared import *
 
 
 def check_for_moke(hdf5_file):
-    if "moke" in hdf5_file["entry"].keys():
+    if "moke" in hdf5_file.keys():
         return True
     else:
         return False
 
 
 def moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y, index=1):
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
-    moke_group = hdf5_file["/entry/moke"]
+    moke_group = hdf5_file["/moke"]
     position_group = get_target_position_group(moke_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
     time_array = measurement_group[f"time"][()]
@@ -62,10 +59,7 @@ def moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y, index=1):
 
 
 def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
-    moke_group = hdf5_file["/entry/moke"]
+    moke_group = hdf5_file["/moke"]
     position_group = get_target_position_group(moke_group, target_x, target_y)
     results_group = position_group.get("results")
     if results_group is None:
@@ -75,12 +69,9 @@ def moke_get_results_from_hdf5(hdf5_file, target_x, target_y):
 
 
 def moke_get_instrument_dict_from_hdf5(hdf5_file, target_x, target_y):
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
     instrument_dict = {}
 
-    moke_group = hdf5_file["/entry/moke"]
+    moke_group = hdf5_file["/moke"]
     for position, position_group in moke_group.items():
         instrument_group = position_group.get("instrument")
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
@@ -357,10 +348,7 @@ def moke_fit_intercept(data: pd.DataFrame, treatment_dict: dict):
 
 
 def moke_batch_fit(hdf5_file, treatment_dict):
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
-    moke_group = hdf5_file["entry/moke"]
+    moke_group = hdf5_file["/moke"]
     results_dict = {}
     for position, position_group in moke_group.items():
         mean_shot_group = position_group.get("measurement/shot_mean")
@@ -396,10 +384,7 @@ def moke_results_dict_to_hdf5(hdf5_file, results_dict, treatment_dict=None):
     if treatment_dict is None:
         treatment_dict = {}
 
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
-    moke_group = hdf5_file["entry/moke"]
+    moke_group = hdf5_file["/moke"]
 
     for position in list(moke_group.keys()):
         position_group = moke_group[position]
@@ -419,12 +404,9 @@ def moke_results_dict_to_hdf5(hdf5_file, results_dict, treatment_dict=None):
 
 
 def moke_make_results_dataframe_from_hdf5(hdf5_file):
-    if not check_for_moke(hdf5_file):
-        raise KeyError("Moke not found in file. Please check your file")
-
     data_dict_list = []
 
-    moke_group = hdf5_file['entry/moke']
+    moke_group = hdf5_file['/moke']
 
     for position, position_group in moke_group.items():
         instrument_group = position_group.get("instrument")

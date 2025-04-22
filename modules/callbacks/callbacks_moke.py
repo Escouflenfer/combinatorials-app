@@ -235,6 +235,30 @@ def callbacks_moke(app, children_moke):
 
 
         return treatment_dict, coil_factor, smoothing_polyorder, smoothing_range
+
+
+    @app.callback(
+        Output('moke_loop_map_figure', 'figure'),
+        Input('moke_loop_map_button', 'n_clicks'),
+        State('hdf5_path_store', 'data'),
+        State('moke_data_treatment_store', 'data'),
+        State('moke_loop_map_checklist', 'value'),
+        State("moke_select_dataset", "value"),
+        prevent_initial_call=True
+    )
+    def make_loop_map(n_clicks, hdf5_path, options_dict, checklist, dataset_select):
+        hdf5_path = Path(hdf5_path)
+
+        normalize = False
+        if "normalize" in checklist:
+            normalize = True
+
+        if n_clicks>0:
+            with h5py.File(hdf5_path, 'a') as hdf5_file:
+                moke_group = hdf5_file[dataset_select]
+                fig = moke_plot_loop_map(moke_group, options_dict, normalize)
+                return fig
+
     #
     #
     #
@@ -384,25 +408,4 @@ def callbacks_moke(app, children_moke):
     #         return 'Invalid database. Please delete and reload to make a new one', False
     #
     #
-    #
-    # @app.callback(
-    #     Output('moke_loop_map_figure', 'figure'),
-    #     Input('moke_loop_map_button', 'n_clicks'),
-    #     State('moke_path_store', 'data'),
-    #     State('moke_database_path_store', 'data'),
-    #     State('moke_data_treatment_store', 'data'),
-    #     State('moke_loop_map_checklist', 'value'),
-    #     prevent_initial_call=True
-    # )
-    # def make_loop_map(n_clicks, folderpath, database_path, treatment_dict, checklist):
-    #     folderpath = Path(folderpath)
-    #     database_path = Path(database_path)
-    #
-    #     normalize = False
-    #     if "normalize" in checklist:
-    #         normalize = True
-    #
-    #     if n_clicks>0:
-    #         figure = loop_map_plot(folderpath, database_path, treatment_dict, normalize)
-    #         return figure
     #

@@ -165,6 +165,7 @@ def set_instrument_from_dict(moke_dict, node):
         if isinstance(value, dict):
             set_instrument_from_dict(value, node.create_group(key))
         else:
+            # Use regex to split the unit from the data label
             pattern = r"^(.*?)\s*(?:\((.*?)\))?$"
             match = re.search(pattern, key)
             if match:

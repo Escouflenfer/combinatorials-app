@@ -414,4 +414,12 @@ def hdf5_group_to_dict(hdf5_group):
     return nested_dict
 
 
+def convert_bytes(target):
+    try:
+        return float(target)
+    except ValueError:
+        return target.decode('utf-8')
+
+
+
 

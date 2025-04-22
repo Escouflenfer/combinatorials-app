@@ -4,11 +4,8 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 
 @Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
-import numpy as np
 from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter
-from collections import defaultdict
-import re
 
 from ..functions.functions_shared import *
 
@@ -66,17 +63,13 @@ def moke_get_results_from_hdf5(moke_group, target_x, target_y):
     return data_dict
 
 
-def moke_get_instrument_dict_from_hdf5(moke_group, target_x, target_y):
+def moke_get_instrument_dict_from_hdf5(moke_group):
     instrument_dict = {}
-
-    for position, position_group in moke_group.items():
-        if "scan_parameters" in position:
-            continue
-        instrument_group = position_group.get("instrument")
-        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-            for value, value_group in instrument_group.items():
-                instrument_dict[value] = value_group[()]
-
+    
+    parameters_group = moke_group.get("scan_parameters")
+    for value, value_group in parameters_group.items():
+        instrument_dict[value] = convert_bytes(value_group[()])
+    
     return instrument_dict
 
 def moke_integrate_pulse_array(pulse_array):
@@ -508,11 +501,75 @@ def moke_plot_vlines(fig, values):
     return fig
 
 
-# def moke_plot_loop_map(hdf5_file, normalize = False):
-#     results_dataframe = moke_make_results_dataframe_from_hdf5(hdf5_file)
-#     instrument
+def moke_plot_loop_map(hdf5_file, options_dict, normalize = False):
+    results_dataframe = moke_make_results_dataframe_from_hdf5(hdf5_file)
+    instrument_dict = moke_get_instrument_dict_from_hdf5(hdf5_file)
 
+    x_min, x_max = results_dataframe["x_pos (mm)"].min(), results_dataframe["x_pos (mm)"].max()
+    y_min, y_max = results_dataframe["y_pos (mm)"].min(), results_dataframe["y_pos (mm)"].max()
 
+    x_dim, y_dim = int(instrument_dict["number_of_points_x"]), int(instrument_dict["number_of_points_y"])
+
+    if x_dim == 1:
+        step_x = 1
+    else:
+        step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim - 1)
+
+    if y_dim == 1:
+        step_y = 1
+    else:
+        step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim - 1)
+
+    fig = make_subplots(
+        rows=y_dim, cols=x_dim, horizontal_spacing=0.001, vertical_spacing=0.001
+    )
+
+    # Update layout to hide axis lines, grid, and ticks for each subplot
+    fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
+    fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
+
+    # Update layout for aesthetics
+    fig.update_layout(
+        height=1000,
+        width=1200,
+        title_text="",
+        showlegend=False,
+        plot_bgcolor="white",
+    )
+
+    for index, row in results_dataframe.iterrows():
+        target_x = row["x_pos (mm)"]
+        target_y = row["y_pos (mm)"]
+
+        data = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
+        data = moke_treat_measurement_dataframe(data, options_dict)
+        print(data)
+
+        fig_col = int((target_x // step_x + (x_dim + 1) // 2))
+        fig_row = int((-target_y // step_y + (y_dim + 1) // 2))
+
+        fig.add_trace(
+            go.Scatter(
+                x=data["field"],
+                y=data["magnetization"],
+                mode="markers",
+                line=dict(color="SlateBlue", width=1),
+            ),
+            row=fig_row,
+            col=fig_col,
+        )
+
+        if normalize:
+            fig.update_yaxes(
+                range=[data["magnetization"].min(), data["magnetization"].max()],
+                row=fig_row,
+                col=fig_col,
+            )
+        if not normalize:
+            y_max = results_dataframe["max_kerr_rotation"].max()
+            fig.update_yaxes(range=[-y_max, y_max], row=fig_row, col=fig_col)
+
+    return fig
 
 
 

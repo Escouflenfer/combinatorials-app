@@ -1,9 +1,10 @@
 from dash import html, dcc
+import dash_uploader as du
 
 class WidgetsHDF5:
 
-    def __init__(self, folderpath):
-        self.folderpath = folderpath
+    def __init__(self, upload_folder_root):
+        self.upload_folder_root = upload_folder_root
 
         # Widget for the drag and drop
         self.hdf5_left = html.Div(
@@ -12,25 +13,11 @@ class WidgetsHDF5:
                 html.Div(
                     className='text-top',
                     children=[
-                    dcc.Upload(
-                        className='long-item',
+                    du.Upload(
                         id='hdf5_upload',
-                        children=html.Div([
-                            'Drag and Drop or ',
-                            html.A('Select Files')
-                        ]),
-                        style={
-                            'width': '90%',
-                            'height': '60px',
-                            'lineHeight': '60px',
-                            'borderWidth': '1px',
-                            'borderStyle': 'dashed',
-                            'borderRadius': '5px',
-                            'textAlign': 'center',
-                            'margin': '10px'
-                        },
-                        # Allow multiple files to be uploaded
-                        multiple=False
+                        text='Drag and Drop or click to browse',
+                        filetypes=['zip', 'h5', 'hdf5'],
+                        upload_id='temp',
                     ),
                 ]),
                 html.Div(
@@ -144,7 +131,8 @@ class WidgetsHDF5:
         # Stored variables
         self.hdf5_stores = html.Div(
             children=[
-                dcc.Store(id="hdf5_measurement_store", data=None),
+                dcc.Store(id="hdf5_upload_folder_root", data=upload_folder_root),
+                dcc.Store(id="hdf5_upload_folder_path", data=None),
             ]
         )
 

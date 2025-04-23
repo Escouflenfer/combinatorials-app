@@ -1,6 +1,8 @@
-import os
-
+import dash_uploader
 from dash import Dash, dcc, html
+from setuptools.compat.py311 import shutil_rmtree
+
+from modules.functions.functions_shared import *
 
 from modules.interface import (
     widgets_browser,
@@ -25,13 +27,18 @@ folderpath = None
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
+UPLOAD_FOLDER_ROOT = os.path.join(script_dir, "uploads")
+cleanup_directory(UPLOAD_FOLDER_ROOT)
+
 # %%
 app = Dash(suppress_callback_exceptions=True)
+
+dash_uploader.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 children_browser = widgets_browser.WidgetsBROWSER()
 browser_tab = children_browser.make_tab_from_widgets()
 
-children_hdf5 = widgets_hdf5.WidgetsHDF5(folderpath)
+children_hdf5 = widgets_hdf5.WidgetsHDF5(UPLOAD_FOLDER_ROOT)
 hdf5_tab = children_hdf5.make_tab_from_widgets()
 
 children_profil = widgets_profil.WidgetsPROFIL(folderpath)

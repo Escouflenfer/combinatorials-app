@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
 """
-to complete
-
-@author: williamrigaut
+Functions for XRD parsing (Rigaku SmartLab and ESRF NeXuS)
 """
 import io
-
 import h5py
-import os
-import numpy as np
 import fabio
 from ..hdf5_compilers.hdf5compile_base import *
 

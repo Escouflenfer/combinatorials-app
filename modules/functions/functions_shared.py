@@ -5,10 +5,23 @@ import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
 import h5py
+import shutil
 from datetime import datetime
 import re
 import stringcase
 
+
+def cleanup_file(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+def cleanup_directory(folderpath):
+    for folder in os.listdir(folderpath):
+        full_path = os.path.join(folderpath, folder)
+        if os.path.isdir(full_path):
+            shutil.rmtree(full_path)
 
 def get_version(tag:str):
     """
@@ -340,8 +353,6 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
         fig.data[0].update(zmax=z_max)
 
     return fig
-
-
 
 def check_group_for_results(hdf5_group, mode='any', return_list=False):
     if mode not in ['any', 'all']:

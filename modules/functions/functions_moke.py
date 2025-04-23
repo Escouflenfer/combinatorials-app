@@ -10,11 +10,11 @@ from scipy.signal import savgol_filter
 from ..functions.functions_shared import *
 
 
-def check_for_moke(hdf5_file):
-    if "moke" in hdf5_file.keys():
-        return True
-    else:
-        return False
+# def check_for_moke(hdf5_file):
+#     if "moke" in hdf5_file.keys():
+#         return True
+#     else:
+#         return False
 
 
 def moke_get_measurement_from_hdf5(moke_group, target_x, target_y, index=1):
@@ -430,7 +430,6 @@ def moke_make_results_dataframe_from_hdf5(moke_group):
             data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)
-    print(result_dataframe)
 
     return result_dataframe
 

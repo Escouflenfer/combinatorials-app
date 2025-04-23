@@ -76,9 +76,9 @@ def callbacks_moke(app, children_moke):
         prevent_initial_call=True,
     )
     def moke_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
+        hdf5_path = Path(hdf5_path)
         if hdf5_path is None:
             raise PreventUpdate
-        hdf5_path = Path(hdf5_path)
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
             moke_group = hdf5_file[selected_dataset]

@@ -6,7 +6,7 @@ from ..hdf5_compilers.hdf5compile_base import *
 import io
 import stringcase
 
-def get_scan_number(filename):
+def moke_info_from_filename(file_path):
     """
     Returns the scan number from the given filepath.
 
@@ -16,53 +16,64 @@ def get_scan_number(filename):
 
     Parameters
     ----------
-    filepath : str
+    file_path : str
         The filepath to the MOKE data file (.txt)
 
     Returns
     -------
-    str
+    dict
         A string containing the scan number.
     """
-    scan_number = filename.split("_")[0].replace("p", "")
+    if isinstance (file_path, str):
+        file_path = Path(file_path)
 
-    return scan_number
+    file_name = file_path.stem
+    info_dict = {}
 
-def get_wafer_positions(filename):
-    """
-    Returns the wafer positions (x and y indices) from the given filepath.
+    pattern = r"p(\d+)_x(-?\d+(?:\.\d+)?)_y(-?\d+(?:\.\d+)?)"
+    match = re.search(pattern, file_name)
 
-    The wafer positions are stored in the filename of the given filepath
-    as 'pN_XxYy_magnetization.txt', where N is the scan number, X and Y are
-    the wafer positions.
+    if match:
+        info_dict['scan_number'] = float(match.group(1))
+        info_dict['x_pos'] = float(match.group(2))
+        info_dict['y_pos'] = float(match.group(3))
+    else:
+        raise Exception("Couldn't match pattern to moke filename")
 
-    Parameters
-    ----------
-    filepath : str
-        The filepath to the MOKE data file (.txt)
+    return info_dict
 
-    Returns
-    -------
-    tuple
-        A tuple containing the x and y wafer positions.
-    """
-    pattern = r"p\d+_x(-?\d+(?:\.\d+)?)_y(-?\d+(?:\.\d+)?)"
-    print(filename)
-    match = re.search(pattern, filename)
+# def get_wafer_positions(filename):
+#     """
+#     Returns the wafer positions (x and y indices) from the given filepath.
+#
+#     The wafer positions are stored in the filename of the given filepath
+#     as 'pN_XxYy_magnetization.txt', where N is the scan number, X and Y are
+#     the wafer positions.
+#
+#     Parameters
+#     ----------
+#     filepath : str
+#         The filepath to the MOKE data file (.txt)
+#
+#     Returns
+#     -------
+#     tuple
+#         A tuple containing the x and y wafer positions.
+#     """
+#     pattern = r"p(\d+)_x(-?\d+(?:\.\d+)?)_y(-?\d+(?:\.\d+)?)"
+#     match = re.search(pattern, filename)
+#
+#
+#     return x_pos, y_pos
 
-    x_pos = float(match.group(1))
-    y_pos = float(match.group(2))
 
-    return x_pos, y_pos
-
-
-def read_header_from_moke(file_string):
+def read_header_from_moke(file_path):
     """
     Reads the header information from a MOKE data info file and returns it as a dictionary.
 
     Parameters
     ----------
-    filepath : str or Path
+    file_path : str or Path
         The filepath to the directory containing the MOKE data file and info.txt.
 
     Returns
@@ -70,10 +81,13 @@ def read_header_from_moke(file_string):
     dict
         A dictionary containing the header information with keys like "Sample name", "Date", etc.
     """
+    if isinstance (file_path, str):
+        file_path = Path(file_path)
 
     header_dict = {}
 
-    lines = io.StringIO(file_string).readlines()
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
 
     header_dict["Dataset name"] = lines[0].strip().replace("#", "")
     header_dict["Date"] = lines[1].strip().replace("#", "")
@@ -84,7 +98,7 @@ def read_header_from_moke(file_string):
     return header_dict
 
 
-def read_data_from_moke(file_dict):
+def read_data_from_moke(file_path_list):
     """
     Reads data from a MOKE data file and its associated pulse and sum data files.
 
@@ -100,34 +114,32 @@ def read_data_from_moke(file_dict):
     """
     mag_data, pul_data, sum_data = [], [], []
 
-    for file_name, file_string in file_dict.items():
-        if 'magnetization' in file_name:
-            mag_file = file_string
-        elif 'pulse' in file_name:
-            pul_file = file_string
-        elif 'sum' in file_name:
-            sum_file = file_string
+    for file_path in file_path_list:
+        print(file_path_list)
+        file_path = str(file_path)
+        print(file_path)
+        if 'magnetization' in file_path:
+            with open(file_path, 'r') as file:
+                mag_file = file.readlines()
+        elif 'pulse' in file_path:
+            with open(file_path, 'r') as file:
+                pul_file = file.readlines()
+        elif 'sum' in file_path:
+            with open(file_path, 'r') as file:
+                sum_file = file.readlines()
 
     # Open the 3 datafiles at the same time and write everything in lists
-    try:
-        magnetization = io.StringIO(mag_file).readlines()
-        pulse = io.StringIO(pul_file).readlines()
-        reflectivity = io.StringIO(sum_file).readlines()
 
-        for mag, pul, sum in zip(magnetization[2:], pulse[2:], reflectivity[2:]):
-            mag = mag.strip().split()
-            pul = pul.strip().split()
-            sum = sum.strip().split()
+    for mag, pul, sum in zip(mag_file[2:], pul_file[2:], sum_file[2:]):
+        mag = mag.strip().split()
+        pul = pul.strip().split()
+        sum = sum.strip().split()
 
-            mag_data.append([float(elm) for elm in mag])
-            pul_data.append([float(elm) for elm in pul])
-            sum_data.append([float(elm) for elm in sum])
+        mag_data.append([float(elm) for elm in mag])
+        pul_data.append([float(elm) for elm in pul])
+        sum_data.append([float(elm) for elm in sum])
 
-        return mag_data, pul_data, sum_data
-    except NameError:
-        return 'Missing files'
-
-
+    return mag_data, pul_data, sum_data
 
 
 def get_time_from_moke(datasize):
@@ -145,7 +157,7 @@ def get_time_from_moke(datasize):
         A list of time values in microseconds, each separated by a time step of 0.05 microseconds.
     """
 
-    time_step = 0.05  # in microsecondes (or 50ns)
+    time_step = 0.05  # in microseconds (or 50ns)
     time = [j * time_step for j in range(datasize)]
 
     return time
@@ -178,7 +190,7 @@ def set_instrument_from_dict(moke_dict, node):
 
     return None
 
-def write_moke_to_hdf5(HDF5_path, measurement_dict, dataset_name = None, mode="a"):
+def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
     """
     Writes the contents of the MOKE data file (.txt) to the given HDF5 file.
 
@@ -191,21 +203,20 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, dataset_name = None, mode="a
     Returns:
         None
     """
+    if isinstance (hdf5_path, str):
+        hdf5_path = Path(hdf5_path)
+    if isinstance(source_path, str):
+        source_path = Path(source_path)
 
     found_info = False
     header_dict =  {}
-    for file_name, file_string in measurement_dict.items():
-        # Check the dictionary for log_file.log and remove it if it is found
-        if 'log_file.log' in file_name:
-            _ = measurement_dict.pop(file_name, None)
-        # Check the dictionary for info.txt file and read it into a dict
-        if 'info.txt' in file_name:
-            info_file_string = measurement_dict.pop(file_name, None)
-            header_dict = read_header_from_moke(info_file_string)
-            found_info = True
-            if dataset_name is None:
-                dataset_name = header_dict["Dataset name"]
-            break
+    for file_name in source_path.rglob('info.txt'):
+        file_path = source_path / file_name
+        header_dict = read_header_from_moke(file_path)
+        found_info = True
+        if dataset_name is None:
+            dataset_name = header_dict["Dataset name"]
+        break
 
     # Make sure that info.txt has been found
     if not found_info:
@@ -213,15 +224,18 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, dataset_name = None, mode="a
 
     # Sort the dictionary by measurement "p_number" (index), and group measurements by indexes.
     # Example filename: p1_x-15.0_y45.0_magnetization.txt
-    grouped_dict = defaultdict(dict)
-    for file_name, file_string in measurement_dict.items():
-        if file_name.endswith('.txt'):
-            pattern = r'(?:[^/]+/)*p(\d+)'
-            match = re.search(pattern, file_name)
-            p_number = match.group(1)  # Extract p_number from measurement name
-            grouped_dict[p_number][file_name] = file_string  # Dictionary with measurements grouped by p_numbers
+    pattern = re.compile(r"p(\d+)")
 
-    with h5py.File(HDF5_path, mode) as hdf5_file:
+    grouped_dict = defaultdict(list)
+
+    for file_name in source_path.rglob('p*.txt'):
+        match = re.search(pattern, str(file_name))
+        if match:
+            p_number = match.group(1)  # Extract p_number from measurement name
+            file_path = source_path / file_name
+            grouped_dict[p_number].append(file_path)  # Dictionary with measurements grouped by p_numbers
+
+    with h5py.File(hdf5_path, mode) as hdf5_file:
         # Create the root group for the measurement
         moke_group = hdf5_file.create_group(f"{dataset_name}")
         moke_group.attrs["HT_type"] = "moke"
@@ -232,10 +246,13 @@ def write_moke_to_hdf5(HDF5_path, measurement_dict, dataset_name = None, mode="a
 
         # For every position, write measurement to HDF5
         for scan_number in grouped_dict.keys():
-            x_pos, y_pos = get_wafer_positions(next(iter(grouped_dict[scan_number])))
+            info_dict = moke_info_from_filename(grouped_dict[scan_number][0])
             mag_dict, pul_dict, sum_dict = read_data_from_moke(grouped_dict[scan_number])
             time_dict = get_time_from_moke(len(mag_dict))
             nb_acquisitions = len(mag_dict[0])
+
+            x_pos = info_dict['x_pos']
+            y_pos = info_dict['y_pos']
 
             scan = moke_group.create_group(f"({x_pos}, {y_pos})")
 

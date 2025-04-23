@@ -33,12 +33,19 @@ def callbacks_profil(app):
         prevent_initial_call=True,
     )
     def profil_check_for_results(hdf5_path):
-        if check_hdf5_for_results(hdf5_path, 'profil', mode='all'):
-            return 'Found results for all points'
-        elif check_hdf5_for_results(hdf5_path, 'profil', mode='any'):
-            return 'Found results for some points'
-        else:
-            return'No results found'
+        hdf5_path = Path(hdf5_path)
+
+        if hdf5_path is None:
+            raise PreventUpdate
+
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            profil_group = hdf5_file['profil']
+            if check_group_for_results(profil_group, mode='all'):
+                return 'Found results for all points'
+            elif check_group_for_results(profil_group, mode='any'):
+                return 'Found results for some points'
+            else:
+                return'No results found'
 
 
     # Callback for heatmap plot selection
@@ -66,11 +73,14 @@ def callbacks_profil(app):
             z_min = None
             z_max = None
 
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            profil_group = hdf5_file['profil']
+            profil_df = profil_make_results_dataframe_from_hdf5(profil_group)
+
         masking = True
         if edit_toggle in ["edit", "unfiltered"]:
             masking = False
 
-        profil_df = profil_make_results_dataframe_from_hdf5(hdf5_path)
         fig = make_heatmap_from_dataframe(profil_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
 
         z_min = np.round(fig.data[0].zmin, precision)
@@ -86,18 +96,20 @@ def callbacks_profil(app):
         Input("profil_plot_select", "value")
     )
     def profil_update_plot(hdf5_path, position, plot_options):
+        hdf5_path = Path(hdf5_path)
+
         if hdf5_path is None:
             raise PreventUpdate
         if position is None:
             raise PreventUpdate
 
-        hdf5_path = Path(hdf5_path)
-
         target_x = position[0]
         target_y = position[1]
 
-        measurement_df = profil_get_measurement_from_hdf5(hdf5_path, target_x, target_y)
-        results_dict = profil_get_results_from_hdf5(hdf5_path, target_x, target_y)
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            profil_group = hdf5_file['profil']
+            measurement_df = profil_get_measurement_from_hdf5(profil_group, target_x, target_y)
+            results_dict = profil_get_results_from_hdf5(profil_group, target_x, target_y)
 
         _, measurement_df = profil_measurement_dataframe_treat(measurement_df, slope=results_dict['adjusting_slope'])
 
@@ -139,10 +151,14 @@ def callbacks_profil(app):
     )
 
     def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path):
+        hdf5_path = Path(hdf5_path)
+
         if hdf5_path is None:
             raise PreventUpdate
 
         if n_clicks > 0:
-            check = profil_batch_fit_steps(hdf5_path, fit_height, fit_degree)
+            with h5py.File(hdf5_path, 'r') as hdf5_file:
+                profil_group = hdf5_file['profil']
+                check = profil_batch_fit_steps(profil_group, fit_height, fit_degree)
             if check:
                 return 'Successfully refitted data', hdf5_path

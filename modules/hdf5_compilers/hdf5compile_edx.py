@@ -3,7 +3,7 @@ Functions for EDX parsing
 """
 from ..hdf5_compilers.hdf5compile_base import *
 
-def visit_items(item, edx_dict={}):
+def visit_items(item, edx_dict=None):
     """
     Recursively visits XML elements to build a nested dictionary representation.
 
@@ -21,6 +21,9 @@ def visit_items(item, edx_dict={}):
     Returns:
         dict: A nested dictionary representing the structure of the XML elements.
     """
+    if edx_dict is None:
+        edx_dict = {}
+
     parse_ignore = [
         "",
         "DetLayers",
@@ -48,7 +51,7 @@ def visit_items(item, edx_dict={}):
     for child in item:
         if child.tag in parse_ignore:
             continue
-        elif child.findall("./") == []:
+        elif not child.findall("./"):
             edx_dict[parent_name][child.tag] = child.text
         else:
             # Recursively visit the child elements
@@ -75,7 +78,7 @@ def get_channels(xml_root):
     return channels
 
 
-def read_data_from_spx(file_string: str):
+def read_data_from_spx(filepath):
     """
     Reads data from an XML file (.spx) containing EDX data exported from BRUKER instrument.
 
@@ -86,7 +89,7 @@ def read_data_from_spx(file_string: str):
         tuple: A tuple containing a dictionary of metadata and a list of channel counts.
     """
     # Parse the XML file
-    root = et.fromstring(file_string)
+    root = et.parse(filepath).getroot()[1]
 
     # Extract the data and metadata from xml
     edx_dict = visit_items(root)
@@ -95,20 +98,22 @@ def read_data_from_spx(file_string: str):
     return edx_dict, channels
 
 
-def get_position_from_name(filename: str):
+def get_position_from_path(filepath):
     """
     Extracts the scan numbers (x and y indices) from the filename of the given
     filepath.
 
     Args:
-        filename (str): Name of the file containing position information with the format (x, y)
+        filepath (str): Name of the file containing position information with the format (x, y)
 
     Returns:
         tuple: A tuple containing the x and y indices of the scan
     """
+    if isinstance(filepath, Path):
+        filepath = str(filepath)
 
-    pattern = r'\((\d+),(\d+)\)'
-    match = re.search(pattern, filename)
+    pattern = r'.*\((\d+),(\d+)\).*'
+    match = re.search(pattern, filepath)
     x_idx = match.group(1)
     y_idx = match.group(2)
 
@@ -238,54 +243,60 @@ def make_energy_dataset(edx_dict, channels):
     return energy
 
 
-def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
+def write_edx_to_hdf5(hdf5_path, source_path, mode="a"):
     """
     Writes the contents of the EDX data file (.spx) to the given HDF5 file.
 
     Args:
-        HDF5_path (str or Path): The path to the HDF5 file to write the data to.
-        filepath (str or Path): The path to the EDX data file (.spx).
+        hdf5_path (str or Path): The path to the HDF5 file to write the data to.
+        source_path (str or Path): The path to the EDX data file (.spx).
         mode (str, optional): The mode to open the HDF5 file in. Defaults to "a".
 
     Returns:
         None
     """
-    with h5py.File(HDF5_path, mode) as f:
-        for file_name, file_string in measurement_dict.items():
-            if file_name.endswith('.spx'):
-                scan_numbers = get_position_from_name(file_name)
-                wafer_positions = calculate_wafer_positions(scan_numbers)
-                edx_dict, channels = read_data_from_spx(file_string)
-                energy = make_energy_dataset(edx_dict, channels)
+    if isinstance (hdf5_path, str):
+        hdf5_path = Path(hdf5_path)
+    if isinstance(source_path, str):
+        source_path = Path(source_path)
 
-                scan_group = f"/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
-                scan = f.create_group(scan_group)
+    with h5py.File(hdf5_path, mode) as f:
+        for file_name in source_path.rglob('*.spx'):
+            file_path = source_path / file_name
 
-                # Instrument group for metadata
-                instrument = scan.create_group("instrument")
-                instrument.attrs["NX_class"] = "HTinstrument"
+            scan_numbers = get_position_from_path(file_path)
+            wafer_positions = calculate_wafer_positions(scan_numbers)
+            edx_dict, channels = read_data_from_spx(file_path)
+            energy = make_energy_dataset(edx_dict, channels)
 
-                instrument["x_pos"] = wafer_positions[0]
-                instrument["y_pos"] = wafer_positions[1]
-                instrument["x_pos"].attrs["units"] = "mm"
-                instrument["y_pos"].attrs["units"] = "mm"
+            scan_group = f"/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
+            scan = f.create_group(scan_group)
 
-                # Result group
-                results = scan.create_group("results")
-                results.attrs["NX_class"] = "HTresult"
-                set_instrument_and_result_from_dict(edx_dict, instrument, results)
+            # Instrument group for metadata
+            instrument = scan.create_group("instrument")
+            instrument.attrs["NX_class"] = "HTinstrument"
 
-                # Measurement group
-                data = scan.create_group("measurement")
-                data.attrs["NX_class"] = "HTdata"
+            instrument["x_pos"] = wafer_positions[0]
+            instrument["y_pos"] = wafer_positions[1]
+            instrument["x_pos"].attrs["units"] = "mm"
+            instrument["y_pos"].attrs["units"] = "mm"
 
-                counts = data.create_dataset(
-                    "counts", (len(channels),), data=channels, dtype="int"
-                )
-                energy = data.create_dataset(
-                    "energy", (len(energy),), data=energy, dtype="float"
-                )
-                counts.attrs["units"] = "cps"
-                energy.attrs["units"] = "keV"
+            # Result group
+            results = scan.create_group("results")
+            results.attrs["NX_class"] = "HTresult"
+            set_instrument_and_result_from_dict(edx_dict, instrument, results)
+
+            # Measurement group
+            data = scan.create_group("measurement")
+            data.attrs["NX_class"] = "HTdata"
+
+            counts = data.create_dataset(
+                "counts", (len(channels),), data=channels, dtype="int"
+            )
+            energy = data.create_dataset(
+                "energy", (len(energy),), data=energy, dtype="float"
+            )
+            counts.attrs["units"] = "cps"
+            energy.attrs["units"] = "keV"
 
         return None

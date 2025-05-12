@@ -3,8 +3,9 @@ Functions for MOKE parsing
 """
 from ..functions.functions_moke import moke_integrate_pulse_array
 from ..hdf5_compilers.hdf5compile_base import *
-import io
 import stringcase
+
+MOKE_WRITER_VERSION = '0.1 beta'
 
 def moke_info_from_filename(file_path):
     """
@@ -237,6 +238,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
         # Create the root group for the measurement
         moke_group = hdf5_file.create_group(f"{dataset_name}")
         moke_group.attrs["HT_type"] = "moke"
+        moke_group.attrs["moke_writer"] = MOKE_WRITER_VERSION
 
         # Create a scan_parameters group in moke with the contents of info.txt
         scan_parameters_group = moke_group.create_group("scan_parameters")

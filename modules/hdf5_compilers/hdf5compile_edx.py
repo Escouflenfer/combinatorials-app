@@ -3,6 +3,8 @@ Functions for EDX parsing
 """
 from ..hdf5_compilers.hdf5compile_base import *
 
+EDX_WRITER_VERSION = '0.1 beta'
+
 def visit_items(item, edx_dict=None):
     """
     Recursively visits XML elements to build a nested dictionary representation.
@@ -266,6 +268,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
     with h5py.File(hdf5_path, mode) as hdf5_file:
         edx_group = hdf5_file.create_group(f"{dataset_name}")
         edx_group.attrs["HT_type"] = "edx"
+        edx_group.attrs["edx_writer"] = EDX_WRITER_VERSION
 
         for file_name in source_path.rglob('*.spx'):
             file_path = source_path / file_name

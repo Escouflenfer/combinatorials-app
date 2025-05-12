@@ -27,7 +27,10 @@ folderpath = None
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
+PROGRAM_VERSION = '0.12 beta'
 UPLOAD_FOLDER_ROOT = os.path.join(script_dir, "uploads")
+
+# Clean the upload folder
 cleanup_directory(UPLOAD_FOLDER_ROOT)
 
 # %%

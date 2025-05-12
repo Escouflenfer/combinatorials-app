@@ -6,6 +6,7 @@ import h5py
 import fabio
 from ..hdf5_compilers.hdf5compile_base import *
 
+XRD_WRITER_VERSION = '0.1 beta'
 
 def get_scan_numbers(filename):
     """

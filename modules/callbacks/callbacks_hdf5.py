@@ -102,16 +102,16 @@ def callbacks_hdf5(app):
         if n_clicks > 0:
             print(uploaded_folder_path)
             if measurement_type == 'EDX':
-                write_edx_to_hdf5(hdf5_path, uploaded_folder_path)
+                write_edx_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
                 return f'Added {measurement_type} measurement to {hdf5_path}.'
             if measurement_type =='MOKE':
                 write_moke_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
                 return f'Added {measurement_type} measurement to {hdf5_path}.'
             if measurement_type == 'PROFIL':
-                write_dektak_to_hdf5(hdf5_path, uploaded_folder_path)
+                write_dektak_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
                 return f'Added {measurement_type} measurement to {hdf5_path}.'
-            if measurement_type =='XRD':
-                write_xrd_to_hdf5(hdf5_path, uploaded_folder_path)
+            if measurement_type =='Smartlab':
+                write_smartlab_to_hdf5(hdf5_path, uploaded_folder_path)
                 return f'Added {measurement_type} measurement to {hdf5_path}.'
 
             return f'Failed to add measurement to {hdf5_path}.'
@@ -131,78 +131,20 @@ def callbacks_hdf5(app):
         if not is_completed or not uploaded_folder_path:
             return None, "No file uploaded"
 
-        zip_path = Path(upload_folder_root, upload_id, uploaded_folder_path[0])
-        extract_dir = zip_path.parent / zip_path.stem
+        uploaded_path = Path(upload_folder_root, upload_id, uploaded_folder_path[0])
+        extract_dir = uploaded_path.parent / uploaded_path.stem
 
-        with zipfile.ZipFile(zip_path, 'r') as zip_file:
-            filenames_list = zip_file.namelist()
-            measurement_type, depth = detect_measurement(filenames_list)
+        if uploaded_path.name.endswith('.zip'):
+            with zipfile.ZipFile(uploaded_path, 'r') as zip_file:
+                filenames_list = zip_file.namelist()
+                measurement_type, depth = detect_measurement(filenames_list)
 
-            if not measurement_type:
-                output_message = f'Unable to detect measurement within {uploaded_folder_path}'
-                return None, measurement_type, output_message
-            else:
-                output_message = f'{len(filenames_list)} {measurement_type} files detected in {uploaded_folder_path}'
-                zip_file.extractall(extract_dir)
-                return str(extract_dir), measurement_type, output_message
-
-
-
- # # Callback for unpacking uploaded measurements
-    # @app.callback(
-    #     [Output('hdf5_measurement_type', 'value'),
-    #      Output('hdf5_measurement_store', 'data'),
-    #      Output("hdf5_dataset_name", "value"),
-    #      Output('hdf5_text_box', 'children', allow_duplicate=True)],
-    #     Input('hdf5_upload', 'contents'),
-    #     State('hdf5_upload', 'filename'),
-    #     prevent_initial_call=True
-    # )
-    # def unpack_uploaded_measurement(contents, filename):
-    #
-    #     content_type, content_string = contents.split(',')
-    #     decoded = base64.b64decode(content_string)
-    #     zip_stream = io.BytesIO(decoded)
-    #
-    #     with zipfile.ZipFile(zip_stream, 'r') as zip_file:
-    #         filename_list = zip_file.namelist()  # List file names in the ZIP
-    #         measurement_type, depth = detect_measurement(filename_list)
-    #         extracted_files = defaultdict(lambda: defaultdict(dict))
-    #
-    #         if measurement_type == None:
-    #             output_message = f'Unable to detect measurement within {filename}'
-    #             return measurement_type, {}, output_message
-    #         else:
-    #             filename_list = unpack_zip_directory(filename_list, depth=depth)
-    #
-    #         if measurement_type == 'EDX':
-    #             extracted_files = {file_name: zip_file.read(file_name).decode('utf-8', errors='ignore')
-    #                                for file_name in filename_list if not is_macos_system_file(file_name)}
-    #         if measurement_type == 'MOKE':
-    #             extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
-    #                                for file_name in filename_list if not is_macos_system_file(file_name)}
-    #         if measurement_type == 'PROFIL':
-    #             extracted_files = {file_name: zip_file.read(file_name).decode("iso-8859-1", errors='ignore')
-    #                                for file_name in filename_list if not is_macos_system_file(file_name)}
-    #         if measurement_type == 'XRD':
-    #             grouped_filenames = group_files_by_position(filename_list)
-    #             print(grouped_filenames.keys())
-    #             for scan_index in grouped_filenames.keys():
-    #                 for file_name in grouped_filenames[scan_index]:
-    #                     if file_name.endswith('.img') and not is_macos_system_file(file_name):
-    #                         try:
-    #                             img = fabio.open(io.BytesIO(zip_file.read(file_name)))
-    #                             extracted_files[scan_index][file_name] = [img.header, img.data.tolist()]
-    #                         except TypeError:
-    #                             continue
-    #                     elif not is_macos_system_file(file_name):
-    #                         extracted_files[scan_index][file_name] = zip_file.read(file_name).decode('utf-8', errors='ignore')
-    #                     else:
-    #                         continue
-    #
-    #     output_message = f"Uploaded {len(extracted_files)} files from {filename}."
-    #     dataset_name = filename.split('.')[0]
-    #
-    #     return measurement_type, extracted_files, dataset_name, output_message
+                if not measurement_type:
+                    output_message = f'Unable to detect measurement within {uploaded_folder_path}'
+                    return None, measurement_type, output_message
+                else:
+                    output_message = f'{len(filenames_list)} {measurement_type} files detected in {uploaded_folder_path}'
+                    zip_file.extractall(extract_dir)
+                    return str(extract_dir), measurement_type, output_message
 
 

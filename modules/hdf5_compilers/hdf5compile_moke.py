@@ -115,9 +115,7 @@ def read_data_from_moke(file_path_list):
     mag_data, pul_data, sum_data = [], [], []
 
     for file_path in file_path_list:
-        print(file_path_list)
         file_path = str(file_path)
-        print(file_path)
         if 'magnetization' in file_path:
             with open(file_path, 'r') as file:
                 mag_file = file.readlines()
@@ -208,15 +206,15 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
     if isinstance(source_path, str):
         source_path = Path(source_path)
 
+    if dataset_name is None:
+        dataset_name = source_path.stem
+
     found_info = False
     header_dict =  {}
     for file_name in source_path.rglob('info.txt'):
         file_path = source_path / file_name
         header_dict = read_header_from_moke(file_path)
         found_info = True
-        if dataset_name is None:
-            dataset_name = header_dict["Dataset name"]
-        break
 
     # Make sure that info.txt has been found
     if not found_info:

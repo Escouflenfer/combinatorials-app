@@ -70,10 +70,11 @@ def detect_measurement(filename_list: list):
            version (str): detected measurement type
        """
     measurement_dict = {
-        "XRD": ["ras"],
+        "Smartlab": ["ras"],
         "MOKE": ["txt"],
         "EDX": ["spx"],
         "PROFIL": ["asc2d"],
+        "ESRF": ["h5"]
     }
 
     for measurement_type, file_type in measurement_dict.items():

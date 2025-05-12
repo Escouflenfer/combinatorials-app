@@ -13,26 +13,3 @@ import plotly.graph_objects as go
 
 from ..functions.functions_shared import *
 
-
-def xrd_get_measurement_from_hdf5(xrd_group, target_x, target_y):
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return measurement_dataframe

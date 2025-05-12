@@ -243,7 +243,7 @@ def make_energy_dataset(edx_dict, channels):
     return energy
 
 
-def write_edx_to_hdf5(hdf5_path, source_path, mode="a"):
+def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
     """
     Writes the contents of the EDX data file (.spx) to the given HDF5 file.
 
@@ -260,7 +260,13 @@ def write_edx_to_hdf5(hdf5_path, source_path, mode="a"):
     if isinstance(source_path, str):
         source_path = Path(source_path)
 
-    with h5py.File(hdf5_path, mode) as f:
+    if dataset_name is None:
+        dataset_name = source_path.stem
+
+    with h5py.File(hdf5_path, mode) as hdf5_file:
+        edx_group = hdf5_file.create_group(f"{dataset_name}")
+        edx_group.attrs["HT_type"] = "edx"
+
         for file_name in source_path.rglob('*.spx'):
             file_path = source_path / file_name
 
@@ -269,8 +275,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, mode="a"):
             edx_dict, channels = read_data_from_spx(file_path)
             energy = make_energy_dataset(edx_dict, channels)
 
-            scan_group = f"/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
-            scan = f.create_group(scan_group)
+            scan = edx_group.create_group(f"({wafer_positions[0]},{wafer_positions[1]})")
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

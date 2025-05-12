@@ -53,13 +53,20 @@ def set_instrument_from_dict(header_dict, node):
     return None
 
 
-def write_dektak_to_hdf5(hdf5_path, source_path, mode='a'):
+def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
     if isinstance (hdf5_path, str):
         hdf5_path = Path(hdf5_path)
     if isinstance(source_path, str):
         source_path = Path(source_path)
 
+    if dataset_name is None:
+        dataset_name = source_path.stem
+
     with h5py.File(hdf5_path, mode) as hdf5_file:
+        # Create the root group for the measurement
+        profil_group = hdf5_file.create_group(f"{dataset_name}")
+        profil_group.attrs["HT_type"] = "dektak"
+
         for file_name in source_path.rglob('*.asc2d'):
             file_path = source_path / file_name
 
@@ -69,8 +76,7 @@ def write_dektak_to_hdf5(hdf5_path, source_path, mode='a'):
 
             x_pos, y_pos = position_from_tuple(scan_number)
 
-            scan_group = f"/profil/scan_{scan_number}"
-            scan = hdf5_file.create_group(scan_group)
+            scan = profil_group.create_group(f"({x_pos}, {y_pos})")
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

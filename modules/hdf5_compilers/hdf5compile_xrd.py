@@ -237,7 +237,7 @@ def get_2dcamera_from_img(filepath):
     return img_header, img_data
 
 
-def write_xrd_to_hdf5(hdf5_path, measurement_dict, mode="a"):
+def write_smartlab_to_hdf5(hdf5_path, measurement_dict, mode="a"):
     """
     Writes the contents of the XRD data file (.ras) to the given HDF5 file.
 

@@ -25,21 +25,37 @@ def callbacks_profil(app):
 
         return position
 
+    # Callback to find all relevant datasets in HDF5 file
+    @app.callback(
+        [Output("profil_select_dataset", "options"),
+         Output("profil_select_dataset", "value")],
+        Input("hdf5_path_store", "data"),
+    )
+    def profil_scan_hdf5_for_datasets(hdf5_path):
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='profil')
+
+        return dataset_list, dataset_list[0]
+
 
     # Callback to check if HDF5 has results
     @app.callback(
         Output("profil_text_box", "children", allow_duplicate=True),
-        Input("hdf5_path_store", "data"),
+        Input("profil_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
-    def profil_check_for_results(hdf5_path):
+    def profil_check_for_results(selected_dataset, hdf5_path):
+        if selected_dataset is None:
+            raise PreventUpdate
+
         hdf5_path = Path(hdf5_path)
 
         if hdf5_path is None:
             raise PreventUpdate
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            profil_group = hdf5_file['profil']
+            profil_group = hdf5_file[selected_dataset]
             if check_group_for_results(profil_group, mode='all'):
                 return 'Found results for all points'
             elif check_group_for_results(profil_group, mode='any'):
@@ -61,11 +77,11 @@ def callbacks_profil(app):
         Input("profil_heatmap_precision", "value"),
         Input("profil_heatmap_edit", "value"),
         Input('hdf5_path_store', 'data'),
+        Input("profil_select_dataset", "value"),
         prevent_initial_call=True,
     )
-    def profil_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path):
+    def profil_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
         hdf5_path = Path(hdf5_path)
-
         if hdf5_path is None:
             raise PreventUpdate
 
@@ -74,7 +90,7 @@ def callbacks_profil(app):
             z_max = None
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            profil_group = hdf5_file['profil']
+            profil_group = hdf5_file[selected_dataset]
             profil_df = profil_make_results_dataframe_from_hdf5(profil_group)
 
         masking = True
@@ -93,9 +109,10 @@ def callbacks_profil(app):
         Output("profil_plot", "figure"),
         Input("hdf5_path_store", "data"),
         Input("profil_position_store", "data"),
-        Input("profil_plot_select", "value")
+        Input("profil_plot_select", "value"),
+        Input("profil_select_dataset", "value"),
     )
-    def profil_update_plot(hdf5_path, position, plot_options):
+    def profil_update_plot(hdf5_path, position, plot_options, selected_dataset):
         hdf5_path = Path(hdf5_path)
 
         if hdf5_path is None:
@@ -107,7 +124,7 @@ def callbacks_profil(app):
         target_y = position[1]
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            profil_group = hdf5_file['profil']
+            profil_group = hdf5_file[selected_dataset]
             measurement_df = profil_get_measurement_from_hdf5(profil_group, target_x, target_y)
             results_dict = profil_get_results_from_hdf5(profil_group, target_x, target_y)
 
@@ -147,18 +164,19 @@ def callbacks_profil(app):
         State("profil_fit_height", "value"),
         State("profil_fit_nb_steps", "value"),
         State("hdf5_path_store", "data"),
+        State("profil_select_dataset", "value"),
         prevent_initial_call=True,
     )
 
-    def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path):
+    def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path, selected_dataset):
         hdf5_path = Path(hdf5_path)
 
         if hdf5_path is None:
             raise PreventUpdate
 
         if n_clicks > 0:
-            with h5py.File(hdf5_path, 'r') as hdf5_file:
-                profil_group = hdf5_file['profil']
+            with h5py.File(hdf5_path, 'a') as hdf5_file:
+                profil_group = hdf5_file[selected_dataset]
                 check = profil_batch_fit_steps(profil_group, fit_height, fit_degree)
             if check:
                 return 'Successfully refitted data', hdf5_path

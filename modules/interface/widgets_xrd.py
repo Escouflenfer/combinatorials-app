@@ -5,28 +5,6 @@ Class containing all Dash items and layout information for the XRD tab
 from dash import html, dcc
 from itertools import count, takewhile
 
-
-def frange(start, stop, step):
-    """
-    frange(start, stop, step) -> generator
-
-    Generate a sequence of numbers over a specified range.
-    Like the built-in range() function, but returns a generator
-    instead of a list. Used for floating-point ranges.
-
-    Parameters
-    ----------
-        start (int or float): The first number in the sequence.
-        stop (int or float): The sequence stops before this number.
-        step (int or float): The difference between each number in the sequence.
-
-    Returns
-    ----------
-        The next number in the sequence.
-    """
-    return takewhile(lambda x: x < stop, count(start, step))
-
-
 class WidgetsXRD:
 
     def __init__(self, folderpath):

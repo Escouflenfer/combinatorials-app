@@ -37,6 +37,11 @@ def callbacks_moke(app, children_moke):
         if selected_dataset is None:
             raise PreventUpdate
 
+        hdf5_path = Path(hdf5_path)
+
+        if hdf5_path is None:
+            raise PreventUpdate
+
         with h5py.File(hdf5_path, "r") as hdf5_file:
             moke_group = hdf5_file[selected_dataset]
             if check_group_for_results(moke_group, mode='all'):
@@ -110,7 +115,7 @@ def callbacks_moke(app, children_moke):
         Input("moke_heatmap_select", "value"),
         Input("moke_select_dataset", "value"),
     )
-    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict, heatmap_select, dataset_select):
+    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict, heatmap_select, selected_dataset):
         if hdf5_path is None or position is None:
             raise PreventUpdate
         hdf5_path = Path(hdf5_path)
@@ -121,7 +126,7 @@ def callbacks_moke(app, children_moke):
         fig = go.Figure()
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            moke_group = hdf5_file[dataset_select]
+            moke_group = hdf5_file[selected_dataset]
             measurement_df = moke_get_measurement_from_hdf5(moke_group, target_x, target_y)
             results_dict = moke_get_results_from_hdf5(moke_group, target_x, target_y)
 
@@ -156,14 +161,14 @@ def callbacks_moke(app, children_moke):
         State("moke_select_dataset", "value"),
         prevent_initial_call=True,
     )
-    def moke_make_database(n_clicks, hdf5_path, treatment_dict, dataset_select):
+    def moke_make_database(n_clicks, hdf5_path, treatment_dict, selected_dataset):
         if hdf5_path is None:
             raise PreventUpdate
 
         hdf5_path = Path(hdf5_path)
         if n_clicks > 0:
             with h5py.File(hdf5_path, 'a') as hdf5_file:
-                moke_group = hdf5_file[dataset_select]
+                moke_group = hdf5_file[selected_dataset]
                 print(moke_group)
                 results_dict = moke_batch_fit(moke_group, treatment_dict)
                 moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict)

@@ -12,41 +12,31 @@ def check_for_profil(hdf5_path):
             return False
 
 
-def profil_get_measurement_from_hdf5(hdf5_path, target_x, target_y):
-    if not check_for_profil(hdf5_path):
-        raise KeyError("Profilometry not found in file. Please check your file")
+def profil_get_measurement_from_hdf5(profil_group, target_x, target_y):
+    for position, position_group in profil_group.items():
+        instrument_group = position_group.get("instrument")
+        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+            measurement_group = position_group.get("measurement")
 
-    with h5py.File(hdf5_path, "r") as f:
-        profil_group = f["//profil"]
-        for position, position_group in profil_group.items():
-            instrument_group = position_group.get("instrument")
-            if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-                measurement_group = position_group.get("measurement")
+            distance_array = measurement_group["distance"][()]
+            profile_array = measurement_group["profile"][()]
 
-                distance_array = measurement_group["distance"][()]
-                profile_array = measurement_group["profile"][()]
+            measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
 
-                measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
-
-                return measurement_dataframe
+            return measurement_dataframe
 
 
-def profil_get_results_from_hdf5(hdf5_path, target_x, target_y):
-    if not check_for_profil(hdf5_path):
-        raise KeyError("Profilometry not found in file. Please check your file")
-
+def profil_get_results_from_hdf5(profil_group, target_x, target_y):
     data_dict = {}
 
-    with h5py.File(hdf5_path, "r") as f:
-        profil_group = f["/profil"]
-        for position, position_group in profil_group.items():
-            instrument_group = position_group.get("instrument")
-            if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-                results_group = position_group.get("results")
-                if results_group is None:
-                    raise KeyError("results group not found in file")
-                for value, value_group in results_group.items():
-                    data_dict[value] = value_group[()]
+    for position, position_group in profil_group.items():
+        instrument_group = position_group.get("instrument")
+        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+            results_group = position_group.get("results")
+            if results_group is None:
+                raise KeyError("results group not found in file")
+            for value, value_group in results_group.items():
+                data_dict[value] = value_group[()]
 
     return data_dict
 
@@ -129,7 +119,7 @@ def profil_measurement_dataframe_fit_steps(df, est_height, n_steps):
 
     # Detect the position of the first step of the measurement
     df = derivate_dataframe(df, "total_profile_(nm)")
-    df_head = df.loc[df["distance_(um)"] < 350]
+    df_head = df.loc[df["distance_(um)"] < 600]
     max_index = df_head["derivative"].idxmax()
     x0 = df_head.loc[max_index, "distance_(um)"]
 
@@ -155,66 +145,55 @@ def profil_measurement_dataframe_fit_steps(df, est_height, n_steps):
     return results_dict
 
 
-def profil_batch_fit_steps(hdf5_path, est_height, nb_steps):
-    if not check_for_profil(hdf5_path):
-        raise KeyError("Profilometry not found in file. Please check your file")
+def profil_batch_fit_steps(profil_group, est_height, nb_steps):
+    for position, position_group in profil_group.items():
+        measurement_group = position_group.get("measurement")
 
-    with h5py.File(hdf5_path, mode="a") as hdf5_file:
-        profil_group = hdf5_file["/profil"]
-        for position, position_group in profil_group.items():
-            measurement_group = position_group.get("measurement")
+        distance_array = measurement_group["distance"][()]
+        profile_array = measurement_group["profile"][()]
 
-            distance_array = measurement_group["distance"][()]
-            profile_array = measurement_group["profile"][()]
+        measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
 
-            measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
+        results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, est_height, nb_steps)
 
-            results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, est_height, nb_steps)
+        if "results" in position_group:
+            del position_group["results"]
 
-            if "results" in position_group:
-                del position_group["results"]
-
-            results = position_group.create_group("results")
-            try:
-                for key, result in results_dict.items():
-                    results[key] = result
-                results["measured_height"].attrs["units"] = "nm"
-            except KeyError:
-                raise KeyError("Given results dictionary not compatible with current version of this function."
-                               "Check compatibility with fit function")
+        results = position_group.create_group("results")
+        try:
+            for key, result in results_dict.items():
+                results[key] = result
+            results["measured_height"].attrs["units"] = "nm"
+        except KeyError:
+            raise KeyError("Given results dictionary not compatible with current version of this function."
+                           "Check compatibility with fit function")
 
     return True
 
 
 
-def profil_make_results_dataframe_from_hdf5(hdf5_path):
-    if not check_for_profil(hdf5_path):
-        raise KeyError("Profilometry not found in file. Please check your file")
-
+def profil_make_results_dataframe_from_hdf5(profil_group):
     data_dict_list = []
 
-    with h5py.File(hdf5_path, mode="r") as hdf5_file:
-        profil_group = hdf5_file["/profil"]
+    for position, position_group in profil_group.items():
+        instrument_group = position_group.get("instrument")
+        # Exclude spots outside the wafer
+        if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
 
-        for position, position_group in profil_group.items():
-            instrument_group = position_group.get("instrument")
-            # Exclude spots outside the wafer
-            if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
+            results_group = position_group.get("results")
 
-                results_group = position_group.get("results")
+            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
 
-                data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
+            if results_group is None:
+                continue
 
-                if results_group is None:
-                    continue
-
-                for value, value_group in results_group.items():
-                    if "units" in value.attrs:
-                        units = value.attrs["units"]
-                    else:
-                        units = "arb"
-                    data_dict[f"{value}_({units})"] = value_group[()]
-                data_dict_list.append(data_dict)
+            for value, value_group in results_group.items():
+                if "units" in value.attrs:
+                    units = value.attrs["units"]
+                else:
+                    units = "arb"
+                data_dict[f"{value}_({units})"] = value_group[()]
+            data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)
 

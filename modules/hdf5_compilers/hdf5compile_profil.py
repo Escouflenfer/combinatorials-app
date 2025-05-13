@@ -65,7 +65,7 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
     with h5py.File(hdf5_path, mode) as hdf5_file:
         # Create the root group for the measurement
         profil_group = hdf5_file.create_group(f"{dataset_name}")
-        profil_group.attrs["HT_type"] = "dektak"
+        profil_group.attrs["HT_type"] = "profil"
         profil_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
 
         for file_name in source_path.rglob('*.asc2d'):
@@ -103,22 +103,17 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
 
 
 
-def write_dektak_results_to_hdf5(hdf5_path, results_dict, target_x, target_y):
-    if not check_for_profil(hdf5_path):
-        raise KeyError("Profilometry not found in file. Please check your file")
-
-    with h5py.File(hdf5_path, mode='a') as hdf5_file:
-        profil_group = hdf5_file['entry/profil']
-        for position, position_group in profil_group.items():
-            instrument_group = position_group.get('instrument')
-            if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-                results = position_group.create_group("results")
-                try:
-                    for key, result in results_dict.items():
-                        results[key] = result
-                        results["measured_height"].attrs["units"] = "nm"
-                except KeyError:
-                    raise KeyError('Given results dictionary not compatible with current version of this function.'
-                                   'Check compatibility.')
+def write_dektak_results_to_hdf5(profil_group, results_dict, target_x, target_y):
+    for position, position_group in profil_group.items():
+        instrument_group = position_group.get('instrument')
+        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+            results = position_group.create_group("results")
+            try:
+                for key, result in results_dict.items():
+                    results[key] = result
+                    results["measured_height"].attrs["units"] = "nm"
+            except KeyError:
+                raise KeyError('Given results dictionary not compatible with current version of this function.'
+                               'Check compatibility.')
 
     return None

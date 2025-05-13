@@ -10,15 +10,24 @@ class WidgetsPROFIL:
         self.folderpath = folderpath
 
         # Widget for the text box
-        self.profil_center = html.Div(className="textbox top-center", children=[
-                    html.Div(className="text-top", children=[
-                        html.Span(children="test", id="profil_path_box")
-                    ]),
+        self.profil_center = (html.Div(
+            className="textbox top-center",
+            children=[
+                html.Div(
+                    className="text-top",
+                    children=[dcc.Dropdown(
+                        id="profil_select_dataset",
+                        className="long-item",
+                        options=[],
+                        value=None,
+                    )
+                    ],
+                ),
 
-                    html.Div(className="text-mid", children=[
-                        html.Span(children="test", id="profil_text_box")
-                    ])
-            ])
+                html.Div(className="text-mid", children=[
+                    html.Span(children="test", id="profil_text_box")
+                ])
+            ]))
 
         # Heatmap plot options
         self.profil_left = html.Div(className="subgrid top-left", children=[

@@ -1,5 +1,4 @@
 from dash import Input, Output, State, ctx
-from dash.exceptions import PreventUpdate
 
 from ..functions.functions_edx import *
 
@@ -42,6 +41,7 @@ def callbacks_edx(app):
         State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
+    @check_conditions(edx_conditions, hdf5_path_index=1)
     def edx_check_for_results(selected_dataset, hdf5_path):
         if selected_dataset is None:
             raise PreventUpdate
@@ -62,17 +62,19 @@ def callbacks_edx(app):
     
 
     # Callback to get elements for the dropdown menu
-    @app.callback([Output("edx_heatmap_select", "options"),
-                   Output("edx_heatmap_select", "value")],
-                  Input("hdf5_path_store", "data"))
-    def edx_update_element_list(hdf5_path):
+    @app.callback(
+        [Output("edx_heatmap_select", "options"),
+         Output("edx_heatmap_select", "value")],
+        Input("edx_select_dataset", "value"),
+        State("hdf5_path_store", "data")
+    )
+
+    @check_conditions(edx_conditions, hdf5_path_index=1)
+    def edx_update_element_list(selected_dataset, hdf5_path):
         hdf5_path = Path(hdf5_path)
 
-        if hdf5_path is None:
-            raise PreventUpdate
-
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            edx_group = hdf5_file['edx']
+            edx_group = hdf5_file[selected_dataset]
             edx_element_list = get_quantified_elements(edx_group)
         return edx_element_list, edx_element_list[0]
     
@@ -86,19 +88,19 @@ def callbacks_edx(app):
         Input('edx_heatmap_min', 'value'),
         Input('edx_heatmap_max', 'value'),
         Input('edx_heatmap_precision', 'value'),
+        Input("edx_select_dataset", "value"),
         State("hdf5_path_store", "data"),
     )
-    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, hdf5_path):
+    @check_conditions(edx_conditions, hdf5_path_index=5)
+    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, selected_dataset, hdf5_path):
         hdf5_path = Path(hdf5_path)
-        if hdf5_path is None:
-            raise PreventUpdate
 
         if ctx.triggered_id in ['edx_heatmap_select', 'edx_heatmap_precision'] :
             z_min = None
             z_max = None
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            edx_group = hdf5_file['edx']
+            edx_group = hdf5_file[selected_dataset]
             edx_df = edx_make_results_dataframe_from_hdf5(edx_group)
 
         fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
@@ -117,10 +119,12 @@ def callbacks_edx(app):
     # EDX plot
     @app.callback(
         Output("edx_plot", "figure"),
-        Input("hdf5_path_store", "data"),
+        Input("edx_select_dataset", "value"),
         Input("edx_position_store", "data"),
+        State("hdf5_path_store", "data"),
     )
-    def edx_update_plot(hdf5_path, position):
+    @check_conditions(edx_conditions, hdf5_path_index=2)
+    def edx_update_plot(selected_dataset, position, hdf5_path):
         hdf5_path = Path(hdf5_path)
         if hdf5_path is None:
             raise PreventUpdate
@@ -131,7 +135,7 @@ def callbacks_edx(app):
         target_y = position[1]
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
-            edx_group = hdf5_file['edx']
+            edx_group = hdf5_file[selected_dataset]
             measurement_df = edx_get_measurement_from_hdf5(edx_group, target_x, target_y)
 
         fig = edx_plot_measurement_from_dataframe(measurement_df)

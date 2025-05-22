@@ -1,18 +1,18 @@
 """
-Functions used in EDX interactive plot using dash module to detach it completely from Jupyter Notebooks.
-Internal use for Institut Néel and within the MaMMoS project, to export and read big datasets produced at Institut Néel.
-
-@Author: William Rigaut - Institut Néel (william.rigaut@neel.cnrs.fr)
 """
-
 from ..functions.functions_shared import *
 
 
-def edx_conditions(hdf5_path):
+def edx_conditions(hdf5_path, *args, **kwargs):
+    if hdf5_path is None:
+        return False
+    if not h5py.is_hdf5(hdf5_path):
+        return False
     with h5py.File(hdf5_path, "r") as hdf5_file:
         dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="edx")
         if len(dataset_list) == 0:
             return False
+    return True
 
 
 def get_quantified_elements(edx_group):

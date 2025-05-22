@@ -16,8 +16,10 @@ import stringcase
 # Decorator function to check conditions before executing callbacks, preventing errors
 def check_conditions(conditions_function, hdf5_path_index):
     def decorator(callback_function):
+        @functools.wraps(callback_function)
         def wrapper(*args, **kwargs):
             hdf5_path = args[hdf5_path_index]
+            hdf5_path = Path(hdf5_path)
             if not conditions_function(hdf5_path, *args, **kwargs):
                 raise PreventUpdate
             return callback_function(*args, **kwargs)

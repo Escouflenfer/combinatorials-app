@@ -14,16 +14,28 @@ def callbacks_moke(app, children_moke):
                   Input('moke_heatmap', 'clickData'),
                   prevent_initial_call=True
                   )
-    def update_position(clickData):
-        if clickData is None:
+    def update_position(heatmap_click):
+        if heatmap_click is None:
             return None
-        target_x = clickData['points'][0]['x']
-        target_y = clickData['points'][0]['y']
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
 
         position = (target_x, target_y)
 
         return position
 
+
+    @app.callback(
+        [Output("moke_select_dataset", "options"),
+        Output("moke_select_dataset", "value")],
+        Input("hdf5_path_store", "data"),
+    )
+    @check_conditions(moke_conditions, hdf5_path_index=0)
+    def moke_scan_hdf5_for_datasets(hdf5_path):
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='moke')
+
+        return dataset_list, dataset_list[0]
 
 
     # Callback to check if HDF5 has results
@@ -33,13 +45,9 @@ def callbacks_moke(app, children_moke):
         State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
+    @check_conditions(moke_conditions, hdf5_path_index=1)
     def moke_check_for_results(selected_dataset, hdf5_path):
         if selected_dataset is None:
-            raise PreventUpdate
-
-        hdf5_path = Path(hdf5_path)
-
-        if hdf5_path is None:
             raise PreventUpdate
 
         with h5py.File(hdf5_path, "r") as hdf5_file:
@@ -50,18 +58,6 @@ def callbacks_moke(app, children_moke):
                 return 'Found results for some points'
             else:
                 return'No results found'
-
-
-    @app.callback(
-        [Output("moke_select_dataset", "options"),
-        Output("moke_select_dataset", "value")],
-        Input("hdf5_path_store", "data"),
-    )
-    def moke_scan_hdf5_for_datasets(hdf5_path):
-        with h5py.File(hdf5_path, "r") as hdf5_file:
-            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='moke')
-
-        return dataset_list, dataset_list[0]
 
 
     # Callback for heatmap selection
@@ -80,11 +76,8 @@ def callbacks_moke(app, children_moke):
         Input("moke_select_dataset", "value"),
         prevent_initial_call=True,
     )
+    @check_conditions(moke_conditions, hdf5_path_index=5)
     def moke_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
-        hdf5_path = Path(hdf5_path)
-        if hdf5_path is None:
-            raise PreventUpdate
-
         with h5py.File(hdf5_path, 'r') as hdf5_file:
             moke_group = hdf5_file[selected_dataset]
 
@@ -108,17 +101,17 @@ def callbacks_moke(app, children_moke):
     # Profile plot
     @app.callback(
         Output("moke_plot", "figure"),
-        Input("hdf5_path_store", "data"),
         Input("moke_position_store", "data"),
         Input("moke_plot_select", "value"),
         Input("moke_data_treatment_store", "data"),
         Input("moke_heatmap_select", "value"),
         Input("moke_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
     )
-    def moke_update_plot(hdf5_path, position, plot_options, treatment_dict, heatmap_select, selected_dataset):
-        if hdf5_path is None or position is None:
+    @check_conditions(moke_conditions, hdf5_path_index=5)
+    def moke_update_plot(position, plot_options, treatment_dict, heatmap_select, selected_dataset, hdf5_path):
+        if position is None:
             raise PreventUpdate
-        hdf5_path = Path(hdf5_path)
 
         target_x = position[0]
         target_y = position[1]
@@ -161,15 +154,11 @@ def callbacks_moke(app, children_moke):
         State("moke_select_dataset", "value"),
         prevent_initial_call=True,
     )
+    @check_conditions(moke_conditions, hdf5_path_index=1)
     def moke_make_database(n_clicks, hdf5_path, treatment_dict, selected_dataset):
-        if hdf5_path is None:
-            raise PreventUpdate
-
-        hdf5_path = Path(hdf5_path)
         if n_clicks > 0:
             with h5py.File(hdf5_path, 'a') as hdf5_file:
                 moke_group = hdf5_file[selected_dataset]
-                print(moke_group)
                 results_dict = moke_batch_fit(moke_group, treatment_dict)
                 moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict)
                 return "Great Success!"
@@ -251,9 +240,8 @@ def callbacks_moke(app, children_moke):
         State("moke_select_dataset", "value"),
         prevent_initial_call=True
     )
+    @check_conditions(moke_conditions, hdf5_path_index=1)
     def make_loop_map(n_clicks, hdf5_path, options_dict, checklist, dataset_select):
-        hdf5_path = Path(hdf5_path)
-
         normalize = False
         if "normalize" in checklist:
             normalize = True

@@ -1,20 +1,20 @@
 """
-Functions used in MOKE interactive plot using Dash.
-Internal use for Institut Néel and within the MaMMoS project, to export and read big datasets produced at Institut Néel.
-
-@Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
-from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter
 
 from ..functions.functions_shared import *
 
 
-# def check_for_moke(hdf5_file):
-#     if "moke" in hdf5_file.keys():
-#         return True
-#     else:
-#         return False
+def moke_conditions(hdf5_path, *args, **kwargs):
+    if hdf5_path is None:
+        return False
+    if not h5py.is_hdf5(hdf5_path):
+        return False
+    with h5py.File(hdf5_path, "r") as hdf5_file:
+        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="moke")
+        if len(dataset_list) == 0:
+            return False
+    return True
 
 
 def moke_get_measurement_from_hdf5(moke_group, target_x, target_y, index=1):

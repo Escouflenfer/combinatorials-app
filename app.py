@@ -44,10 +44,10 @@ browser_tab = children_browser.make_tab_from_widgets()
 children_hdf5 = widgets_hdf5.WidgetsHDF5(UPLOAD_FOLDER_ROOT)
 hdf5_tab = children_hdf5.make_tab_from_widgets()
 
-children_profil = widgets_profil.WidgetsPROFIL(folderpath)
+children_profil = widgets_profil.WidgetsPROFIL()
 profil_tab = children_profil.make_tab_from_widgets()
 
-children_edx = widgets_edx.WidgetsEDX(folderpath)
+children_edx = widgets_edx.WidgetsEDX()
 edx_tab = children_edx.make_tab_from_widgets()
 
 children_moke = widgets_moke.WidgetsMOKE(folderpath)

@@ -5,9 +5,7 @@ from dash import html, dcc
 
 
 class WidgetsPROFIL:
-
-    def __init__(self, folderpath):
-        self.folderpath = folderpath
+    def __init__(self):
 
         # Widget for the text box
         self.profil_center = (html.Div(

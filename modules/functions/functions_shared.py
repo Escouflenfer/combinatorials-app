@@ -6,9 +6,23 @@ import plotly.graph_objects as go
 from pathlib import Path
 import h5py
 import shutil
+from dash.exceptions import PreventUpdate
+import functools
 from datetime import datetime
 import re
 import stringcase
+
+
+# Decorator function to check conditions before executing callbacks, preventing errors
+def check_conditions(conditions_function, hdf5_path_index):
+    def decorator(callback_function):
+        def wrapper(*args, **kwargs):
+            hdf5_path = args[hdf5_path_index]
+            if not conditions_function(hdf5_path, *args, **kwargs):
+                raise PreventUpdate
+            return callback_function(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def cleanup_file(path):

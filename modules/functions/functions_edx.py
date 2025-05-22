@@ -8,12 +8,11 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 from ..functions.functions_shared import *
 
 
-# def check_for_edx(hdf5_path):
-#     with h5py.File(hdf5_path, "r") as f:
-#         if 'edx' in f['entry'].keys():
-#             return True
-#         else:
-#             return False
+def edx_conditions(hdf5_path):
+    with h5py.File(hdf5_path, "r") as hdf5_file:
+        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="edx")
+        if len(dataset_list) == 0:
+            return False
 
 
 def get_quantified_elements(edx_group):

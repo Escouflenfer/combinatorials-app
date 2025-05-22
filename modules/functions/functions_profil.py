@@ -188,8 +188,8 @@ def profil_make_results_dataframe_from_hdf5(profil_group):
                 continue
 
             for value, value_group in results_group.items():
-                if "units" in value.attrs:
-                    units = value.attrs["units"]
+                if "units" in value_group.attrs:
+                    units = value_group.attrs["units"]
                 else:
                     units = "arb"
                 data_dict[f"{value}_({units})"] = value_group[()]

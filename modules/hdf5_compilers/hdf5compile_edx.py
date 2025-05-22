@@ -245,7 +245,7 @@ def make_energy_dataset(edx_dict, channels):
     return energy
 
 
-def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
+def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
     """
     Writes the contents of the EDX data file (.spx) to the given HDF5 file.
 
@@ -265,7 +265,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
     if dataset_name is None:
         dataset_name = source_path.stem
 
-    with h5py.File(hdf5_path, mode) as hdf5_file:
+    with h5py.File(hdf5_path, "a") as hdf5_file:
         edx_group = hdf5_file.create_group(f"{dataset_name}")
         edx_group.attrs["HT_type"] = "edx"
         edx_group.attrs["edx_writer"] = EDX_WRITER_VERSION

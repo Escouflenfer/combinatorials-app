@@ -6,20 +6,30 @@ from dash import html, dcc
 
 
 class WidgetsEDX:
+    def __init__(self):
 
-    def __init__(self, folderpath):
-        # Folderpath for the EDX spectras
-        self.folderpath = folderpath
+        # Widget for the text box
+        self.edx_center = (html.Div(
+            className="textbox top-center",
+            children=[
+                html.Div(
+                    className="text-top",
+                    children=[dcc.Dropdown(
+                        id="edx_select_dataset",
+                        className="long-item",
+                        options=[],
+                        value=None,
+                    )
+                    ],
+                ),
 
-        self.edx_text_box = dcc.Loading(
-            id="loading-1",
-            type="default",
-            children=html.Div(children=[html.Span(children="", id="edx_text_box")]),
-            className="top-center",
-        )
+                html.Div(className="text-mid", children=[
+                    html.Span(children="test", id="edx_text_box")
+                ])
+            ]))
 
         # Heatmap plot options
-        self.element = html.Div(
+        self.edx_left = html.Div(
             className="subgrid top-left",
             children=[
                 html.Div(
@@ -72,7 +82,7 @@ class WidgetsEDX:
         )
 
         # Slider Xrange component
-        self.plot_sliders = html.Div(
+        self.edx_right = html.Div(
             className="top-right",
         )
 
@@ -94,29 +104,31 @@ class WidgetsEDX:
             ]
         )
 
-    def make_tab_from_widgets(
-        self,
-        id_edx="edx",
-        label_edx="EDX",
-        value_edx="edx",
-    ):
+    def make_tab_from_widgets(self):
         edx_tab = dcc.Tab(
-            id=id_edx,
-            label=label_edx,
-            value=value_edx,
-            children=[
-                html.Div(
-                    [
-                        self.edx_text_box,
-                        self.element,
-                        self.plot_sliders,
-                        self.edx_heatmap,
-                        self.edx_plot,
-                        self.edx_stores,
-                    ],
-                    className="grid-container",
+            id="edx",
+            label="EDX",
+            value="edx",
+            children=[html.Div(children=[
+                dcc.Loading(
+                    id="loading_edx",
+                    type="default",
+                    delay_show=500,
+                    children=[
+                        html.Div(
+                            [
+                                self.edx_left,
+                                self.edx_center,
+                                self.edx_right,
+                                self.edx_heatmap,
+                                self.edx_plot,
+                                self.edx_stores
+                            ],
+                            className="grid-container",
+                        )
+                    ]
                 )
-            ],
+            ])]
         )
 
         return edx_tab

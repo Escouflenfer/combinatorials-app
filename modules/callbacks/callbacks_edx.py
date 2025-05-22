@@ -21,6 +21,46 @@ def callbacks_edx(app):
         return position
 
 
+    # Callback to find all relevant datasets in HDF5 file
+    @app.callback(
+        [Output("edx_select_dataset", "options"),
+         Output("edx_select_dataset", "value")],
+        Input("hdf5_path_store", "data"),
+    )
+    @check_conditions(edx_conditions, hdf5_path_index=0)
+    def edx_scan_hdf5_for_datasets(hdf5_path):
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='edx')
+
+        return dataset_list, dataset_list[0]
+    
+    
+    # Callback to check if HDF5 has results
+    @app.callback(
+        Output("edx_text_box", "children", allow_duplicate=True),
+        Input("edx_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
+        prevent_initial_call=True,
+    )
+    def edx_check_for_results(selected_dataset, hdf5_path):
+        if selected_dataset is None:
+            raise PreventUpdate
+
+        hdf5_path = Path(hdf5_path)
+
+        if hdf5_path is None:
+            raise PreventUpdate
+
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+            if check_group_for_results(edx_group, mode='all'):
+                return 'Found results for all points'
+            elif check_group_for_results(edx_group, mode='any'):
+                return 'Found results for some points'
+            else:
+                return'No results found'
+    
+
     # Callback to get elements for the dropdown menu
     @app.callback([Output("edx_heatmap_select", "options"),
                    Output("edx_heatmap_select", "value")],
@@ -35,6 +75,7 @@ def callbacks_edx(app):
             edx_group = hdf5_file['edx']
             edx_element_list = get_quantified_elements(edx_group)
         return edx_element_list, edx_element_list[0]
+    
 
     # Callback to plot EDX heatmap
     @app.callback(

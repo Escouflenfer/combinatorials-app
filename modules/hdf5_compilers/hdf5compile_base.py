@@ -9,6 +9,8 @@ import os
 from collections import defaultdict
 import pandas as pd
 
+from ..functions.functions_hdf5 import *
+
 
 def convertFloat(item):
     """
@@ -65,6 +67,60 @@ def create_multiple_groups(hdf5_node, group_list):
         node_list.append(nxgroup)
 
     return node_list
+
+
+def rename_group(group, old_name, new_name):
+    """
+    Renames a dataset (or subgroup) inside a given group.
+
+    Parameters:
+        group     : h5py.Group — the parent group
+        old_name  : str        — name of the dataset to rename (relative to group)
+        new_name  : str        — new name to assign within the same group
+    """
+    if new_name in group:
+        raise ValueError(f"Cannot rename: '{new_name}' already exists in group '{group.name}'.")
+
+    group.copy(old_name, new_name)
+    del group[old_name]
+
+
+def safe_create_new_subgroup(group, new_subgroup_name):
+    """
+        If subgroup doesn't exist, create a new subgroup. Returns subgroup.
+        Useful to avoid group already exists errors
+
+        Parameters:
+            group (h5py.Group) : The parent group
+            new_subgroup_name(str) : The name of the new subgroup
+
+        Returns:
+            h5py.Group: The new subgroup
+    """
+    if new_subgroup_name not in group:
+        new_subgroup = group.create_group(new_subgroup_name)
+    else:
+        new_subgroup = group[new_subgroup_name]
+    return new_subgroup
+
+
+def create_incremental_group(hdf5_file, base_name):
+    """
+    Creates a group with a base name and auto-incrementing index if it already exists.
+
+    Parameters:
+    - hdf5_file (h5py.File): An open h5py File object
+    - base_name (str): The base name for the group
+
+    Returns:
+        h5py.Group: Created subgroup
+    """
+    index = 1
+    group_name = f"{base_name}_{index}"
+    while group_name in hdf5_file:
+        index += 1
+        group_name = f"{base_name}_{index}"
+    return hdf5_file.create_group(group_name)
 
 
 def create_new_hdf5(hdf5_path, sample_metadata):

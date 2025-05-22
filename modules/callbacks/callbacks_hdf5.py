@@ -5,6 +5,7 @@ import zipfile
 from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 from ..hdf5_compilers.hdf5compile_edx import *
+from ..hdf5_compilers.hdf5compile_esrf import write_esrf_to_hdf5, write_xrd_results_to_hdf5
 from ..hdf5_compilers.hdf5compile_moke import *
 from ..hdf5_compilers.hdf5compile_profil import *
 from ..hdf5_compilers.hdf5compile_xrd import *
@@ -113,6 +114,11 @@ def callbacks_hdf5(app):
             if measurement_type =='Smartlab':
                 write_smartlab_to_hdf5(hdf5_path, uploaded_folder_path)
                 return f'Added {measurement_type} measurement to {hdf5_path}.'
+            if measurement_type == "ESRF":
+                write_esrf_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
+                return f'Added {measurement_type} measurement to {hdf5_path}.'
+            if measurement_type == "XRD results":
+                write_xrd_results_to_hdf5(hdf5_path, uploaded_folder_path)
 
             return f'Failed to add measurement to {hdf5_path}.'
 

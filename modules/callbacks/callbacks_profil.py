@@ -1,7 +1,3 @@
-from dash import Input, Output, State, ctx
-from dash.exceptions import PreventUpdate
-from plotly.subplots import make_subplots
-
 from ..functions.functions_profil import *
 
 """Callbacks for profil tab"""
@@ -15,11 +11,11 @@ def callbacks_profil(app):
         Input("profil_heatmap", "clickData"),
         prevent_initial_call=True,
     )
-    def profil_update_position(clickData):
-        if clickData is None:
+    def profil_update_position(heatmap_click):
+        if heatmap_click is None:
             return None
-        target_x = clickData["points"][0]["x"]
-        target_y = clickData["points"][0]["y"]
+        target_x = heatmap_click["points"][0]["x"]
+        target_y = heatmap_click["points"][0]["y"]
 
         position = (target_x, target_y)
 
@@ -31,6 +27,7 @@ def callbacks_profil(app):
          Output("profil_select_dataset", "value")],
         Input("hdf5_path_store", "data"),
     )
+    @check_conditions(profil_conditions, hdf5_path_index=0)
     def profil_scan_hdf5_for_datasets(hdf5_path):
         with h5py.File(hdf5_path, "r") as hdf5_file:
             dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='profil')
@@ -45,13 +42,9 @@ def callbacks_profil(app):
         State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
+    @check_conditions(profil_conditions, hdf5_path_index=1)
     def profil_check_for_results(selected_dataset, hdf5_path):
         if selected_dataset is None:
-            raise PreventUpdate
-
-        hdf5_path = Path(hdf5_path)
-
-        if hdf5_path is None:
             raise PreventUpdate
 
         with h5py.File(hdf5_path, 'r') as hdf5_file:
@@ -80,11 +73,8 @@ def callbacks_profil(app):
         Input("profil_select_dataset", "value"),
         prevent_initial_call=True,
     )
+    @check_conditions(profil_conditions, hdf5_path_index=5)
     def profil_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
-        hdf5_path = Path(hdf5_path)
-        if hdf5_path is None:
-            raise PreventUpdate
-
         if ctx.triggered_id in ["profil_heatmap_select", "profil_heatmap_edit", "profil_heatmap_precision"]:
             z_min = None
             z_max = None
@@ -107,16 +97,13 @@ def callbacks_profil(app):
     # Profile plot
     @app.callback(
         Output("profil_plot", "figure"),
-        Input("hdf5_path_store", "data"),
+        Input("profil_select_dataset", "value"),
         Input("profil_position_store", "data"),
         Input("profil_plot_select", "value"),
-        Input("profil_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
     )
-    def profil_update_plot(hdf5_path, position, plot_options, selected_dataset):
-        hdf5_path = Path(hdf5_path)
-
-        if hdf5_path is None:
-            raise PreventUpdate
+    @check_conditions(profil_conditions, hdf5_path_index=3)
+    def profil_update_plot(selected_dataset, position, plot_options, hdf5_path):
         if position is None:
             raise PreventUpdate
 
@@ -167,13 +154,8 @@ def callbacks_profil(app):
         State("profil_select_dataset", "value"),
         prevent_initial_call=True,
     )
-
+    @check_conditions(profil_conditions, hdf5_path_index=3)
     def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path, selected_dataset):
-        hdf5_path = Path(hdf5_path)
-
-        if hdf5_path is None:
-            raise PreventUpdate
-
         if n_clicks > 0:
             with h5py.File(hdf5_path, 'a') as hdf5_file:
                 profil_group = hdf5_file[selected_dataset]

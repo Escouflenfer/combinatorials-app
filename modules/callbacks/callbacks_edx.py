@@ -1,5 +1,3 @@
-from dash import Input, Output, State, ctx
-
 from ..functions.functions_edx import *
 
 def callbacks_edx(app):
@@ -9,11 +7,11 @@ def callbacks_edx(app):
                   Input('edx_heatmap', 'clickData'),
                   prevent_initial_call=True
                   )
-    def edx_update_position(heatmapclick):
-        if heatmapclick is None:
+    def edx_update_position(heatmap_click):
+        if heatmap_click is None:
             return None
-        target_x = heatmapclick['points'][0]['x']
-        target_y = heatmapclick['points'][0]['y']
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
 
         position = (target_x, target_y)
 
@@ -46,11 +44,6 @@ def callbacks_edx(app):
         if selected_dataset is None:
             raise PreventUpdate
 
-        hdf5_path = Path(hdf5_path)
-
-        if hdf5_path is None:
-            raise PreventUpdate
-
         with h5py.File(hdf5_path, 'r') as hdf5_file:
             edx_group = hdf5_file[selected_dataset]
             if check_group_for_results(edx_group, mode='all'):
@@ -71,8 +64,6 @@ def callbacks_edx(app):
 
     @check_conditions(edx_conditions, hdf5_path_index=1)
     def edx_update_element_list(selected_dataset, hdf5_path):
-        hdf5_path = Path(hdf5_path)
-
         with h5py.File(hdf5_path, 'r') as hdf5_file:
             edx_group = hdf5_file[selected_dataset]
             edx_element_list = get_quantified_elements(edx_group)
@@ -93,8 +84,6 @@ def callbacks_edx(app):
     )
     @check_conditions(edx_conditions, hdf5_path_index=5)
     def edx_update_heatmap(heatmap_select, z_min, z_max, precision, selected_dataset, hdf5_path):
-        hdf5_path = Path(hdf5_path)
-
         if ctx.triggered_id in ['edx_heatmap_select', 'edx_heatmap_precision'] :
             z_min = None
             z_max = None
@@ -125,9 +114,6 @@ def callbacks_edx(app):
     )
     @check_conditions(edx_conditions, hdf5_path_index=2)
     def edx_update_plot(selected_dataset, position, hdf5_path):
-        hdf5_path = Path(hdf5_path)
-        if hdf5_path is None:
-            raise PreventUpdate
         if position is None:
             raise PreventUpdate
 

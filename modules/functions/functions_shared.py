@@ -8,6 +8,8 @@ import h5py
 import shutil
 from dash.exceptions import PreventUpdate
 import functools
+from plotly.subplots import make_subplots
+from dash import Input, Output, State, ctx
 from datetime import datetime
 import re
 import stringcase
@@ -18,8 +20,9 @@ def check_conditions(conditions_function, hdf5_path_index):
     def decorator(callback_function):
         @functools.wraps(callback_function)
         def wrapper(*args, **kwargs):
+            args = list(args)
+            args[hdf5_path_index] = Path(args[hdf5_path_index])
             hdf5_path = args[hdf5_path_index]
-            hdf5_path = Path(hdf5_path)
             if not conditions_function(hdf5_path, *args, **kwargs):
                 raise PreventUpdate
             return callback_function(*args, **kwargs)

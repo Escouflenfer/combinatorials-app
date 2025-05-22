@@ -4,12 +4,16 @@ import plotly.graph_objs as go
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 from functions_shared import *
 
-def check_for_profil(hdf5_path):
-    with h5py.File(hdf5_path, "r") as f:
-        if "profil" in f.keys():
-            return True
-        else:
+def profil_conditions(hdf5_path, *args, **kwargs):
+    if hdf5_path is None:
+        return False
+    if not h5py.is_hdf5(hdf5_path):
+        return False
+    with h5py.File(hdf5_path, "r") as hdf5_file:
+        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="profil")
+        if len(dataset_list) == 0:
             return False
+    return True
 
 
 def profil_get_measurement_from_hdf5(profil_group, target_x, target_y):

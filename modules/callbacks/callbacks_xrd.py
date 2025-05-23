@@ -1,8 +1,5 @@
 """
-callback functions used in XRD interface.
-Internal use for Institut Néel and within the MaMMoS project, to export and read big datasets produced at Institut Néel.
 
-@Author: William Rigaut - Institut Néel (william.rigaut@neel.cnrs.fr)
 """
 
 from dash import Input, Output, callback
@@ -12,94 +9,93 @@ from ..functions.functions_shared import *
 
 
 def callbacks_xrd(app, children_xrd):
-    # XRD components
-    @callback(
-        Output("xrd_heatmap_select", "options", allow_duplicate=False),
-        Output("xrd_heatmap_select", "value", allow_duplicate=False),
-        Input("xrd_path_store", "data"),
+    
+    # Callback to update xrd plot based on heatmap click position
+    @app.callback(Output('xrd_position_store', 'data'),
+                  Input('xrd_heatmap', 'clickData'),
+                  prevent_initial_call=True
+                  )
+    def update_position(heatmap_click):
+        if heatmap_click is None:
+            return None
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
+
+        position = (target_x, target_y)
+
+        return position
+
+    @app.callback(
+        [Output("xrd_select_dataset", "options"),
+         Output("xrd_select_dataset", "value")],
+        Input("hdf5_path_store", "data"),
+    )
+    @check_conditions(xrd_conditions, hdf5_path_index=0)
+    def xrd_scan_hdf5_for_datasets(hdf5_path):
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='xrd')
+
+        return dataset_list, dataset_list[0]
+
+
+    # Callback to check if HDF5 has results
+    @app.callback(
+        [Output("xrd_heatmap_select", "options"),
+         Output("xrd_heatmap_select", "value"),
+        Output("xrd_text_box", "children", allow_duplicate=True)],
+        Input("xrd_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
         prevent_initial_call=True,
     )
-    def update_data_type_options(foldername):
-        refinement_options = check_xrd_refinement(foldername)
+    @check_conditions(xrd_conditions, hdf5_path_index=1)
+    def xrd_check_for_results(selected_dataset, hdf5_path):
+        if selected_dataset is None:
+            raise PreventUpdate
 
-        if refinement_options is not False:
-            display_options = [
-                option for option in refinement_options if not option.endswith("_err")
-            ]
-            return (["Raw XRD data"] + display_options), "Raw XRD data"
-        else:
-            return ["Raw XRD data"], "Raw XRD data"
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            xrd_group = hdf5_file[selected_dataset]
+            if check_group_for_results(xrd_group):
+                results_key_list = {}
+                for position, position_group in xrd_group.items():
+                    results_group = position_group['results']
+                return 'Found results for all points'
+            else:
+                return 'Missing results'
 
-    # XRD heatmap
-    @callback(
-        Output("xrd_heatmap", "figure"),
-        Output("xrd_heatmap_min", "value"),
-        Output("xrd_heatmap_max", "value"),
-        Input("xrd_path_store", "data"),
+            
+    # Callback for heatmap selection
+    @app.callback(
+        [
+            Output("xrd_heatmap", "figure", allow_duplicate=True),
+            Output("xrd_heatmap_min", "value"),
+            Output("xrd_heatmap_max", "value"),
+        ],
         Input("xrd_heatmap_select", "value"),
         Input("xrd_heatmap_min", "value"),
         Input("xrd_heatmap_max", "value"),
-    )
-    def update_xrd_heatmap(foldername, datatype, z_min, z_max):
-        fig = plot_xrd_heatmap(foldername, datatype, z_min, z_max)
-
-        if datatype == "Raw XRD data":
-            title = "None"
-        elif datatype.startswith("Q"):
-            title = "Wgt. frac. (%)"
-        else:
-            title = "Lattice (Å)"
-
-        z_min = significant_round(fig.data[0].zmin, 5)
-        z_max = significant_round(fig.data[0].zmax, 5)
-
-        return fig, z_min, z_max
-
-    @callback(
-        Output("xrd_heatmap_min", "value", allow_duplicate=True),
-        Output("xrd_heatmap_max", "value", allow_duplicate=True),
-        Input("xrd_heatmap_select", "value"),
+        Input("xrd_heatmap_precision", "value"),
+        Input("xrd_heatmap_edit", "value"),
+        Input('hdf5_path_store', 'data'),
+        Input("xrd_select_dataset", "value"),
         prevent_initial_call=True,
     )
-    def update_z_values(datatype):
-        return None, None
+    @check_conditions(xrd_conditions, hdf5_path_index=5)
+    def xrd_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            xrd_group = hdf5_file[selected_dataset]
 
-    # XRD single pattern
-    @callback(
-        Output("xrd_plot", "figure"),
-        Input("xrd_path_store", "data"),
-        Input("xrd_heatmap_select", "value"),
-        Input("xrd_heatmap_select", "options"),
-        Input("xrd_heatmap", "clickData"),
-    )
-    def update_xrd_pattern(foldername, datatype, options, clickData):
-        foldername = pathlib.Path(foldername)
+            if ctx.triggered_id in ["xrd_heatmap_select", "xrd_heatmap_edit", "xrd_heatmap_precision"]:
+                z_min = None
+                z_max = None
 
-        # Check for both Smartlab and ESRF data
-        measurement_list = create_coordinate_map(foldername)
-        if measurement_list == []:
-            measurement_list = create_coordinate_map(
-                foldername, prefix=foldername.name, suffix=".xy"
-            )
+            masking = True
+            if edit_toggle in ["edit", "unfiltered"]:
+                masking = False
 
-        if clickData is None:
-            x_pos, y_pos = 0, 0
-        else:
-            x_pos = int(clickData["points"][0]["x"])
-            y_pos = int(clickData["points"][0]["y"])
+            xrd_df = xrd_make_results_dataframe_from_hdf5(xrd_group)
+            fig = make_heatmap_from_dataframe(xrd_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
 
-        for measurement in measurement_list:
-            if x_pos == measurement[0] and y_pos == measurement[1]:
-                xrd_filename = measurement[2]
+            z_min = np.round(fig.data[0].zmin, precision)
+            z_max = np.round(fig.data[0].zmax, precision)
 
-        fig = plot_xrd_pattern(foldername, datatype, options, xrd_filename)
-
-        fig.update_layout(
-            height=650,
-            width=1000,
-            title=f"XRD spectra for {foldername} at position ({x_pos}, {y_pos})",
-        )
-        fig.update_xaxes(title="2Theta (°)")
-        fig.update_yaxes(title="Counts")
-
-        return fig
+            return fig, z_min, z_max

@@ -374,19 +374,12 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
 
     return fig
 
-def check_group_for_results(hdf5_group, mode='any', return_list=False):
-    if mode not in ['any', 'all']:
-        raise ValueError("Mode must be either 'any' or 'all'")
-
+def check_group_for_results(hdf5_group):
     for position, position_group in hdf5_group.items():
-        if mode == 'any' and 'results' in position_group:
-            return True
-        if mode == 'all' and 'results' not in position_group:
+        if 'results' not in position_group:
             return False
-    if mode == 'any':
-        return False
-    if mode == 'all':
-        return True
+    return True
+
 
 
 def get_hdf5_datasets(hdf5_file, dataset_type):

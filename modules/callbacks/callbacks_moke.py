@@ -52,12 +52,9 @@ def callbacks_moke(app, children_moke):
 
         with h5py.File(hdf5_path, "r") as hdf5_file:
             moke_group = hdf5_file[selected_dataset]
-            if check_group_for_results(moke_group, mode='all'):
+            if check_group_for_results(moke_group):
                 return 'Found results for all points'
-            elif check_group_for_results(moke_group, mode='any'):
-                return 'Found results for some points'
-            else:
-                return'No results found'
+            return'No results found'
 
 
     # Callback for heatmap selection

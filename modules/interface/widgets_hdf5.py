@@ -22,6 +22,7 @@ class WidgetsHDF5:
                 ]),
                 html.Div(
                     className='text-mid long-item',
+                    id="hdf5_dataset_input",
                     children=[
                         html.Label("Dataset Name"),
                         dcc.Input(
@@ -39,7 +40,10 @@ class WidgetsHDF5:
                 ),
                 html.Div(
                     className='text-9',
-                    children=[dcc.Dropdown(className='long-item', id='hdf5_measurement_type', options=['EDX', 'PROFIL', 'MOKE', 'XRD'], value=None)]
+                    children=[dcc.Dropdown(className='long-item',
+                                           id='hdf5_measurement_type',
+                                           options=['EDX', 'PROFIL', 'MOKE', 'XRD', "ESRF", "XRD results"],
+                                           value=None)]
                 )
             ],
         )

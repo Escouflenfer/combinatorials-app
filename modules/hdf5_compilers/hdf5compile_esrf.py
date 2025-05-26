@@ -248,14 +248,20 @@ def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
                         r_coeffs_group = target_results_group.create_group("r_coefficients")
                         write_dict_to_hdf5(r_coeffs, r_coeffs_group)
 
-                        global_parameters_group = target_results_group.create_group("global_parameters")
-                        write_dict_to_hdf5(global_params, global_parameters_group)
-
                         phases_group = target_results_group.create_group("phases")
                         write_dict_to_hdf5(phases, phases_group)
+                        for structure, value in global_params.items():
+                            check = False
+                            for phase, phase_group in phases_group.items():
+                                if phase == structure[1:]:
+                                    phase_group.create_dataset("phase_fraction", data=global_params[structure])
+                                    check = True
+                                    break
+                            if not check:
+                                phase_group = phases_group.create_group(structure[1:])
+                                phase_group.create_dataset("phase_fraction", data=global_params[structure])
 
                         fit_group = target_results_group.create_group("fits")
                         for col in df.columns:
                             node = fit_group.create_dataset(col, data=np.array(df[col]), dtype='float')
-
                         break

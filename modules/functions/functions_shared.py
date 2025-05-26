@@ -90,10 +90,11 @@ def detect_measurement(filename_list: list):
        """
     measurement_dict = {
         "Smartlab": ["ras"],
-        "MOKE": ["txt"],
+        "MOKE": ["log"],
         "EDX": ["spx"],
         "PROFIL": ["asc2d"],
-        "ESRF": ["h5"]
+        "ESRF": ["h5"],
+        "XRD results": ["lst"]
     }
 
     for measurement_type, file_type in measurement_dict.items():
@@ -379,7 +380,6 @@ def check_group_for_results(hdf5_group):
         if 'results' not in position_group:
             return False
     return True
-
 
 
 def get_hdf5_datasets(hdf5_file, dataset_type):

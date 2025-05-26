@@ -21,7 +21,7 @@ class WidgetsHDF5:
                     ),
                 ]),
                 html.Div(
-                    className='text-mid long-item',
+                    className='text-mid',
                     id="hdf5_dataset_input",
                     children=[
                         html.Label("Dataset Name"),
@@ -146,7 +146,12 @@ class WidgetsHDF5:
             id='hdf5',
             label='HDF5',
             value='hdf5',
-            children=[
+            children=[html.Div(children=[
+                dcc.Loading(
+                    id="loading-hdf5",
+                    type="default",
+                    delay_show=500,
+                    children=[
                 html.Div(
                     [
                         self.hdf5_left,
@@ -156,7 +161,8 @@ class WidgetsHDF5:
                     ],
                     className="grid-container",
                 )
-            ],
+                ])
+            ])]
         )
 
         return hdf5_tab

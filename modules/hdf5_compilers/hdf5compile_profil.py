@@ -2,6 +2,7 @@
 Functions for DEKTAK parsing
 """
 from ..hdf5_compilers.hdf5compile_base import *
+from ..functions.functions_shared import *
 
 PROFIL_WRITER_VERSION = '0.1 beta'
 
@@ -67,7 +68,7 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
         profil_group.attrs["HT_type"] = "profil"
         profil_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
 
-        for file_name in source_path.rglob('*.asc2d'):
+        for file_name in safe_rglob(source_path, '*.asc2d'):
             file_path = source_path / file_name
 
             header_dict = read_header_from_dektak(file_path)

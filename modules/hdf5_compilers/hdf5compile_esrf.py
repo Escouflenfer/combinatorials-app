@@ -5,7 +5,7 @@ import io
 import h5py
 import fabio
 
-from ..functions.functions_shared import is_macos_system_file
+from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 
 ESRF_WRITER_VERSION = '0.1 beta'
@@ -141,7 +141,7 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
     if dataset_name is None:
         dataset_name = source_path.stem
 
-    for file in source_path.rglob("*.h5"):
+    for file in safe_rglob(source_path, pattern="*.h5"):
         if "PROCESSED_DATA" in str(file):
             processed_h5_path = file
             raw_h5_path = Path(file.as_posix().replace("PROCESSED_DATA", "RAW_DATA"))
@@ -155,9 +155,13 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
     with h5py.File(hdf5_path, 'a') as hdf5_file:
         with h5py.File(raw_h5_path, "r") as raw_source:
             esrf_group = hdf5_file.create_group(dataset_name)
+            esrf_group.attrs["HT_type"] = "xrd"
+            esrf_group.attrs["instrument"] = "bm02 - esrf"
+            esrf_group.attrs["esrf_writer"] = ESRF_WRITER_VERSION
+
             alignment_group = esrf_group.create_group("alignment_scans")
             for name, group in raw_source.items():
-                alignment_test, type = esrf_check_if_alignment(group)
+                alignment_test, alignment_type = esrf_check_if_alignment(group)
 
                 source_instrument_group = group.get('instrument')
                 source_measurement_group = group.get("measurement")
@@ -166,13 +170,13 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
                 y_pos = np.round(source_instrument_group["positioners/ysamp"][()])
 
                 if alignment_test:
-                    target_position_group = create_incremental_group(alignment_group, f"{type}_alignment")
+                    target_position_group = create_incremental_group(alignment_group, f"{alignment_type}_alignment")
                 else:
                     target_position_group = esrf_group.create_group(f"({x_pos},{y_pos})")
 
                 target_position_group.attrs["index"] = name
 
-                # Brutal copy of instrument group, it's a dump anyways
+                # Brutal copy of instrument group, it's a dump anyway
                 raw_source.copy(source_instrument_group, target_position_group, expand_soft=True)
                 rename_group(target_position_group, "instrument/positioners/xsamp", "instrument/x_pos")
                 rename_group(target_position_group, "instrument/positioners/ysamp", "instrument/y_pos")
@@ -220,15 +224,18 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
 
 
 def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
+    if isinstance (hdf5_path, str):
+        hdf5_path = Path(hdf5_path)
+    if isinstance(results_folderpath, str):
+        results_folderpath = Path(results_folderpath)
+
     with h5py.File(hdf5_path, "a") as target:
 
         if target_dataset not in target:
             raise NameError("Couldn't locate target dataset")
 
         esrf_group = target.get(target_dataset)
-        for lst_filepath in results_folderpath.rglob("*.lst"):
-            if is_macos_system_file(lst_filepath):
-                continue
+        for lst_filepath in safe_rglob(results_folderpath, pattern="*.lst"):
             dia_filepath = lst_filepath.with_suffix(".dia")
             file_index = str(lst_filepath.stem).split('_')[-1]
             for name, group in esrf_group.items():

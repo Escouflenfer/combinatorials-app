@@ -176,7 +176,7 @@ def callbacks_hdf5(app):
 
         if measurement_type == "XRD results":
             with h5py.File(hdf5_path, "r") as hdf5_file:
-                datasets = get_hdf5_datasets(hdf5_file, "ESRF") + get_hdf5_datasets(hdf5_file, "XRD")
+                datasets = get_hdf5_datasets(hdf5_file, "xrd")
             if not datasets:
                 return new_children, "No ESRF or XRD datasets found in HDF5 file"
             else:
@@ -189,8 +189,7 @@ def callbacks_hdf5(app):
                         value=datasets[0],
                     )
                 ]
-        else:
-            return new_children
+        return new_children, "YOLO"
 
 
 

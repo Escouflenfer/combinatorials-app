@@ -1,7 +1,9 @@
 """
 Functions for MOKE parsing
 """
-from ..functions.functions_moke import moke_integrate_pulse_array
+
+from ..functions.functions_shared import *
+from ..functions.functions_moke import *
 from ..hdf5_compilers.hdf5compile_base import *
 import stringcase
 
@@ -212,7 +214,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
 
     found_info = False
     header_dict =  {}
-    for file_name in source_path.rglob('info.txt'):
+    for file_name in safe_rglob(source_path, pattern='info.txt'):
         file_path = source_path / file_name
         header_dict = read_header_from_moke(file_path)
         found_info = True
@@ -227,7 +229,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
 
     grouped_dict = defaultdict(list)
 
-    for file_name in source_path.rglob('p*.txt'):
+    for file_name in safe_rglob(source_path, pattern='p*.txt'):
         match = re.search(pattern, str(file_name))
         if match:
             p_number = match.group(1)  # Extract p_number from measurement name

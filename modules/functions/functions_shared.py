@@ -61,11 +61,33 @@ def get_version(tag:str):
                 return version
 
 
+def safe_glob(directory, pattern='*'):
+    return [
+        f for f in directory.glob(pattern)
+        if f.is_file() and not (f.name.startswith('.') or f.name.startswith('._'))
+    ]
+
+
+def safe_rglob(directory, pattern='*'):
+    return [
+        f for f in directory.rglob(pattern)
+        if f.is_file() and not f.name.startswith('.') and not f.name.startswith('._')
+    ]
+
+
 def is_macos_system_file(file_path):
-    if '/._' not in file_path and not file_path.startswith('._'):
-        return False
-    else:
-        return True
+    if type(file_path) is str:
+        print(file_path)
+        if '/._' not in file_path and not file_path.startswith('._'):
+            return False
+        else:
+            return True
+    if type(file_path) is Path:
+        print(file_path.name)
+        if not file_path.name.startswith('._'):
+            return False
+        else:
+            return True
 
 
 def unpack_zip_directory(filename_list: list, depth: int, remove_directories = True):

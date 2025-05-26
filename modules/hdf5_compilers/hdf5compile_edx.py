@@ -2,6 +2,7 @@
 Functions for EDX parsing
 """
 from ..hdf5_compilers.hdf5compile_base import *
+from ..functions.functions_shared import *
 
 EDX_WRITER_VERSION = '0.1 beta'
 
@@ -270,7 +271,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
         edx_group.attrs["HT_type"] = "edx"
         edx_group.attrs["edx_writer"] = EDX_WRITER_VERSION
 
-        for file_name in source_path.rglob('*.spx'):
+        for file_name in safe_rglob(source_path, pattern='*.spx'):
             file_path = source_path / file_name
 
             scan_numbers = get_position_from_path(file_path)

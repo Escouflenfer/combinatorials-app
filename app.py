@@ -21,6 +21,8 @@ from modules.callbacks import (
     callbacks_hdf5,
 )
 
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.max_columns', None)
 
 folderpath = None
 

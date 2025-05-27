@@ -4,6 +4,7 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 
 @Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
+from typing import List
 
 from ..functions.functions_shared import *
 
@@ -13,7 +14,7 @@ def xrd_conditions(hdf5_path, *args, **kwargs):
     if not h5py.is_hdf5(hdf5_path):
         return False
     with h5py.File(hdf5_path, "r") as hdf5_file:
-        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="esrf")
+        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="xrd")
         if len(dataset_list) == 0:
             return False
     return True
@@ -52,26 +53,37 @@ def xrd_get_results_from_hdf5(xrd_group, target_x, target_y):
 
 
 def xrd_make_results_dataframe_from_hdf5(xrd_group):
+    OPTIONS_LIST = ['A', 'C', 'phase_fraction']
+
     data_dict_list = []
 
     for position, position_group in xrd_group.items():
+        if position == "alignment_scans":
+            continue
         instrument_group = position_group.get("instrument")
         # Exclude spots outside the wafer
         if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
 
-            results_group = position_group.get("results")
-
             data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
 
-            if results_group is None:
+            phases_group = position_group.get('results/phases')
+            if phases_group is None:
                 continue
 
-            for value, value_group in results_group.items():
-                if "units" in value_group.attrs:
-                    units = value_group.attrs["units"]
-                else:
-                    units = "arb"
-                data_dict[f"{value}_({units})"] = value_group[()]
+            for phase, phase_group in phases_group.items():
+                for value, value_group in phase_group.items():
+                    if value in OPTIONS_LIST:
+                        dataset = str(value_group[()].decode())
+                        print(dataset, position)
+                        if "units" in value_group.attrs:
+                            units = value_group.attrs["units"]
+                        else:
+                            units = "arb"
+
+                        dataset = float(dataset.split("+")[0])
+
+                        data_dict[f"[{phase}]_{value}_({units})"] = dataset
+
             data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)

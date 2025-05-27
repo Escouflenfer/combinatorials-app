@@ -37,31 +37,6 @@ def callbacks_xrd(app, children_xrd):
 
         return dataset_list, dataset_list[0]
 
-
-    # Callback to check if HDF5 has results
-    @app.callback(
-        [Output("xrd_heatmap_select", "options"),
-         Output("xrd_heatmap_select", "value"),
-        Output("xrd_text_box", "children", allow_duplicate=True)],
-        Input("xrd_select_dataset", "value"),
-        State("hdf5_path_store", "data"),
-        prevent_initial_call=True,
-    )
-    @check_conditions(xrd_conditions, hdf5_path_index=1)
-    def xrd_check_for_results(selected_dataset, hdf5_path):
-        if selected_dataset is None:
-            raise PreventUpdate
-
-        with h5py.File(hdf5_path, "r") as hdf5_file:
-            xrd_group = hdf5_file[selected_dataset]
-            if check_group_for_results(xrd_group):
-                results_key_list = {}
-                for position, position_group in xrd_group.items():
-                    results_group = position_group['results']
-                return 'Found results for all points'
-            else:
-                return 'Missing results'
-
             
     # Callback for heatmap selection
     @app.callback(
@@ -69,6 +44,8 @@ def callbacks_xrd(app, children_xrd):
             Output("xrd_heatmap", "figure", allow_duplicate=True),
             Output("xrd_heatmap_min", "value"),
             Output("xrd_heatmap_max", "value"),
+            Output("xrd_heatmap_select", "options"),
+            Output("xrd_heatmap_select", "value"),
         ],
         Input("xrd_heatmap_select", "value"),
         Input("xrd_heatmap_min", "value"),
@@ -93,9 +70,10 @@ def callbacks_xrd(app, children_xrd):
                 masking = False
 
             xrd_df = xrd_make_results_dataframe_from_hdf5(xrd_group)
+            print(xrd_df)
             fig = make_heatmap_from_dataframe(xrd_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
 
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max
+            return fig, z_min, z_max, xrd_df.columns[2:], xrd_df.columns[2]

@@ -104,21 +104,22 @@ def callbacks_hdf5(app):
             print(uploaded_folder_path)
             if measurement_type == 'EDX':
                 write_edx_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
-                return f'Added {measurement_type} measurement to {hdf5_path}.'
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
             if measurement_type =='MOKE':
                 write_moke_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
-                return f'Added {measurement_type} measurement to {hdf5_path}.'
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
             if measurement_type == 'PROFIL':
                 write_dektak_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
-                return f'Added {measurement_type} measurement to {hdf5_path}.'
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
             if measurement_type =='Smartlab':
                 write_smartlab_to_hdf5(hdf5_path, uploaded_folder_path)
-                return f'Added {measurement_type} measurement to {hdf5_path}.'
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
             if measurement_type == "ESRF":
                 write_esrf_to_hdf5(hdf5_path, uploaded_folder_path, dataset_name=dataset_name)
-                return f'Added {measurement_type} measurement to {hdf5_path}.'
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
             if measurement_type == "XRD results":
                 write_xrd_results_to_hdf5(hdf5_path, uploaded_folder_path, target_dataset=dataset_name)
+                return f'Added {measurement_type} measurement to {hdf5_path} as {dataset_name}.'
 
             return f'Failed to add measurement to {hdf5_path}.'
 

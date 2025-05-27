@@ -250,7 +250,7 @@ def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
                                          names=column_names)
                         df["Residual"] = df["Total Counts"] - df["Calculated"]
 
-                        target_results_group = safe_create_new_subgroup(group, "results3")
+                        target_results_group = safe_create_new_subgroup(group, "results")
 
                         r_coeffs_group = target_results_group.create_group("r_coefficients")
                         write_dict_to_hdf5(r_coeffs, r_coeffs_group)

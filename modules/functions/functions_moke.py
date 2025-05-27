@@ -392,7 +392,7 @@ def moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict=None):
             for key, value in treatment_dict.items():
                 parameters_group.create_dataset(key, data=value)
 
-            save_results_dict_to_hdf5(results_group, results_dict[position])
+            save_dict_to_hdf5(results_group, results_dict[position])
 
     return True
 

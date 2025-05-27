@@ -5,8 +5,9 @@ import io
 import h5py
 import fabio
 from ..hdf5_compilers.hdf5compile_base import *
+from ..functions.functions_shared import *
 
-XRD_WRITER_VERSION = '0.1 beta'
+SMARTLAB_WRITER_VERSION = '0.1 beta'
 
 def get_scan_numbers(filename):
     """
@@ -51,7 +52,7 @@ def group_files_by_position(filename_list, authorized_files=None):
     return grouped_dictionary
 
 
-def read_data_from_ras(file_string):
+def read_data_from_ras(file_path):
     """
     Reads a .ras file and returns the following dictionaries and a list:
 
@@ -66,7 +67,9 @@ def read_data_from_ras(file_string):
     tuple
         A tuple containing the disp_dict, file_dict, hw_dict, meas_dict, and data
     """
-    lines = io.StringIO(file_string).readlines()
+    with open(file_path, "r", encoding="iso-8859-1") as file:
+        lines = file.readlines()
+
     parse_ignore = [
         "*RAS_DATA_START",
         "*RAS_HEADER_START",
@@ -88,9 +91,9 @@ def read_data_from_ras(file_string):
         if line.startswith("*"):
             formatted_line = line.strip().split(" ", 1)
             if formatted_line[0] not in parse_ignore:
+                # Skip DISP lines, they are useless outside the SmartLab software
                 if formatted_line[0].startswith("*DISP"):
-                    key = formatted_line[0].replace("*DISP_", "")
-                    disp_dict[key] = formatted_line[1]
+                    continue
 
                 elif formatted_line[0].startswith("*FILE"):
                     key = formatted_line[0].replace("*FILE_", "")
@@ -111,74 +114,7 @@ def read_data_from_ras(file_string):
             # Read the data inside the file
             data.append([[elm] for elm in line.strip().split(" ")])
 
-    return disp_dict, file_dict, hw_dict, meas_dict, data
-
-
-def get_results_from_refinement(file_string):
-    """
-    Reads a .lst file and returns the following dictionaries:
-
-    r_coeffs: A dictionary containing the R-factors from the refinement.
-    global_params: A dictionary containing the global parameters from the refinement.
-    phases: A dictionary containing the parameters for each phase, including the atomic positions.
-
-    Parameters
-    ----------
-    filepath : str or Path
-        The filepath to the .lst file
-
-    Returns
-    -------
-    tuple
-        A tuple containing the r_coeffs, global_params, and phases dictionaries
-    """
-    attrib_list = [
-        "SpacegroupNo=",
-        "HermannMauguin=",
-        "XrayDensity=",
-        "Rphase=",
-        "UNIT=",
-        "A=",
-        "B=",
-        "C=",
-        "k1=",
-        "k2=",
-        "B1=",
-    ]
-    r_coeffs, global_params, phases = {}, {}, {}
-    current_phase = "None"
-
-    lines = io.StringIO(file_string).readlines()
-    for idx, line in enumerate(lines):
-        # Parse the result file from the refinement
-        if line.startswith("Rp="):
-            R_factors = line.split()
-            for elm in [elm.strip().split("=") for elm in R_factors]:
-                r_coeffs[elm[0]] = elm[1]
-        elif line.startswith("Q"):
-            elm = line.strip().split("=")
-            global_params[elm[0]] = elm[1]
-        elif line.startswith("Local parameters and GOALs for phase"):
-            current_phase = line.split()[-1]
-            phases[current_phase] = {}
-        elif True in [line.startswith(elm) for elm in attrib_list]:
-            elm = line.strip().split("=")
-            phases[current_phase][elm[0]] = convertFloat(elm[1])
-        elif line.startswith("GEWICHT="):
-            elm = [elm.split("=") for elm in line.strip().split(", ")]
-            phases[current_phase][elm[0][0]] = elm[0][1]
-            # Check if the mean value of GEWICHT was also calculated
-            if len(elm) > 1:
-                phases[current_phase][elm[1][0]] = float(elm[1][1])
-        elif line.startswith("Atomic positions for phase"):
-            phases[current_phase]["Atomic positions"] = {}
-            atomic_positions = []
-
-            for atomic_position_line in lines[idx:]:
-                atomic_positions.append(atomic_position_line)
-            phases[current_phase]["Atomic positions"] = atomic_positions
-
-    return r_coeffs, global_params, phases
+    return file_dict, hw_dict, meas_dict, data
 
 
 def set_instrument_and_result_from_dict(xrd_dict, node):
@@ -209,7 +145,7 @@ def set_instrument_and_result_from_dict(xrd_dict, node):
     return None
 
 
-def get_2dcamera_from_img(filepath):
+def read_image_from_img(filepath):
     """
     Reads the header and data of a 2D detector image file and returns them as a tuple.
 
@@ -224,21 +160,15 @@ def get_2dcamera_from_img(filepath):
         A tuple containing the header and data of the 2D detector image, as read from the file.
     """
 
-    prefix = filepath.name.strip(".ras")
-
-    for file in os.listdir(filepath.parent):
-        if prefix in file and file.endswith(".img"):
-            fullpath = filepath.parent / file
-            with open(fullpath, "rb") as f:
-                img = fabio.open(f)
-                img_header = img.header
-                img_data = img.data
-            break
+    with open(filepath, "rb") as f:
+        img = fabio.open(f)
+        img_header = img.header
+        img_data = img.data
 
     return img_header, img_data
 
 
-def write_smartlab_to_hdf5(hdf5_path, measurement_dict, mode="a"):
+def write_smartlab_to_hdf5(hdf5_path, source_path, dataset_name, mode="a"):
     """
     Writes the contents of the XRD data file (.ras) to the given HDF5 file.
 
@@ -250,72 +180,71 @@ def write_smartlab_to_hdf5(hdf5_path, measurement_dict, mode="a"):
     Returns:
         None
     """
-    for scan_index in measurement_dict.keys():
-        scan_numbers = [scan_index[:3], scan_index[3:]]
-        for file_name in measurement_dict[scan_index]:
-            file_string = measurement_dict[scan_index][file_name]
-            if 'test' in file_name:
-                continue
-            if file_name.endswith(".ras"):
-                disp_dict, file_dict, hw_dict, meas_dict, data_dict = read_data_from_ras(file_string)
-                try:
-                    x_pos, y_pos = meas_dict["COND_AXIS_POSITION-6"], meas_dict["COND_AXIS_POSITION-7"]
-                except KeyError:
-                    print(f"Could not access x and y positions in {file_name}")
-                    x_pos, y_pos = np.nan, np.nan
-            if file_name.endswith(".lst"):
-                r_coeffs_dict, global_params_dict, phases_dict = get_results_from_refinement(file_string)
-            if file_name.endswith(".img"):
-                img_header, img_data = file_string[0], np.array(file_string[1])
+    if isinstance (hdf5_path, str):
+        hdf5_path = Path(hdf5_path)
+    if isinstance(source_path, str):
+        source_path = Path(source_path)
 
-        with h5py.File(hdf5_path, mode) as f:
-            scan_group = f"/xrd/scan_{scan_numbers[0]},{scan_numbers[1]}/"
-            scan = f.create_group(scan_group)
+    if dataset_name is None:
+        dataset_name = source_path.stem
+
+    with h5py.File(hdf5_path, mode) as hdf5_file:
+        xrd_group = hdf5_file.create_group(dataset_name)
+        xrd_group.attrs["HT_type"] = "xrd"
+        xrd_group.attrs["instrument"] = "Rigaku Smartlab"
+        xrd_group.attrs["smartlab_writer"] = SMARTLAB_WRITER_VERSION
+
+        for ras_name in safe_rglob(source_path, pattern="*.ras"):
+            if "test" in str(ras_name):
+                continue
+            ras_path = source_path / ras_name
+            file_dict, hw_dict, meas_dict, data = read_data_from_ras(ras_path)
+            x_pos = float(meas_dict["COND_AXIS_POSITION-6"].strip('"'))
+            y_pos = float(meas_dict["COND_AXIS_POSITION-7"].strip('"'))
+
+            for img_name in safe_rglob(source_path, pattern="*.img"):
+                if str(ras_path.stem) in str(img_name):
+                    img_path = source_path / img_name
+                    img_header, img_data = read_image_from_img(img_path)
+
+            position_group = xrd_group.create_group(f"({x_pos},{y_pos})")
+            position_group.attrs["index"] = get_scan_numbers(str(ras_name))
 
             # Instrument group for metadata
-            instrument = scan.create_group("instrument")
-            instrument.attrs["NX_class"] = "HTinstrument"
-            instrument["x_pos"] = convertFloat(x_pos.replace('"', ""))
-            instrument["y_pos"] = convertFloat(y_pos.replace('"', ""))
-            instrument["x_pos"].attrs["units"] = "mm"
-            instrument["y_pos"].attrs["units"] = "mm"
+            instrument_group = position_group.create_group("instrument")
+            instrument_group.attrs["NX_class"] = "HTinstrument"
 
-            # Separating the header into 4 groups for clarity
-            disp, file, hw, meas = create_multiple_groups(
-                instrument, ["disp", "file", "hardware", "meas"]
-            )
-            set_instrument_and_result_from_dict(disp_dict, disp)
-            set_instrument_and_result_from_dict(file_dict, file)
-            set_instrument_and_result_from_dict(hw_dict, hw)
-            set_instrument_and_result_from_dict(meas_dict, meas)
+            instrument_group["x_pos"] = convertFloat(x_pos)
+            instrument_group["y_pos"] = convertFloat(y_pos)
+            instrument_group["x_pos"].attrs["units"] = "mm"
+            instrument_group["y_pos"].attrs["units"] = "mm"
 
-            # Results group for metadata
-            results = scan.create_group("results")
-            results.attrs["NX_class"] = "HTresults"
-            r_coefficients, global_parameters, phases = create_multiple_groups(
-                results, ["r_coefficients", "global_parameters", "phases"]
-            )
-            set_instrument_and_result_from_dict(r_coeffs_dict, r_coefficients)
-            set_instrument_and_result_from_dict(global_params_dict, global_parameters)
-            set_instrument_and_result_from_dict(phases_dict, phases)
+            file_group = instrument_group.create_group("file")
+            save_dict_to_hdf5(file_group, file_dict)
+
+            hw_group = instrument_group.create_group("hardware")
+            save_dict_to_hdf5(hw_group, hw_dict)
+
+            meas_group = instrument_group.create_group("parameters")
+            save_dict_to_hdf5(meas_group, meas_dict)
+
+            img_metadata_group = instrument_group.create_group("image")
+            save_dict_to_hdf5(img_metadata_group, img_header)
 
             # Data group
-            data = scan.create_group("measurement")
-            data.attrs["NX_class"] = "HTmeasurement"
-            angle = [convertFloat(elm[0][0]) for elm in data_dict]
-            counts = [convertFloat(elm[1][0]) for elm in data_dict]
-            angle = data.create_dataset("angle", (len(angle),), data=angle, dtype="float")
-            counts = data.create_dataset(
+            measurement_group = position_group.create_group("measurement")
+            measurement_group.attrs["NX_class"] = "HTmeasurement"
+            tth = [convertFloat(elm[0][0]) for elm in data]
+            counts = [convertFloat(elm[1][0]) for elm in data]
+            tth_group = measurement_group.create_dataset("angle", (len(tth),), data=tth, dtype="float")
+            counts = measurement_group.create_dataset(
                 "counts", (len(counts),), data=counts, dtype="float"
             )
-            angle.attrs["units"] = "degrees"
+
+            tth_group.attrs["units"] = "deg"
             counts.attrs["units"] = "counts"
 
             # Image group
-            image = scan.create_group("image")
-            image.attrs["NX_class"] = "HTimage"
-
-            set_instrument_and_result_from_dict(img_header, image)
-            image.create_dataset("2D_Camera_Image", img_data.shape, data=img_data)
+            measurement_group.create_dataset("2Dimage", img_data.shape, data=img_data)
 
     return None

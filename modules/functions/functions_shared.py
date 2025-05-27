@@ -111,7 +111,7 @@ def detect_measurement(filename_list: list):
            version (str): detected measurement type
        """
     measurement_dict = {
-        "Smartlab": ["ras"],
+        "XRD": ["ras"],
         "MOKE": ["log"],
         "EDX": ["spx"],
         "PROFIL": ["asc2d"],
@@ -420,18 +420,18 @@ def pairwise(list):
     return zip(a, a)
 
 
-def save_results_dict_to_hdf5(hdf5_results_group, results_dict):
+def save_dict_to_hdf5(hdf5_group, results_dict):
     for key, value in results_dict.items():
         if isinstance(value, dict):
             # Create a group and recurse
-            subgroup = hdf5_results_group.create_group(key)
-            save_results_dict_to_hdf5(subgroup, value)
+            subgroup = hdf5_group.create_group(key)
+            save_dict_to_hdf5(subgroup, value)
         else:
             if isinstance(value, (int, float, str, np.ndarray, list, tuple)):
-                hdf5_results_group.create_dataset(key, data=value)
+                hdf5_group.create_dataset(key, data=value)
             else:
                 # Fallback: store as string representation
-                hdf5_results_group.create_dataset(key, data=str(value))
+                hdf5_group.create_dataset(key, data=str(value))
 
 
 def get_target_position_group(measurement_group, target_x, target_y):

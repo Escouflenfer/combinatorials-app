@@ -61,13 +61,6 @@ class WidgetsHDF5:
                     children=[html.Span(children="test", id="hdf5_text_box")],
                 ),
                 html.Div(
-                    className="text-9",
-                    children=[
-                        html.Button(id='hdf5_reset', children="Reset Changes", n_clicks=0),
-                        html.Button(id='hdf5_save', children="Save Changes", n_clicks=0)
-                        ],
-                ),
-                html.Div(
                     className='text-7',
                     children=[html.Button(id='hdf5_new', children="Create new HDF5", n_clicks=0)]
                 )

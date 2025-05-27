@@ -234,11 +234,12 @@ def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
         if target_dataset not in target:
             raise NameError("Couldn't locate target dataset")
 
-        esrf_group = target.get(target_dataset)
+        target_group = target.get(target_dataset)
+
         for lst_filepath in safe_rglob(results_folderpath, pattern="*.lst"):
             dia_filepath = lst_filepath.with_suffix(".dia")
             file_index = str(lst_filepath.stem).split('_')[-1]
-            for name, group in esrf_group.items():
+            for name, group in target_group.items():
                 if name == "alignment_scans":
                     continue
                 else:

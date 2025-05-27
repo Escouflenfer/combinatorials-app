@@ -248,17 +248,18 @@ def heatmap_layout(title=""):
     return layout
 
 
-def plot_layout(title=""):
+def plot_layout(title="", showlegend=False):
     """
     Generates a standardized layout for all plots.
 
     Parameters:
         title (str): The title of the plot.
+        showlegend (bool): Whether to show the legend.
 
     Returns:
         go.Layout(): layout object that can be passed to a figure
     """
-    layout = go.Layout(height=750, width=1100, title=title, showlegend=False)
+    layout = go.Layout(height=750, width=1100, title=title, showlegend=showlegend)
     return layout
 
 

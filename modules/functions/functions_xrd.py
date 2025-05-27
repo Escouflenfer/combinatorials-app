@@ -53,7 +53,6 @@ def xrd_get_fits_from_hdf5(xrd_group, target_x, target_y):
         fits_dict[dataset] = dataset_group[()]
 
     fits_dataframe = pd.DataFrame(fits_dict)
-    print(fits_dataframe)
     return fits_dataframe
 
 
@@ -124,7 +123,7 @@ def xrd_plot_fits_from_dataframe(fig, df, fits=None):
     colors = cycle(px.colors.qualitative.Plotly)
 
     if not fits:
-        fits = ["Total Counts"]
+        fits = df.columns[1:]
     fig.update_xaxes(title_text="2th (°)")
     fig.update_yaxes(title_text="Counts")
 
@@ -135,20 +134,24 @@ def xrd_plot_fits_from_dataframe(fig, df, fits=None):
                 y=df[fit],
                 mode="lines",
                 line=dict(color=next(colors), width=2),
+                name=fit
             )
 
         )
     return fig
 
 
-def xrd_plot_image_from_array(fig, array):
-    if array.ndim != 2:
-        raise ValueError("Input array must be 2D.")
+def xrd_plot_image_from_array(array, z_min, z_max):
+
+    if z_min is None:
+        z_min = np.nanmin(array)
+    if z_max is None:
+        z_max = np.nanmax(array)
 
     fig = go.Figure(data=go.Heatmap(
         z=array,
         colorscale="Plasma",
-        colorbar=dict(title="Counts")
+        colorbar=colorbar_layout(z_min, z_max, precision=0, title="count")
     ))
 
     fig.update_layout(
@@ -159,5 +162,10 @@ def xrd_plot_image_from_array(fig, array):
         width = 800,
         margin=dict(r=100, t=100)
     )
+
+    if z_min is not None:
+        fig.data[0].update(zmin=z_min)
+    if z_max is not None:
+        fig.data[0].update(zmax=z_max)
 
     return fig

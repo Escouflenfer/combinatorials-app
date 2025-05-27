@@ -92,11 +92,18 @@ class WidgetsXRD:
                         dcc.Dropdown(
                             className="long-item",
                             id="xrd_fits_select",
-                            options=[]
+                            options=[],
+                            multi=True
                         )
                     ]
-                )
-
+                ),
+                html.Div(className="subgrid-7", children=[
+                    html.Label("Image colorbar bounds"),
+                    dcc.Input(id="xrd_image_max", className="long-item", type="number", placeholder="maximum value",
+                              value=None),
+                    dcc.Input(id="xrd_image_min", className="long-item", type="number", placeholder="minimum value",
+                              value=None)
+                ]),
             ],
         )
 

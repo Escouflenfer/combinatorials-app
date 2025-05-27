@@ -46,7 +46,6 @@ def callbacks_xrd(app, children_xrd):
             Output("xrd_heatmap_min", "value"),
             Output("xrd_heatmap_max", "value"),
             Output("xrd_heatmap_select", "options"),
-            Output("xrd_heatmap_select", "value"),
         ],
         Input("xrd_heatmap_select", "value"),
         Input("xrd_heatmap_min", "value"),
@@ -76,27 +75,41 @@ def callbacks_xrd(app, children_xrd):
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max, xrd_df.columns[2:], xrd_df.columns[2]
+            return fig, z_min, z_max, xrd_df.columns[2:]
 
 
 
     @app.callback(
-        Output("xrd_plot", "figure"),
+        [
+            Output("xrd_plot", "figure"),
+            Output("xrd_fits_select", "options"),
+            Output("xrd_fits_select", "value"),
+            Output("xrd_image_min", "value"),
+            Output("xrd_image_max", "value"),
+        ],
         Input("xrd_position_store", "data"),
         Input("xrd_plot_select", "value"),
         Input("xrd_select_dataset", "value"),
         Input("xrd_fits_select", "value"),
+        Input("xrd_image_min", "value"),
+        Input("xrd_image_max", "value"),
         Input("hdf5_path_store", "data"),
     )
-    @check_conditions(xrd_conditions, hdf5_path_index=4)
-    def xrd_update_plot(position, plot_select, selected_dataset, fits_select, hdf5_path):
+    @check_conditions(xrd_conditions, hdf5_path_index=6)
+    def xrd_update_plot(position, plot_select, selected_dataset, fits_select, z_min, z_max, hdf5_path):
         if position is None:
             raise PreventUpdate
 
         target_x = position[0]
         target_y = position[1]
 
+        options = []
+
         fig = go.Figure()
+
+        if not plot_select == "image":
+            z_min = None
+            z_max = None
 
         with h5py.File(hdf5_path, "r") as hdf5_file:
             xrd_group = hdf5_file[selected_dataset]
@@ -104,16 +117,29 @@ def callbacks_xrd(app, children_xrd):
                 measurement_df = xrd_get_integrated_from_hdf5(xrd_group, target_x, target_y)
                 fig = xrd_plot_integrated_from_dataframe(fig, measurement_df)
                 fig.update_layout(plot_layout(title=""))
+
             if plot_select == "fitted":
                 fits_df = xrd_get_fits_from_hdf5(xrd_group, target_x, target_y)
+                options = fits_df.columns[1:]
                 fig = xrd_plot_fits_from_dataframe(fig, fits_df, fits_select)
-                fig.update_layout(plot_layout(title=""))
+                fig.update_layout(plot_layout(title="", showlegend=True))
+
             if plot_select == "image":
                 image_array = xrd_get_image_from_hdf5(xrd_group, target_x, target_y)
-                print(image_array, image_array.shape)
-                fig = xrd_plot_image_from_array(fig, image_array)
+                fig = xrd_plot_image_from_array(image_array, z_min, z_max)
+                z_min = np.round(fig.data[0].zmin, 0)
+                z_max = np.round(fig.data[0].zmax, 0)
 
-        return fig
+
+        # Prevent resetting of xrd_fits_select
+        if ctx.triggered_id in ["xrd_fits_select"]:
+            fits_select_value = fits_select
+        else:
+            fits_select_value = options
+
+
+
+        return fig, options, fits_select_value, z_min, z_max
 
 
 

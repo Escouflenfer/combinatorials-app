@@ -72,6 +72,30 @@ class WidgetsXRD:
         self.xrd_right = html.Div(
             className="subgrid top-right",
             children=[
+                html.Div(
+                    className="subgrid-1",
+                    children=[
+                        dcc.RadioItems(
+                            id="xrd_plot_select",
+                            options=[
+                                {"label": "Image", "value": "image"},
+                                {"label": "Integrated", "value": "integrated"},
+                                {"label": "Fitted", "value": "fitted"},
+                            ],
+                            value="image"
+                        )
+                    ]
+                ),
+                html.Div(
+                    className="subgrid-3",
+                    children=[
+                        dcc.Dropdown(
+                            className="long-item",
+                            id="xrd_fits_select",
+                            options=[]
+                        )
+                    ]
+                )
 
             ],
         )

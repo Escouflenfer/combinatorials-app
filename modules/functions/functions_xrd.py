@@ -5,6 +5,8 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 @Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
 from typing import List
+import plotly.express as px
+from itertools import cycle
 
 from ..functions.functions_shared import *
 
@@ -24,10 +26,10 @@ def xrd_get_integrated_from_hdf5(xrd_group, target_x, target_y):
     position_group = get_target_position_group(xrd_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
 
-    integrated_group = measurement_group.get(["CdTe_integrate"])
+    integrated_group = measurement_group.get("CdTe_integrate")
 
     q_array = integrated_group['q'][()]
-    intensity_array = integrated_group['intensity'][()]
+    intensity_array = integrated_group['intensity'][0]
 
     measurement_dataframe = pd.DataFrame({"q": q_array, "intensity": intensity_array})
 
@@ -38,9 +40,21 @@ def xrd_get_image_from_hdf5(xrd_group, target_x, target_y):
     position_group = get_target_position_group(xrd_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
 
-    image_array = measurement_group['CdTe'][()]
+    image_array = measurement_group['CdTe'][0]
 
     return image_array
+
+
+def xrd_get_fits_from_hdf5(xrd_group, target_x, target_y):
+    fits_dict = {}
+    position_group = get_target_position_group(xrd_group, target_x, target_y)
+    fits_group = position_group.get("results/fits")
+    for dataset, dataset_group in fits_group.items():
+        fits_dict[dataset] = dataset_group[()]
+
+    fits_dataframe = pd.DataFrame(fits_dict)
+    print(fits_dataframe)
+    return fits_dataframe
 
 
 def xrd_get_results_from_hdf5(xrd_group, target_x, target_y):
@@ -74,7 +88,6 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
                 for value, value_group in phase_group.items():
                     if value in OPTIONS_LIST:
                         dataset = str(value_group[()].decode())
-                        print(dataset, position)
                         if "units" in value_group.attrs:
                             units = value_group.attrs["units"]
                         else:
@@ -89,3 +102,62 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
     result_dataframe = pd.DataFrame(data_dict_list)
 
     return result_dataframe
+
+
+
+def xrd_plot_integrated_from_dataframe(fig, df):
+    fig.update_xaxes(title_text="q (A-1)")
+    fig.update_yaxes(title_text="Counts")
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["q"],
+            y=df["intensity"],
+            mode="lines",
+            line=dict(color="SlateBlue", width=2),
+        )
+    )
+    return fig
+
+
+def xrd_plot_fits_from_dataframe(fig, df, fits=None):
+    colors = cycle(px.colors.qualitative.Plotly)
+
+    if not fits:
+        fits = ["Total Counts"]
+    fig.update_xaxes(title_text="2th (°)")
+    fig.update_yaxes(title_text="Counts")
+
+    for fit in fits:
+        fig.add_trace(
+            go.Scatter(
+                x=df["Angle"],
+                y=df[fit],
+                mode="lines",
+                line=dict(color=next(colors), width=2),
+            )
+
+        )
+    return fig
+
+
+def xrd_plot_image_from_array(fig, array):
+    if array.ndim != 2:
+        raise ValueError("Input array must be 2D.")
+
+    fig = go.Figure(data=go.Heatmap(
+        z=array,
+        colorscale="Plasma",
+        colorbar=dict(title="Counts")
+    ))
+
+    fig.update_layout(
+        title="Image",
+        xaxis_title="x",
+        yaxis_title="y",
+        height = 800,
+        width = 800,
+        margin=dict(r=100, t=100)
+    )
+
+    return fig

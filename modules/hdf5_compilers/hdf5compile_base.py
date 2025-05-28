@@ -1,13 +1,6 @@
 from pathlib import Path
+
 import h5py
-import xml.etree.ElementTree as et
-import pathlib
-import h5py
-import numpy as np
-import re
-import os
-from collections import defaultdict
-import pandas as pd
 
 from ..functions.functions_hdf5 import *
 
@@ -125,7 +118,7 @@ def create_incremental_group(hdf5_file, base_name):
 
 def create_new_hdf5(hdf5_path, sample_metadata):
     """
-    Creates a new HDF5 file with the structure for a HT experiment.
+    Creates a new HDF5 file with the structure for an HT experiment.
 
     Args:
         hdf5_path (str or Path): The path to the HDF5 file to be created.

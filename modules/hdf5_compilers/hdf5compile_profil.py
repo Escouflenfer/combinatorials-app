@@ -1,8 +1,8 @@
 """
 Functions for DEKTAK parsing
 """
-from ..hdf5_compilers.hdf5compile_base import *
 from ..functions.functions_shared import *
+from ..hdf5_compilers.hdf5compile_base import *
 
 PROFIL_WRITER_VERSION = '0.1 beta'
 

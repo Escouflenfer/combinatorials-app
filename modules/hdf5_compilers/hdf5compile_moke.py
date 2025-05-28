@@ -2,10 +2,10 @@
 Functions for MOKE parsing
 """
 
-from ..functions.functions_shared import *
+import stringcase
+
 from ..functions.functions_moke import *
 from ..hdf5_compilers.hdf5compile_base import *
-import stringcase
 
 MOKE_WRITER_VERSION = '0.1 beta'
 

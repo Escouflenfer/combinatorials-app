@@ -1,11 +1,11 @@
 """
 Functions for XRD parsing (Rigaku SmartLab and ESRF NeXuS)
 """
-import io
-import h5py
 import fabio
-from ..hdf5_compilers.hdf5compile_base import *
+import h5py
+
 from ..functions.functions_shared import *
+from ..hdf5_compilers.hdf5compile_base import *
 
 SMARTLAB_WRITER_VERSION = '0.1 beta'
 
@@ -174,7 +174,6 @@ def write_smartlab_to_hdf5(hdf5_path, source_path, dataset_name, mode="a"):
 
     Args:
         hdf5_path (str or Path): The path to the HDF5 file to write the data to.
-        measurement_dict:
         mode (str, optional): The mode to open the HDF5 file in. Defaults to "a".
 
     Returns:

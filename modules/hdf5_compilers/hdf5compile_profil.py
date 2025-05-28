@@ -66,6 +66,7 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
         # Create the root group for the measurement
         profil_group = hdf5_file.create_group(f"{dataset_name}")
         profil_group.attrs["HT_type"] = "profil"
+        profil_group.attrs["instrument"] = "Bruker DektakXT"
         profil_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
 
         for file_name in safe_rglob(source_path, '*.asc2d'):
@@ -111,9 +112,12 @@ def write_dektak_results_to_hdf5(profil_group, results_dict, target_x, target_y)
             try:
                 for key, result in results_dict.items():
                     results[key] = result
-                    results["measured_height"].attrs["units"] = "nm"
             except KeyError:
                 raise KeyError('Given results dictionary not compatible with current version of this function.'
                                'Check compatibility.')
+            results["measured_height"].attrs["units"] = "nm"
+            results["extracted_positions"].attrs["units"] = "μm"
+            results["extracted_heights"].attrs["units"] = "nm"
+            results["adjusting_slope"].attrs["units"] = "nm/μm"
 
     return None

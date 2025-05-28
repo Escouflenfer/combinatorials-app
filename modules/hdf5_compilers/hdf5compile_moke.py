@@ -240,6 +240,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
         # Create the root group for the measurement
         moke_group = hdf5_file.create_group(f"{dataset_name}")
         moke_group.attrs["HT_type"] = "moke"
+        moke_group.attrs["instrument"] = "S-MOKE"
         moke_group.attrs["moke_writer"] = MOKE_WRITER_VERSION
 
         # Create a scan_parameters group in moke with the contents of info.txt
@@ -256,7 +257,8 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
             x_pos = info_dict['x_pos']
             y_pos = info_dict['y_pos']
 
-            scan = moke_group.create_group(f"({x_pos}, {y_pos})")
+            scan = moke_group.create_group(f"({x_pos},{y_pos})")
+            scan.attrs["index"] = scan_number
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")
@@ -309,6 +311,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
                 mag_node.attrs["units"] = "V"
                 pul_node.attrs["units"] = "V"
                 sum_node.attrs["units"] = "V"
+                integrated_pulse_node.attrs["units"] = "V.s"
 
             # Add mean of measurements to HDF5
             mean_integrated_pulse = np.mean(np.stack(integrated_pulse_arrays), axis=0)
@@ -317,7 +320,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
             mean_reflectivity = np.mean(np.stack(sum_arrays), axis=0)
 
             shot_group = data.create_group("shot_mean")
-            shot_group.create_dataset(
+            integrated_pulse_mean_node = shot_group.create_dataset(
                 "integrated_pulse_mean", data=mean_integrated_pulse, dtype="float"
             )
             pulse_mean_node = shot_group.create_dataset(
@@ -333,3 +336,40 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
             pulse_mean_node.attrs["units"] = "V"
             mag_mean_node.attrs["units"] = "V"
             sum_mean_node.attrs["units"] = "V"
+            integrated_pulse_mean_node.attrs["units"] = "V.s"
+
+
+
+def moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict=None):
+    if treatment_dict is None:
+        treatment_dict = {}
+
+    for position in list(moke_group.keys()):
+        if "scan_parameters" in position:
+            continue
+        position_group = moke_group[position]
+        if position in results_dict.keys():
+
+            if "results" in position_group:
+                del position_group["results"]
+
+            results_group = position_group.create_group("results")
+            parameters_group = results_group.create_group("parameters")
+            for key, value in treatment_dict.items():
+                current_group = parameters_group.create_dataset(key, data=value)
+                if key == "coil_factor":
+                    current_group.attrs["units"] = "T/100V"
+                if key == "pulse_voltage":
+                    current_group.attrs["units"] = "V"
+
+            save_dict_to_hdf5(results_group, results_dict[position])
+            for subname, subgroup in results_group.items():
+                if subname == "max_kerr_rotation" or subname == "reflectivity":
+                    subgroup.attrs["units"] = "V"
+                if "coercivity" in subname or subname == "intercept_field":
+                    for subsubname, subsubgroup in subgroup.items():
+                        if isinstance(subsubgroup, h5py.Dataset):
+                            subsubgroup.attrs["units"] = "T"
+
+
+    return True

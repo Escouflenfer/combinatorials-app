@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ..functions.functions_moke import *
 from ..functions.functions_shared import *
+from ..hdf5_compilers.hdf5compile_moke import *
 
 '''Callbacks for MOKE tab'''
 

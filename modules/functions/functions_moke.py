@@ -374,29 +374,6 @@ def moke_batch_fit(moke_group, treatment_dict):
     return results_dict
 
 
-def moke_results_dict_to_hdf5(moke_group, results_dict, treatment_dict=None):
-    if treatment_dict is None:
-        treatment_dict = {}
-
-    for position in list(moke_group.keys()):
-        if "scan_parameters" in position:
-            continue
-        position_group = moke_group[position]
-        if position in results_dict.keys():
-
-            if "results" in position_group:
-                del position_group["results"]
-
-            results_group = position_group.create_group("results")
-            parameters_group = results_group.create_group("parameters")
-            for key, value in treatment_dict.items():
-                parameters_group.create_dataset(key, data=value)
-
-            save_dict_to_hdf5(results_group, results_dict[position])
-
-    return True
-
-
 def moke_make_results_dataframe_from_hdf5(moke_group):
     data_dict_list = []
 

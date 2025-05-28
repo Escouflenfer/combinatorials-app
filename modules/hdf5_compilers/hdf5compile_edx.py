@@ -140,7 +140,7 @@ def calculate_wafer_positions(scan_numbers, step_x=5, step_y=5, start_x=-40, sta
     x_idx, y_idx = scan_numbers
     x_pos, y_pos = (x_idx - 1) * step_x + start_x, (y_idx - 1) * step_y + start_y
 
-    return x_pos, y_pos
+    return float(x_pos), float(y_pos)
 
 
 def get_units(key):
@@ -269,6 +269,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
     with h5py.File(hdf5_path, "a") as hdf5_file:
         edx_group = hdf5_file.create_group(f"{dataset_name}")
         edx_group.attrs["HT_type"] = "edx"
+        edx_group.attrs["instrument"] = "Bruker Quantax Xflash-7"
         edx_group.attrs["edx_writer"] = EDX_WRITER_VERSION
 
         for file_name in safe_rglob(source_path, pattern='*.spx'):
@@ -280,6 +281,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
             energy = make_energy_dataset(edx_dict, channels)
 
             scan = edx_group.create_group(f"({wafer_positions[0]},{wafer_positions[1]})")
+            scan.attrs["index"] = scan_numbers
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

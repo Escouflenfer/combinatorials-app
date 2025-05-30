@@ -366,7 +366,10 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
 
 def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precision=2, plot_title = "", colorbar_title = ""):
     if values is None:
-        values = df.columns[2]
+        df["blank"] = df["x_pos (mm)"] + df["y_pos (mm)"]
+        values = "blank"
+        plot_title = "No heatmap selected, default values"
+
 
     heatmap_data = df.pivot_table(
         index="y_pos (mm)",

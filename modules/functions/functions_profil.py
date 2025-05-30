@@ -310,10 +310,6 @@ def profil_plot_measured_heights_from_dict(fig, results_dict, position=(3,1)):
 
 
 
-
-
-
-
 """
 ARCHIVE FOR POLYNOMIAL FIT, MIGHT COME BACK TO IT SOMEDAY
 """

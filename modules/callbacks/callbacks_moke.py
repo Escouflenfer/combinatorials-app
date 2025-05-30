@@ -1,9 +1,3 @@
-from dash import Input, Output, State, Dash, ctx
-from dash.exceptions import PreventUpdate
-from pathlib import Path
-
-from ..functions.functions_moke import *
-from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_moke import *
 
 '''Callbacks for MOKE tab'''
@@ -37,25 +31,6 @@ def callbacks_moke(app, children_moke):
             dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='moke')
 
         return dataset_list, dataset_list[0]
-
-
-    # Callback to check if HDF5 has results
-    @app.callback(
-        Output("moke_text_box", "children", allow_duplicate=True),
-        Input("moke_select_dataset", "value"),
-        State("hdf5_path_store", "data"),
-        prevent_initial_call=True,
-    )
-    @check_conditions(moke_conditions, hdf5_path_index=1)
-    def moke_check_for_results(selected_dataset, hdf5_path):
-        if selected_dataset is None:
-            raise PreventUpdate
-
-        with h5py.File(hdf5_path, "r") as hdf5_file:
-            moke_group = hdf5_file[selected_dataset]
-            if check_group_for_results(moke_group):
-                return 'Found results for all points'
-            return'No results found'
 
 
     # Callback for heatmap selection

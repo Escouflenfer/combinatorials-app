@@ -1,6 +1,5 @@
 import dash_uploader
 from dash import Dash, dcc, html
-from setuptools.compat.py311 import shutil_rmtree
 
 from modules.functions.functions_shared import *
 

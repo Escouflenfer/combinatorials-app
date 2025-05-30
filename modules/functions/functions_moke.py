@@ -393,7 +393,7 @@ def moke_make_results_dataframe_from_hdf5(moke_group):
 
             for value, value_group in results_group.items():
                 if "units" in value_group.attrs:
-                    units = value.attrs["units"]
+                    units = value_group.attrs["units"]
                 else:
                     units = "arb"
 

@@ -526,7 +526,7 @@ def heatmap_plot(
             index="y_pos (mm)", columns="x_pos (mm)", values="Ignore"
         )
         # Ignore points
-        mask = mask_data == 0
+        mask = mask_data == False
 
         heatmap_data = heatmap_data.where(mask, np.nan)
 

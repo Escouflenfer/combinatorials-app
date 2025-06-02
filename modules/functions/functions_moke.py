@@ -386,7 +386,9 @@ def moke_make_results_dataframe_from_hdf5(moke_group):
 
             results_group = position_group.get("results")
 
-            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
+            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()],
+                         "y_pos (mm)": instrument_group["y_pos"][()],
+                         "ignored": position_group.attrs["ignored"]}
 
             if results_group is None:
                 continue

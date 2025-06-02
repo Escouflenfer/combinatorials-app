@@ -172,6 +172,7 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
                     target_position_group = esrf_group.create_group(f"({x_pos},{y_pos})")
 
                 target_position_group.attrs["index"] = name
+                target_position_group.attrs["ignored"] = False
 
                 # Brutal copy of instrument group, it's a dump anyway
                 raw_source.copy(source_instrument_group, target_position_group, expand_soft=True)

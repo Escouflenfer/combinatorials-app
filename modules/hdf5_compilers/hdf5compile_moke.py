@@ -259,6 +259,7 @@ def write_moke_to_hdf5(hdf5_path, source_path, dataset_name = None, mode="a"):
 
             scan = moke_group.create_group(f"({x_pos},{y_pos})")
             scan.attrs["index"] = scan_number
+            scan.attrs["ignored"] = False
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

@@ -208,6 +208,7 @@ def write_smartlab_to_hdf5(hdf5_path, source_path, dataset_name, mode="a"):
 
             position_group = xrd_group.create_group(f"({x_pos},{y_pos})")
             position_group.attrs["index"] = get_scan_numbers(str(ras_name))
+            position_group.attrs["ignored"] = False
 
             # Instrument group for metadata
             instrument_group = position_group.create_group("instrument")

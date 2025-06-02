@@ -63,7 +63,8 @@ def callbacks_moke(app, children_moke):
                 masking = False
 
             moke_df = moke_make_results_dataframe_from_hdf5(moke_group)
-            fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
+            fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              precision=precision, masking=masking)
 
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)

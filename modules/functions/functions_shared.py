@@ -364,7 +364,9 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
     return result
 
 
-def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precision=2, plot_title = "", colorbar_title = ""):
+def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
+                                precision=2, plot_title = "", colorbar_title = "",
+                                masking = False):
     if values is None:
         df["blank"] = df["x_pos (mm)"] + df["y_pos (mm)"]
         values = "blank"
@@ -376,6 +378,19 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None, precisi
         columns="x_pos (mm)",
         values=values,
     )
+
+    # If mask is set, hide points that have an ignore tag in the database
+    if masking:
+        # Create a mask to hide ignored points
+        mask_data = df.pivot_table(
+            index="y_pos (mm)",
+            columns="x_pos (mm)",
+            values="ignored"
+        )
+        # Ignore points
+        mask = mask_data == True
+
+        heatmap_data = heatmap_data.where(mask, np.nan)
 
     if z_min is None:
         z_min = np.nanmin(heatmap_data.values)

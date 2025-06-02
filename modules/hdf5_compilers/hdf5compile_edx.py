@@ -282,6 +282,7 @@ def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
 
             scan = edx_group.create_group(f"({wafer_positions[0]},{wafer_positions[1]})")
             scan.attrs["index"] = scan_numbers
+            scan.attrs["ignored"] = False
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

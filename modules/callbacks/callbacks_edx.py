@@ -51,20 +51,20 @@ def callbacks_edx(app):
             return'No results found'
     
 
-    # Callback to get elements for the dropdown menu
-    @app.callback(
-        [Output("edx_heatmap_select", "options"),
-         Output("edx_heatmap_select", "value")],
-        Input("edx_select_dataset", "value"),
-        State("hdf5_path_store", "data")
-    )
-
-    @check_conditions(edx_conditions, hdf5_path_index=1)
-    def edx_update_element_list(selected_dataset, hdf5_path):
-        with h5py.File(hdf5_path, 'r') as hdf5_file:
-            edx_group = hdf5_file[selected_dataset]
-            edx_element_list = get_quantified_elements(edx_group)
-        return edx_element_list, edx_element_list[0]
+    # # Callback to get elements for the dropdown menu
+    # @app.callback(
+    #     [Output("edx_heatmap_select", "options"),
+    #      Output("edx_heatmap_select", "value")],
+    #     Input("edx_select_dataset", "value"),
+    #     State("hdf5_path_store", "data")
+    # )
+    #
+    # @check_conditions(edx_conditions, hdf5_path_index=1)
+    # def edx_update_element_list(selected_dataset, hdf5_path):
+    #     with h5py.File(hdf5_path, 'r') as hdf5_file:
+    #         edx_group = hdf5_file[selected_dataset]
+    #         edx_element_list = get_quantified_elements(edx_group)
+    #     return edx_element_list, edx_element_list[0]
     
 
     # Callback for heatmap selection
@@ -73,6 +73,7 @@ def callbacks_edx(app):
             Output("edx_heatmap", "figure", allow_duplicate=True),
             Output("edx_heatmap_min", "value"),
             Output("edx_heatmap_max", "value"),
+            Output("edx_heatmap_select", "options"),
         ],
         Input("edx_heatmap_select", "value"),
         Input("edx_heatmap_min", "value"),
@@ -103,7 +104,7 @@ def callbacks_edx(app):
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max
+            return fig, z_min, z_max, edx_df.columns[4:]
 
 
     # EDX plot

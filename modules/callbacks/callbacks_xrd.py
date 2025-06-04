@@ -76,7 +76,7 @@ def callbacks_xrd(app, children_xrd):
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max, xrd_df.columns[2:]
+            return fig, z_min, z_max, xrd_df.columns[4:]
 
 
 

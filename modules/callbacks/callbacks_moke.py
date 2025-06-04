@@ -39,6 +39,7 @@ def callbacks_moke(app, children_moke):
             Output("moke_heatmap", "figure", allow_duplicate=True),
             Output("moke_heatmap_min", "value"),
             Output("moke_heatmap_max", "value"),
+            Output("moke_heatmap_select", "options"),
         ],
         Input("moke_heatmap_select", "value"),
         Input("moke_heatmap_min", "value"),
@@ -69,7 +70,7 @@ def callbacks_moke(app, children_moke):
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max
+            return fig, z_min, z_max, moke_df.columns[4:]
 
 
     # Profile plot

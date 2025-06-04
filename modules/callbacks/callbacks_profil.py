@@ -60,6 +60,7 @@ def callbacks_profil(app):
             Output("profil_heatmap", "figure", allow_duplicate=True),
             Output("profil_heatmap_min", "value"),
             Output("profil_heatmap_max", "value"),
+            Output("profil_heatmap_select", "options"),
         ],
         Input("profil_heatmap_select", "value"),
         Input("profil_heatmap_min", "value"),
@@ -90,7 +91,7 @@ def callbacks_profil(app):
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)
 
-        return fig, z_min, z_max
+        return fig, z_min, z_max, profil_df.columns[4:]
 
     # Profile plot
     @app.callback(

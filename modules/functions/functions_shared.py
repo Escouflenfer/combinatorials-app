@@ -368,8 +368,8 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
                                 precision=2, plot_title = "", colorbar_title = "",
                                 masking = False):
     if values is None:
-        df["blank"] = df["x_pos (mm)"] + df["y_pos (mm)"]
-        values = "blank"
+        df["default"] = df["x_pos (mm)"] + df["y_pos (mm)"]
+        values = "default"
         plot_title = "No heatmap selected, default values"
 
 

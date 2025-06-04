@@ -48,14 +48,7 @@ class WidgetsMOKE:
                         dcc.Dropdown(
                             id="moke_heatmap_select",
                             className="long-item",
-                            options=[
-                                {"label": "Max Kerr Rotation","value": "max_kerr_rotation"},
-                                {"label": "Reflectivity", "value": "reflectivity"},
-                                {"label": "Coercivity M = 0", "value": "coercivity_m0"},
-                                {"label": "Coercivity max(dM/dH)", "value": "coercivity_dmdh"},
-                                {"label": "Intercept Field", "value": "intercept_field"},
-                            ],
-                            value="max_kerr_rotation",
+                            options=[]
                         ),
                     ],
                 ),

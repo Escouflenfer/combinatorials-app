@@ -190,15 +190,14 @@ def profil_make_results_dataframe_from_hdf5(profil_group):
                          "y_pos (mm)": instrument_group["y_pos"][()],
                          "ignored": position_group.attrs["ignored"]}
 
-            if results_group is None:
-                continue
+            if results_group is not None:
+                for value, value_group in results_group.items():
+                    if "units" in value_group.attrs:
+                        units = value_group.attrs["units"]
+                    else:
+                        units = "arb"
+                    data_dict[f"{value}_({units})"] = value_group[()]
 
-            for value, value_group in results_group.items():
-                if "units" in value_group.attrs:
-                    units = value_group.attrs["units"]
-                else:
-                    units = "arb"
-                data_dict[f"{value}_({units})"] = value_group[()]
             data_dict_list.append(data_dict)
 
     result_dataframe = pd.DataFrame(data_dict_list)

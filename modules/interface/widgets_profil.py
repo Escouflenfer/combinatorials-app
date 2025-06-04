@@ -32,8 +32,7 @@ class WidgetsPROFIL:
             html.Div(className="subgrid-2", children=[
                 html.Label("Currently plotting:"),
                 html.Br(),
-                dcc.Dropdown(id="profil_heatmap_select", className="long-item",
-                             options=[{"label": "Thickness", "value": "measured_height_(nm)"}], value="measured_height_(nm)")
+                dcc.Dropdown(id="profil_heatmap_select", className="long-item", options=[])
             ]),
             html.Div(className="subgrid-7", children=[
                 html.Label("Colorbar bounds"),

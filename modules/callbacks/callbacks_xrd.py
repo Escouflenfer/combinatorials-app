@@ -70,7 +70,8 @@ def callbacks_xrd(app, children_xrd):
                 masking = False
 
             xrd_df = xrd_make_results_dataframe_from_hdf5(xrd_group)
-            fig = make_heatmap_from_dataframe(xrd_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
+            fig = make_heatmap_from_dataframe(xrd_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              precision=precision, masking=masking)
 
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
@@ -140,7 +141,32 @@ def callbacks_xrd(app, children_xrd):
 
 
         return fig, options, fits_select_value, z_min, z_max
+        
 
+    # Callback to deal with heatmap edit mode
+    @app.callback(
+        Output('xrd_text_box', 'children', allow_duplicate=True),
+        Input('xrd_heatmap', 'clickData'),
+        State('xrd_heatmap_edit', 'value'),
+        State('hdf5_path_store', 'data'),
+        State('xrd_select_dataset', 'value'),
+        prevent_initial_call=True
+    )
+    @check_conditions(xrd_conditions, hdf5_path_index=2)
+    def heatmap_edit_mode(heatmap_click, edit_toggle, hdf5_path, selected_dataset):
+        if edit_toggle != 'edit':
+            raise PreventUpdate
 
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
 
+        with h5py.File(hdf5_path, 'a') as hdf5_file:
+            xrd_group = hdf5_file[selected_dataset]
+            position_group = get_target_position_group(xrd_group, target_x, target_y)
+            if not position_group.attrs["ignored"]:
+                position_group.attrs["ignored"] = True
+                return f"{target_x}, {target_y} ignore set to True"
+            else:
+                position_group.attrs["ignored"] = False
+                return f"{target_x}, {target_y} ignore set to False"
 

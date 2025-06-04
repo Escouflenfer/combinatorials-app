@@ -388,7 +388,7 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
             values="ignored"
         )
         # Ignore points
-        mask = mask_data == True
+        mask = mask_data == False
 
         heatmap_data = heatmap_data.where(mask, np.nan)
 

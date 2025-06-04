@@ -226,6 +226,47 @@ def callbacks_moke(app, children_moke):
                 fig = moke_plot_loop_map(moke_group, options_dict, normalize)
                 return fig
 
+
+
+
+    # Callback to deal with heatmap edit mode
+    @app.callback(
+        Output('moke_text_box', 'children', allow_duplicate=True),
+        Input('moke_heatmap', 'clickData'),
+        State('moke_heatmap_edit', 'value'),
+        State('hdf5_path_store', 'data'),
+        State('moke_select_dataset', 'value'),
+        prevent_initial_call=True
+    )
+    @check_conditions(moke_conditions, hdf5_path_index=2)
+    def heatmap_edit_mode(heatmap_click, edit_toggle, hdf5_path, selected_dataset):
+        if edit_toggle != 'edit':
+            raise PreventUpdate
+
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
+
+        with h5py.File(hdf5_path, 'a') as hdf5_file:
+            moke_group = hdf5_file[selected_dataset]
+            position_group = get_target_position_group(moke_group, target_x, target_y)
+            if not position_group.attrs["ignored"]:
+                position_group.attrs["ignored"] = True
+                return f"{target_x}, {target_y} ignore set to True"
+            else:
+                position_group.attrs["ignored"] = False
+                return f"{target_x}, {target_y} ignore set to False"
+
+
+
+
+
+
+
+
+
+
+
+
     #
     #
     #

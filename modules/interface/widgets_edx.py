@@ -77,7 +77,24 @@ class WidgetsEDX:
                             value=2,
                         ),
                     ]
-                )
+                ),
+                html.Div(
+                    className="subgrid-9",
+                    children=[
+                        html.Label(""),
+                        html.Br(),
+                        dcc.RadioItems(
+                            id="edx_heatmap_edit",
+                            options=[
+                                {"label": "Unfiltered", "value": "unfiltered"},
+                                {"label": "Filtered", "value": "filter"},
+                                {"label": "Edit mode", "value": "edit"},
+                            ],
+                            value="filter",
+                            style={"display": "inline-block"},
+                        ),
+                    ],
+                ),
             ],
         )
 

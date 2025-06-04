@@ -77,24 +77,24 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
         # Exclude spots outside the wafer
         if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
 
-            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()], "y_pos (mm)": instrument_group["y_pos"][()]}
+            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()],
+                         "y_pos (mm)": instrument_group["y_pos"][()],
+                         "ignored": position_group.attrs["ignored"]}
 
             phases_group = position_group.get('results/phases')
-            if phases_group is None:
-                continue
+            if phases_group is not None:
+                for phase, phase_group in phases_group.items():
+                    for value, value_group in phase_group.items():
+                        if value in OPTIONS_LIST:
+                            dataset = str(value_group[()].decode())
+                            if "units" in value_group.attrs:
+                                units = value_group.attrs["units"]
+                            else:
+                                units = "arb"
 
-            for phase, phase_group in phases_group.items():
-                for value, value_group in phase_group.items():
-                    if value in OPTIONS_LIST:
-                        dataset = str(value_group[()].decode())
-                        if "units" in value_group.attrs:
-                            units = value_group.attrs["units"]
-                        else:
-                            units = "arb"
+                            dataset = float(dataset.split("+")[0])
 
-                        dataset = float(dataset.split("+")[0])
-
-                        data_dict[f"[{phase}]_{value}_({units})"] = dataset
+                            data_dict[f"[{phase}]_{value}_({units})"] = dataset
 
             data_dict_list.append(data_dict)
 

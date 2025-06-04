@@ -67,39 +67,43 @@ def callbacks_edx(app):
         return edx_element_list, edx_element_list[0]
     
 
-    # Callback to plot EDX heatmap
+    # Callback for heatmap selection
     @app.callback(
-        [Output("edx_heatmap", "figure"),
-         Output('edx_heatmap_min', 'value'),
-         Output('edx_heatmap_max', 'value')],
+        [
+            Output("edx_heatmap", "figure", allow_duplicate=True),
+            Output("edx_heatmap_min", "value"),
+            Output("edx_heatmap_max", "value"),
+        ],
         Input("edx_heatmap_select", "value"),
-        Input('edx_heatmap_min', 'value'),
-        Input('edx_heatmap_max', 'value'),
-        Input('edx_heatmap_precision', 'value'),
+        Input("edx_heatmap_min", "value"),
+        Input("edx_heatmap_max", "value"),
+        Input("edx_heatmap_precision", "value"),
+        Input("edx_heatmap_edit", "value"),
+        Input('hdf5_path_store', 'data'),
         Input("edx_select_dataset", "value"),
-        State("hdf5_path_store", "data"),
+        prevent_initial_call=True,
     )
     @check_conditions(edx_conditions, hdf5_path_index=5)
-    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, selected_dataset, hdf5_path):
-        if ctx.triggered_id in ['edx_heatmap_select', 'edx_heatmap_precision'] :
-            z_min = None
-            z_max = None
-
+    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
         with h5py.File(hdf5_path, 'r') as hdf5_file:
             edx_group = hdf5_file[selected_dataset]
+
+            if ctx.triggered_id in ["edx_heatmap_select", "edx_heatmap_edit", "edx_heatmap_precision"]:
+                z_min = None
+                z_max = None
+
+            masking = True
+            if edit_toggle in ["edit", "unfiltered"]:
+                masking = False
+
             edx_df = edx_make_results_dataframe_from_hdf5(edx_group)
+            fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              precision=precision, masking=masking)
 
-        fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max, precision=precision)
+            z_min = np.round(fig.data[0].zmin, precision)
+            z_max = np.round(fig.data[0].zmax, precision)
 
-        z_min = np.round(fig.data[0].zmin, precision)
-        z_max = np.round(fig.data[0].zmax, precision)
-
-        # Update the dimensions of the heatmap and the X-Y title axes
-        # sample_name = folderpath.parent.name
-        # layout=heatmap_layout('EDX Composition Map <br>' + sample_name)
-        # fig.update_layout(layout)
-
-        return fig, z_min, z_max
+            return fig, z_min, z_max
 
 
     # EDX plot
@@ -124,3 +128,32 @@ def callbacks_edx(app):
         fig = edx_plot_measurement_from_dataframe(measurement_df)
 
         return fig
+    
+    
+    
+    # Callback to deal with heatmap edit mode
+    @app.callback(
+        Output('edx_text_box', 'children', allow_duplicate=True),
+        Input('edx_heatmap', 'clickData'),
+        State('edx_heatmap_edit', 'value'),
+        State('hdf5_path_store', 'data'),
+        State('edx_select_dataset', 'value'),
+        prevent_initial_call=True
+    )
+    @check_conditions(edx_conditions, hdf5_path_index=2)
+    def heatmap_edit_mode(heatmap_click, edit_toggle, hdf5_path, selected_dataset):
+        if edit_toggle != 'edit':
+            raise PreventUpdate
+
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
+
+        with h5py.File(hdf5_path, 'a') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+            position_group = get_target_position_group(edx_group, target_x, target_y)
+            if not position_group.attrs["ignored"]:
+                position_group.attrs["ignored"] = True
+                return f"{target_x}, {target_y} ignore set to True"
+            else:
+                position_group.attrs["ignored"] = False
+                return f"{target_x}, {target_y} ignore set to False"

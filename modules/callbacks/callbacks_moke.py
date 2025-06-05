@@ -205,7 +205,7 @@ def callbacks_moke(app, children_moke):
 
         return treatment_dict, coil_factor, smoothing_polyorder, smoothing_range
 
-
+  
     @app.callback(
         Output('moke_loop_map_figure', 'figure'),
         Input('moke_loop_map_button', 'n_clicks'),

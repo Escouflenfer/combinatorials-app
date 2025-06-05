@@ -338,7 +338,6 @@ def moke_fit_intercept(data: pd.DataFrame, treatment_dict: dict):
 
     return float(positive_intercept_field), float(negative_intercept_field), fit_dict
 
-
 def moke_batch_fit(moke_group, treatment_dict):
     results_dict = {}
     for position, position_group in moke_group.items():
@@ -376,6 +375,7 @@ def moke_batch_fit(moke_group, treatment_dict):
 
 def moke_make_results_dataframe_from_hdf5(moke_group):
     data_dict_list = []
+
 
     for position, position_group in moke_group.items():
         if "scan_parameters" in position:

@@ -140,6 +140,7 @@ def callbacks_xrd(app, children_xrd):
 
 
 
+
         return fig, options, fits_select_value, z_min, z_max
         
 
@@ -169,4 +170,3 @@ def callbacks_xrd(app, children_xrd):
             else:
                 position_group.attrs["ignored"] = False
                 return f"{target_x}, {target_y} ignore set to False"
-

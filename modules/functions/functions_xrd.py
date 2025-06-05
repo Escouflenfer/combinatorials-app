@@ -115,6 +115,7 @@ def xrd_plot_integrated_from_dataframe(fig, df):
             line=dict(color="SlateBlue", width=2),
         )
     )
+
     return fig
 
 
@@ -140,11 +141,12 @@ def xrd_plot_fits_from_dataframe(fig, df, fits=None):
     return fig
 
 
-def xrd_plot_image_from_array(array, z_min, z_max):
 
+def xrd_plot_image_from_array(array, z_min, z_max):
     if z_min is None:
         z_min = np.nanmin(array)
     if z_max is None:
+
         z_max = np.nanmax(array)
 
     fig = go.Figure(data=go.Heatmap(

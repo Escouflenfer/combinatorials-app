@@ -101,6 +101,7 @@ def callbacks_edx(app):
             fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max,
                                               precision=precision, masking=masking)
 
+
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 

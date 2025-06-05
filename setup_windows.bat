@@ -1,5 +1,7 @@
 @echo off
 
+mkdir uploads
+
 REM Set up virtual environment
 echo Creating virtual environment...
 python -m venv venv

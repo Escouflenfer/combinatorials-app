@@ -8,8 +8,12 @@ numpy~=2.2.2
 natsort~=8.4.0
 pandas~=2.2.3
 setuptools~=75.8.0
+fabio~=2024.9.0
 ./modules/
 
 modules~=0.1
 dash-bootstrap-components~=1.7.1
 h5py~=3.12.1
+scikit-learn~=1.6.1
+stringcase~=1.2.0
+dash-uploader

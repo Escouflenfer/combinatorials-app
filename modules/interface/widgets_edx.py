@@ -6,32 +6,30 @@ from dash import html, dcc
 
 
 class WidgetsEDX:
+    def __init__(self):
 
-    xrange_slider_min = 0
-    xrange_slider_max = 20
-    xrange_slider_step = 0.1
-    xrange_slider_value = [0, 10]
-    xrange_slider_markStep = 5
+        # Widget for the text box
+        self.edx_center = (html.Div(
+            className="textbox top-center",
+            children=[
+                html.Div(
+                    className="text-top",
+                    children=[dcc.Dropdown(
+                        id="edx_select_dataset",
+                        className="long-item",
+                        options=[],
+                        value=None,
+                    )
+                    ],
+                ),
 
-    yrange_slider_min = 0
-    yrange_slider_max = 50000
-    yrange_slider_step = 1000
-    yrange_slider_value = [0, 10000]
-    yrange_slider_markStep = 10000
-
-    def __init__(self, folderpath):
-        # Folderpath for the EDX spectras
-        self.folderpath = folderpath
-
-        self.edx_text_box = dcc.Loading(
-            id="loading-1",
-            type="default",
-            children=html.Div(children=[html.Span(children="", id="edx_text_box")]),
-            className="top-center",
-        )
+                html.Div(className="text-mid", children=[
+                    html.Span(children="test", id="edx_text_box")
+                ])
+            ]))
 
         # Heatmap plot options
-        self.element = html.Div(
+        self.edx_left = html.Div(
             className="subgrid top-left",
             children=[
                 html.Div(
@@ -40,7 +38,7 @@ class WidgetsEDX:
                         html.Label("Currently plotting:"),
                         html.Br(),
                         dcc.Dropdown(
-                            id="element_edx",
+                            id="edx_heatmap_select",
                             className="long-item",
                             options=[],
                             placeholder="Select Element",
@@ -79,54 +77,35 @@ class WidgetsEDX:
                             value=2,
                         ),
                     ]
-                )
+                ),
+                html.Div(
+                    className="subgrid-9",
+                    children=[
+                        html.Label(""),
+                        html.Br(),
+                        dcc.RadioItems(
+                            id="edx_heatmap_edit",
+                            options=[
+                                {"label": "Unfiltered", "value": "unfiltered"},
+                                {"label": "Filtered", "value": "filter"},
+                                {"label": "Edit mode", "value": "edit"},
+                            ],
+                            value="filter",
+                            style={"display": "inline-block"},
+                        ),
+                    ],
+                ),
             ],
         )
 
         # Slider Xrange component
-        self.plot_sliders = html.Div(
-            children=[
-                html.Label("Counts"),
-                dcc.RangeSlider(
-                    min=self.yrange_slider_min,
-                    max=self.yrange_slider_max,
-                    step=self.yrange_slider_step,
-                    value=self.yrange_slider_value,
-                    marks={
-                        i: f"{i}"
-                        for i in range(
-                            self.yrange_slider_min,
-                            self.yrange_slider_max + self.yrange_slider_markStep,
-                            self.yrange_slider_markStep,
-                        )
-                    },
-                    className="dropdown-item",
-                    id="yrange_slider",
-                ),
-                html.Label("Energy Range"),
-                dcc.RangeSlider(
-                    min=self.xrange_slider_min,
-                    max=self.xrange_slider_max,
-                    step=self.xrange_slider_step,
-                    value=self.xrange_slider_value,
-                    marks={
-                        i: f"{i}"
-                        for i in range(
-                            self.xrange_slider_min,
-                            self.xrange_slider_max + self.xrange_slider_markStep,
-                            self.xrange_slider_markStep,
-                        )
-                    },
-                    className="dropdown-item",
-                    id="xrange_slider",
-                ),
-            ],
+        self.edx_right = html.Div(
             className="top-right",
         )
 
-        # EDX spectra graph that will be modified by user interaction
-        self.edx_spectra = html.Div(
-            [dcc.Graph(id="edx_spectra")], className="plot-right"
+        # EDX plot
+        self.edx_plot = html.Div(
+            [dcc.Graph(id="edx_plot")], className="plot-right"
         )
 
         # EDX heatmap
@@ -142,29 +121,31 @@ class WidgetsEDX:
             ]
         )
 
-    def make_tab_from_widgets(
-        self,
-        id_edx="edx",
-        label_edx="EDX",
-        value_edx="edx",
-    ):
+    def make_tab_from_widgets(self):
         edx_tab = dcc.Tab(
-            id=id_edx,
-            label=label_edx,
-            value=value_edx,
-            children=[
-                html.Div(
-                    [
-                        self.edx_text_box,
-                        self.element,
-                        self.plot_sliders,
-                        self.edx_heatmap,
-                        self.edx_spectra,
-                        self.edx_stores,
-                    ],
-                    className="grid-container",
+            id="edx",
+            label="EDX",
+            value="edx",
+            children=[html.Div(children=[
+                dcc.Loading(
+                    id="loading_edx",
+                    type="default",
+                    delay_show=500,
+                    children=[
+                        html.Div(
+                            [
+                                self.edx_left,
+                                self.edx_center,
+                                self.edx_right,
+                                self.edx_heatmap,
+                                self.edx_plot,
+                                self.edx_stores
+                            ],
+                            className="grid-container",
+                        )
+                    ]
                 )
-            ],
+            ])]
         )
 
         return edx_tab

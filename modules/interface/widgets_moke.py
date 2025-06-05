@@ -17,7 +17,13 @@ class WidgetsMOKE:
             children=[
                 html.Div(
                     className="text-top",
-                    children=[html.Span(children="test", id="moke_path_box")],
+                    children=[dcc.Dropdown(
+                        id="moke_select_dataset",
+                        className="long-item",
+                        options=[],
+                        value=None,
+                    )
+                    ],
                 ),
                 html.Div(
                     className="text-mid",
@@ -42,14 +48,7 @@ class WidgetsMOKE:
                         dcc.Dropdown(
                             id="moke_heatmap_select",
                             className="long-item",
-                            options=[
-                                "Max Kerr Rotation",
-                                "Reflectivity",
-                                "Coercivity M = 0",
-                                "Coercivity max(dM/dH)",
-                                "Intercept Field",
-                            ],
-                            value="Max Kerr Rotation",
+                            options=[]
                         ),
                     ],
                 ),
@@ -89,6 +88,19 @@ class WidgetsMOKE:
                 ),
 
                 html.Div(
+                    className="subgrid-8",
+                    children=[
+                        html.Label("Colorbar precision"),
+                        dcc.Input(
+                            id="moke_heatmap_precision",
+                            className="long-item",
+                            type="number",
+                            placeholder="Colorbar precision",
+                            value=1,
+                        ),
+                    ]
+                ),
+                html.Div(
                     className="subgrid-9",
                     children=[
                         html.Label(""),
@@ -125,8 +137,13 @@ class WidgetsMOKE:
                     children=[
                         dcc.RadioItems(
                             id="moke_plot_select",
-                            options=["Raw data", "Loop", "Loop + Derivative", "Loop + Intercept"],
-                            value="Loop",
+                            options=[
+                                {"label": "Oscilloscope Data", "value": "oscilloscope"},
+                                {"label": "M(H) Loop", "value": "loop"},
+                                {"label": "M(H) Loop + Stored Result", "value": "stored_result"},
+                                {"label": "M(H) Loop + Live Result", "value": "live_result"},
+                            ],
+                            value="loop",
                             style={"display": "inline-block"},
                         )
                     ],
@@ -190,7 +207,6 @@ class WidgetsMOKE:
         self.moke_heatmap = html.Div(
             children=[
                 dcc.Graph(id="moke_heatmap"),
-                html.Button("Save!", id="moke_heatmap_save", n_clicks=0),
             ],
             className="plot-left",
         )
@@ -199,7 +215,6 @@ class WidgetsMOKE:
         self.moke_profile = html.Div(
             children=[
                 dcc.Graph(id="moke_plot"),
-                html.Button("Save!", id="moke_plot_save", n_clicks=0),
             ],
             className="plot-right",
         )
@@ -210,7 +225,8 @@ class WidgetsMOKE:
                 dcc.Store(id="moke_position_store", data=None),
                 dcc.Store(id="moke_database_path_store", data=None),
                 dcc.Store(id="moke_database_metadata_store", data=None),
-                dcc.Store(id="moke_data_treatment_store", data=None)
+                dcc.Store(id="moke_data_treatment_store", data=None),
+                dcc.Store(id="moke_initial_load_trigger", data="load")
             ]
         )
 

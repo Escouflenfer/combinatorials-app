@@ -1,6 +1,3 @@
-from dash import Input, Output, State, ctx
-from dash.exceptions import PreventUpdate
-
 from ..functions.functions_edx import *
 
 def callbacks_edx(app):
@@ -10,155 +7,155 @@ def callbacks_edx(app):
                   Input('edx_heatmap', 'clickData'),
                   prevent_initial_call=True
                   )
-    def update_position(heatmapclick):
-        if heatmapclick is None:
+    def edx_update_position(heatmap_click):
+        if heatmap_click is None:
             return None
-        target_x = heatmapclick['points'][0]['x']
-        target_y = heatmapclick['points'][0]['y']
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
 
         position = (target_x, target_y)
 
         return position
 
 
-    # Callback to get elements for the dropdown menu
-    @app.callback([Output("element_edx", "options"),
-                   Output("element_edx", "value")],
-                  Input("edx_path_store", "data"))
-    def update_element_edx(folderpath):
-        if folderpath is None:
-            raise PreventUpdate
-        element_edx_opt = get_elements(folderpath)
-        return element_edx_opt, element_edx_opt[0]
-
-    # Callback to plot EDX heatmap
+    # Callback to find all relevant datasets in HDF5 file
     @app.callback(
-        [Output("edx_heatmap", "figure"),
-         Output('edx_heatmap_min', 'value'),
-         Output('edx_heatmap_max', 'value')],
-        Input("element_edx", "value"),
-        Input('edx_heatmap_min', 'value'),
-        Input('edx_heatmap_max', 'value'),
-        Input('edx_heatmap_precision', 'value'),
-        State("edx_path_store", "data"),
+        [Output("edx_select_dataset", "options"),
+         Output("edx_select_dataset", "value")],
+        Input("hdf5_path_store", "data"),
     )
-    def update_heatmap_edx(element_edx, z_min, z_max, precision, folderpath):
-        folderpath = Path(folderpath)
+    @check_conditions(edx_conditions, hdf5_path_index=0)
+    def edx_scan_hdf5_for_datasets(hdf5_path):
+        with h5py.File(hdf5_path, "r") as hdf5_file:
+            dataset_list = get_hdf5_datasets(hdf5_file, dataset_type='edx')
 
-        if folderpath is None:
+        return dataset_list, dataset_list[0]
+    
+    
+    # Callback to check if HDF5 has results
+    @app.callback(
+        Output("edx_text_box", "children", allow_duplicate=True),
+        Input("edx_select_dataset", "value"),
+        State("hdf5_path_store", "data"),
+        prevent_initial_call=True,
+    )
+    @check_conditions(edx_conditions, hdf5_path_index=1)
+    def edx_check_for_results(selected_dataset, hdf5_path):
+        if selected_dataset is None:
             raise PreventUpdate
 
-        if ctx.triggered_id in ['element_edx', 'edx_heatmap_precision'] :
-            z_min = None
-            z_max = None
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+            if check_group_for_results(edx_group):
+                return 'Found results for all points'
+            return'No results found'
+    
 
+    # # Callback to get elements for the dropdown menu
+    # @app.callback(
+    #     [Output("edx_heatmap_select", "options"),
+    #      Output("edx_heatmap_select", "value")],
+    #     Input("edx_select_dataset", "value"),
+    #     State("hdf5_path_store", "data")
+    # )
+    #
+    # @check_conditions(edx_conditions, hdf5_path_index=1)
+    # def edx_update_element_list(selected_dataset, hdf5_path):
+    #     with h5py.File(hdf5_path, 'r') as hdf5_file:
+    #         edx_group = hdf5_file[selected_dataset]
+    #         edx_element_list = get_quantified_elements(edx_group)
+    #     return edx_element_list, edx_element_list[0]
+    
 
-        fig = generate_heatmap(folderpath, element_edx, z_min, z_max, precision)
-
-        z_min = np.round(fig.data[0].zmin, precision)
-        z_max = np.round(fig.data[0].zmax, precision)
-
-        # Update the dimensions of the heatmap and the X-Y title axes
-        sample_name = folderpath.parent.name
-        layout=heatmap_layout('EDX Composition Map <br>' + sample_name)
-        fig.update_layout(layout)
-
-        return fig, z_min, z_max
-
-
-    #   EDX spectra
+    # Callback for heatmap selection
     @app.callback(
-        Output("edx_spectra", "figure"),
-        Input("edx_path_store", "data"),
+        [
+            Output("edx_heatmap", "figure", allow_duplicate=True),
+            Output("edx_heatmap_min", "value"),
+            Output("edx_heatmap_max", "value"),
+            Output("edx_heatmap_select", "options"),
+        ],
+        Input("edx_heatmap_select", "value"),
+        Input("edx_heatmap_min", "value"),
+        Input("edx_heatmap_max", "value"),
+        Input("edx_heatmap_precision", "value"),
+        Input("edx_heatmap_edit", "value"),
+        Input('hdf5_path_store', 'data'),
+        Input("edx_select_dataset", "value"),
+        prevent_initial_call=True,
+    )
+    @check_conditions(edx_conditions, hdf5_path_index=5)
+    def edx_update_heatmap(heatmap_select, z_min, z_max, precision, edit_toggle, hdf5_path, selected_dataset):
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+
+            if ctx.triggered_id in ["edx_heatmap_select", "edx_heatmap_edit", "edx_heatmap_precision"]:
+                z_min = None
+                z_max = None
+
+            masking = True
+            if edit_toggle in ["edit", "unfiltered"]:
+                masking = False
+
+            edx_df = edx_make_results_dataframe_from_hdf5(edx_group)
+            fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              precision=precision, masking=masking)
+
+
+            z_min = np.round(fig.data[0].zmin, precision)
+            z_max = np.round(fig.data[0].zmax, precision)
+
+            return fig, z_min, z_max, edx_df.columns[4:]
+
+
+    # EDX plot
+    @app.callback(
+        Output("edx_plot", "figure"),
+        Input("edx_select_dataset", "value"),
         Input("edx_position_store", "data"),
-        Input("xrange_slider", "value"),
-        Input("yrange_slider", "value"),
+        State("hdf5_path_store", "data"),
     )
-    def update_spectra(folderpath, position, xrange, yrange):
-        if folderpath is None:
-            raise PreventUpdate
+    @check_conditions(edx_conditions, hdf5_path_index=2)
+    def edx_update_plot(selected_dataset, position, hdf5_path):
         if position is None:
             raise PreventUpdate
-
-        folderpath = Path(folderpath)
 
         target_x = position[0]
         target_y = position[1]
 
-        fig, meta = generate_spectra(folderpath, target_x, target_y)
-        fig.update_layout(
-            title=f"EDX Spectrum for {folderpath} at position ({target_x}, {target_y})",
-            height=750,
-            width=1100,
-            annotations=[meta],
-        )
-        fig.update_xaxes(title="Energy (keV)", range=xrange)
-        fig.update_yaxes(title="Counts", range=yrange)
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+            measurement_df = edx_get_measurement_from_hdf5(edx_group, target_x, target_y)
+
+        fig = edx_plot_measurement_from_dataframe(measurement_df)
+
         return fig
+    
+    
+    
+    # Callback to deal with heatmap edit mode
+    @app.callback(
+        Output('edx_text_box', 'children', allow_duplicate=True),
+        Input('edx_heatmap', 'clickData'),
+        State('edx_heatmap_edit', 'value'),
+        State('hdf5_path_store', 'data'),
+        State('edx_select_dataset', 'value'),
+        prevent_initial_call=True
+    )
+    @check_conditions(edx_conditions, hdf5_path_index=2)
+    def heatmap_edit_mode(heatmap_click, edit_toggle, hdf5_path, selected_dataset):
+        if edit_toggle != 'edit':
+            raise PreventUpdate
 
+        target_x = heatmap_click['points'][0]['x']
+        target_y = heatmap_click['points'][0]['y']
 
-    # # Callback to save heatmap
-    # @app.callback(
-    #     Output('dektak_text_box', 'children', allow_duplicate=True),
-    #     Input('dektak_heatmap_save', 'n_clicks'),
-    #     State('dektak_heatmap', 'figure'),
-    #     State('dektak_path_store', 'data'),
-    #     prevent_initial_call=True
-    # )
-    # def save_heatmap_to_pdf(n_clicks, heatmap_fig, folderpath):
-    #     folderpath = Path(folderpath)
-    #     heatmap_fig = go.Figure(heatmap_fig)
-    #     if n_clicks > 0:
-    #         heatmap_fig.update_layout(
-    #             titlefont=dict(size=30),
-    #             xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-    #             yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-    #             height=700,
-    #             width=700
-    #         )
-    #
-    #         heatmap_fig.update_traces(
-    #             colorbar=dict(
-    #                 tickfont=dict(size=20),
-    #                 titlefont=dict(size=25),
-    #                 thickness=20
-    #             )
-    #         )
-    #
-    #         # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
-    #         heatmap_fig.write_image(folderpath / 'heatmap.png', format="png")
-    #
-    #         return f'Saved heatmap to png at {folderpath}'
-    #
-    #     # Callback to save plot
-    #     @app.callback(
-    #         Output('dektak_text_box', 'children', allow_duplicate=True),
-    #         Input('dektak_plot_save', 'n_clicks'),
-    #         State('dektak_plot', 'figure'),
-    #         State('dektak_path_store', 'data'),
-    #         prevent_initial_call=True
-    #     )
-    #     def save_plot(n_clicks, plot_fig, folderpath):
-    #         folderpath = Path(folderpath)
-    #         plot_fig = go.Figure(plot_fig)
-    #         if n_clicks > 0:
-    #             plot_fig.update_layout(
-    #                 titlefont=dict(size=30),
-    #                 xaxis=dict(title='X (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-    #                 yaxis=dict(title='Y (mm)', tickfont=dict(size=20), titlefont=dict(size=25)),
-    #                 height=700,
-    #                 width=700
-    #             )
-    #
-    #             plot_fig.update_traces(
-    #                 colorbar=dict(
-    #                     tickfont=dict(size=20),
-    #                     titlefont=dict(size=25),
-    #                     thickness=20
-    #                 )
-    #             )
-    #
-    #             # heatmap_fig.write_image(folderpath / heatmap_fig.layout.title.text, format="pdf")
-    #             plot_fig.write_image(folderpath / 'plot.png', format="png")
-    #
-    #             return f'Saved plot to png at {folderpath}'
+        with h5py.File(hdf5_path, 'a') as hdf5_file:
+            edx_group = hdf5_file[selected_dataset]
+            position_group = get_target_position_group(edx_group, target_x, target_y)
+            if not position_group.attrs["ignored"]:
+                position_group.attrs["ignored"] = True
+                return f"{target_x}, {target_y} ignore set to True"
+            else:
+                position_group.attrs["ignored"] = False
+                return f"{target_x}, {target_y} ignore set to False"

@@ -1,142 +1,96 @@
 """
-Functions used in MOKE interactive plot using Dash.
-Internal use for Institut Néel and within the MaMMoS project, to export and read big datasets produced at Institut Néel.
-
-@Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
-
-from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter
-from scipy.integrate import cumulative_trapezoid
-from collections import defaultdict
-import re
 
 from ..functions.functions_shared import *
 
-pd.set_option("display.max_rows", 1000)
-from IPython.display import display
+
+def moke_conditions(hdf5_path, *args, **kwargs):
+    if hdf5_path is None:
+        return False
+    if not h5py.is_hdf5(hdf5_path):
+        return False
+    with h5py.File(hdf5_path, "r") as hdf5_file:
+        dataset_list = get_hdf5_datasets(hdf5_file, dataset_type="moke")
+        if len(dataset_list) == 0:
+            return False
+    return True
 
 
-def read_info_file(folderpath: Path):
-    """
-    Read info.txt and extract necessary parameters for further treatment
+def moke_get_measurement_from_hdf5(moke_group, target_x, target_y, index=1):
+    position_group = get_target_position_group(moke_group, target_x, target_y)
+    measurement_group = position_group.get("measurement")
+    time_array = measurement_group[f"time"][()]
 
-    Parameters:
-        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
+    if index == 0:
+        mean_shot_group = measurement_group.get(["shot_mean"])
 
-    Returns:
-        dictionary
-    """
+        magnetization_array = mean_shot_group["magnetization_mean"][()]
+        pulse_array = mean_shot_group["pulse_mean"][()]
+        reflectivity_array = mean_shot_group["reflectivity_mean"][()]
+        integrated_pulse_array = mean_shot_group["integrated_pulse_mean"][()]
 
-    infopath = folderpath / "info.txt"
-    try:
-        with open(infopath, "r", encoding="iso-8859-1") as file_info:
-            for line in file_info:
-                if "Pulse_voltage" in line:
-                    pulse_volt = int(line.split("=")[1])
-                if "Average_per_point" in line:
-                    avg_pts = int(line.split("=")[1])
-                if "Number_of_points_x" in line:
-                    x_points = int(line.split("=")[1])
-                if "Number_of_points_y" in line:
-                    y_points = int(line.split("=")[1])
+        measurement_dataframe = pd.DataFrame(
+            {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
+             "integrated_pulse": integrated_pulse_array, "time": time_array})
 
-        info = {
-            "pulse_voltage": pulse_volt,
-            "shots_per_point": avg_pts,
-            "x_dimension": x_points,
-            "y_dimension": y_points,
-        }
-        return info
-    except FileNotFoundError:
-        return None
+        return measurement_dataframe
 
+    elif index > 0:
+        shot_group = measurement_group.get(f"shot_{index}")
 
-def load_target_measurement_files(
-    folderpath: Path, target_x: float, target_y: float, measurement_nb: int = 0
-):
-    """
-    For a given x and y position and measurement number, find and load corresponding measurement
+        if shot_group is None:
+            raise KeyError("Failed to retrieve shot group, index is probably out of bounds")
 
-    Parameters:
-        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
-        target_x(float) : x position of targeted measurement
-        target_y(float) : y position of targeted measurement
-        measurement_nb(int) : for multiple acquisition per points, specify which one should be loaded. If 0, measurements will be averaged (default)
+        magnetization_array = shot_group[f"magnetization_{index}"][()]
+        pulse_array = shot_group[f"pulse_{index}"][()]
+        reflectivity_array = shot_group[f"reflectivity_{index}"][()]
+        integrated_pulse_array = shot_group[f"integrated_pulse_{index}"][()]
 
-    Returns:
-        pd.Dataframe
-    """
-    files = []
+        measurement_dataframe = pd.DataFrame(
+            {"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
+             "integrated_pulse": integrated_pulse_array, "time": time_array})
 
-    for path in folderpath.glob("p*.txt"):
-        # Rounding positions is necessary in order to deal with the motors picometer accuracy...
-        file_x = np.round(float(path.name.split("_")[1].lstrip("x")))
-        file_y = np.round(float(path.name.split("_")[2].lstrip("y")))
-
-        target_x = np.round(target_x)
-        target_y = np.round(target_y)
-
-        if file_x == target_x and file_y == target_y:
-            files.append(path)
-
-    for path in files:
-        if "magnetization" in str(path):
-            mag = pd.read_table(path).dropna(axis=1, how="all")
-        elif "pulse" in str(path):
-            pulse = pd.read_table(path).dropna(axis=1, how="all")
-        elif "sum" in str(path):
-            sum = pd.read_table(path).dropna(axis=1, how="all")
-
-    # measurement_nb = 0 returns average over all measurements
-    if measurement_nb == 0:
-        data = pd.DataFrame(
-            {
-                "Magnetization": mag.mean(axis=1),
-                "Pulse": pulse.mean(axis=1),
-                "Sum": sum.mean(axis=1),
-            }
-        )
-
-    elif measurement_nb > 0:
-        idx = measurement_nb - 1
-        data = pd.DataFrame(
-            {
-                "Magnetization": mag.iloc[:, idx],
-                "Pulse": pulse.iloc[:, idx],
-                "Sum": sum.iloc[:, idx],
-            }
-        )
-
-    else:
-        raise ValueError(
-            "Measurement number invalid, either out of range or not an integer"
-        )
-
-    return data
+        return measurement_dataframe
 
 
-def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
-    """
-    Calculate the field by integrating over the pulse signal and then normalizing by the instrumental parameters
+def moke_get_results_from_hdf5(moke_group, target_x, target_y):
+    position_group = get_target_position_group(moke_group, target_x, target_y)
+    results_group = position_group.get("results")
+    if results_group is None:
+        raise KeyError("results group not found in file")
+    data_dict = hdf5_group_to_dict(results_group)
+    return data_dict
 
-    Parameters:
-        data(pd.Dataframe) : data for which the field needs to be calculated
-        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
-        treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
-    Returns:
-        pd.Dataframe
-    """
 
+def moke_get_instrument_dict_from_hdf5(moke_group):
+    instrument_dict = {}
+    
+    parameters_group = moke_group.get("scan_parameters")
+    for value, value_group in parameters_group.items():
+        instrument_dict[value] = convert_bytes(value_group[()])
+    
+    return instrument_dict
+
+def moke_integrate_pulse_array(pulse_array):
+    field_array = np.zeros_like(np.array(pulse_array))
+
+    field_array[350:660] = np.cumsum(pulse_array[350:660])
+    field_array[1350:1660] = np.cumsum(pulse_array[1350:1660])
+
+    return field_array
+
+def moke_treat_measurement_dataframe(measurement_df, options_dict):
     # Check compatibility with the provided data treatment dictionary
     try:
-        coil_factor = float(treatment_dict["coil_factor"])
-        smoothing = treatment_dict["smoothing"]
-        smoothing_polyorder = int(treatment_dict["smoothing_polyorder"])
-        smoothing_range = int(treatment_dict["smoothing_range"])
-        correct_offset = treatment_dict["correct_offset"]
-        filter_zero = treatment_dict["filter_zero"]
-        connect_loops = treatment_dict["connect_loops"]
+        coil_factor = float(options_dict["coil_factor"])
+        pulse_voltage = float(options_dict["pulse_voltage"])
+        smoothing = options_dict["smoothing"]
+        smoothing_polyorder = int(options_dict["smoothing_polyorder"])
+        smoothing_range = int(options_dict["smoothing_range"])
+        correct_offset = options_dict["correct_offset"]
+        filter_zero = options_dict["filter_zero"]
+        connect_loops = options_dict["connect_loops"]
 
     except KeyError:
         raise KeyError(
@@ -144,72 +98,63 @@ def treat_data(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
             "check compatibility between callbacks_moke.store_data_treatment and functions_moke.treat_data"
         )
 
-    pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
-    max_field = coil_factor / 100 * pulse_voltage
-
-    # Index of pulses
-    length = len(data)
-
-    positive_pulse = (350, 660)
-    negative_pulse = (1350, 1660)
-
-    # Remove pulse noise to isolate actual pulse signal
-    data["Pulse"] = data["Pulse"].replace(0.0016667, 0)
-    data["Pulse"] = data["Pulse"].replace(-0.0016667, 0)
-
-    # Integrate pulse during triggers to get field
-    data.loc[positive_pulse[0] : positive_pulse[1], "Field"] = data.loc[
-        positive_pulse[0] : positive_pulse[1], "Pulse"
-    ].cumsum()
-    data.loc[negative_pulse[0] : negative_pulse[1], "Field"] = data.loc[
-        negative_pulse[0] : negative_pulse[1], "Pulse"
-    ].cumsum()
-
     # Set field using coil parameters
-    midpoint = len(data) // 2
-    data.loc[:midpoint, "Field"] = data.loc[:midpoint, "Field"].apply(
-        lambda x: -x * max_field / np.abs(data["Field"].min())
+    midpoint = len(measurement_df) // 2
+    max_field = pulse_voltage * coil_factor / 100
+
+    measurement_df.loc[:midpoint, "field"] = measurement_df.loc[:midpoint, "integrated_pulse"].apply(
+        lambda x: -x * max_field / np.abs(measurement_df["integrated_pulse"].min())
     )
-    data.loc[midpoint:, "Field"] = data.loc[midpoint:, "Field"].apply(
-        lambda x: -x * max_field / np.abs(data["Field"].max())
+    measurement_df.loc[midpoint:, "field"] = measurement_df.loc[midpoint:, "integrated_pulse"].apply(
+        lambda x: -x * max_field / np.abs(measurement_df["integrated_pulse"].max())
     )
 
-    # Correct offset
+    # Vertically center the loop
     if correct_offset:
-        magnetization_offset = data["Magnetization"].mean()
-        data.loc[:, "Magnetization"] = data.loc[:, "Magnetization"].apply(
+        magnetization_offset = measurement_df["magnetization"].mean()
+        measurement_df.loc[:, "magnetization"] = measurement_df.loc[:, "magnetization"].apply(
             lambda x: x - magnetization_offset
         )
 
     # Remove oddities around H=0 by forcing points in the positive(negative) loop to be over(under) a threshold
     if filter_zero:
-        data = data[data["Field"].notna()]
+        length = len(measurement_df)
+        measurement_df = measurement_df[measurement_df["field"].notna()]
 
-        data.loc[: length // 2, "Field"] = data.loc[: length // 2].where(
-            data["Field"] > 1e-2
+        measurement_df.loc[: length // 2, "field"] = measurement_df.loc[: length // 2, "field"].where(
+            measurement_df["field"] > 1e-2
         )
-        data.loc[length // 2 :, "Field"] = data.loc[length // 2 :].where(
-            data["Field"] < -1e-2
+        measurement_df.loc[length // 2 :, "field"] = measurement_df.loc[length // 2 :, "field"].where(
+            measurement_df["field"] < -1e-2
         )
 
-    # test
     if connect_loops:
-        max_index = data["Field"].idxmax()
-        min_index = data["Field"].idxmin()
+        # Step 1: Remove NaNs (if filtering left them)
+        measurement_df = measurement_df[measurement_df["field"].notna()]
 
-        descending = data.loc[max_index:min_index, :]
-        ascending = pd.concat((data.loc[min_index:, :], data.loc[:max_index, :]))
+        # Step 2: Split into two halves (assuming they're in time order)
+        midpoint = len(measurement_df) // 2
+        first_pulse = measurement_df.iloc[:midpoint]  # 0 → -X → 0
+        second_pulse = measurement_df.iloc[midpoint:]  # 0 → +X → 0
 
-        data = pd.concat((descending, ascending))
-        data = extract_loop_section(data)
+        # Step 3: Rearrange: +X → 0 → -X → 0 → +X (start from end of second pulse)
+        reordered = pd.concat([second_pulse, first_pulse], ignore_index=True)
 
-    # Data smoothing
+        # Step 4 (optional): Loop continuity — duplicate first few points at end
+        wrap_points = 1  # number of points to "wrap"
+        if len(reordered) >= wrap_points:
+            reordered = pd.concat([reordered, reordered.iloc[:wrap_points]], ignore_index=True)
+
+        measurement_df = reordered
+
+    # Smoothing
     if smoothing:
-        data.loc[:, "Magnetization"] = savgol_filter(
-            data["Magnetization"], smoothing_range, smoothing_polyorder
+        measurement_df.loc[:, "magnetization"] = savgol_filter(
+            measurement_df["magnetization"], smoothing_range, smoothing_polyorder
         )
 
-    return data
+
+    return measurement_df
 
 
 def extract_loop_section(data: pd.DataFrame):
@@ -217,40 +162,41 @@ def extract_loop_section(data: pd.DataFrame):
     From a dataframe, select only the parts where the field is defined, resulting in a section containing only the loop
 
     Parameters:
-        data(pd.Dataframe) : source dataframe with a 'Field' column
+        data(pd.Dataframe) : source dataframe with a 'field' column
     Returns:
         pd.Dataframe
     """
     # Keep only the points where field is defined, removing points outside of pulse
     try:
-        non_nan = data[data["Field"].notna()].index.values
+        non_nan = data[data["field"].notna()].index.values
         loop_section = data.loc[non_nan, :]
         loop_section.reset_index(drop=True, inplace=True)
         return loop_section
     except NameError:
-        raise NameError("Field column not defined")
+        raise NameError("field column not defined")
 
 
-def calc_max_kerr_rotation(data: pd.DataFrame):
+
+def moke_calc_max_kerr_rotation(data: pd.DataFrame):
     """
     From a dataframe, return the value for the saturation Kerr rotation
 
     Parameters:
-        data(pd.Dataframe) : source dataframe with a 'Magnetization' column
+        data(pd.Dataframe) : source dataframe with a 'magnetization' column
 
     Returns:
         float
     """
     try:
-        kerr_max = data["Magnetization"].max()
-        kerr_min = data["Magnetization"].min()
+        kerr_max = data["magnetization"].max()
+        kerr_min = data["magnetization"].min()
         kerr_mean = (kerr_max + np.abs(kerr_min)) / 2
         return kerr_mean
     except NameError:
-        raise NameError("Magnetization column not defined")
+        raise NameError("magnetization column not defined")
 
 
-def calc_reflectivity(data: pd.DataFrame):
+def moke_calc_reflectivity(data: pd.DataFrame):
     """
     From a dataframe, return the value for the reflectivity Kerr rotation
 
@@ -261,67 +207,66 @@ def calc_reflectivity(data: pd.DataFrame):
         float
     """
     try:
-        reflectivity = data["Sum"].mean(axis=0)
+        reflectivity = data["reflectivity"].mean(axis=0)
         return reflectivity
     except NameError:
-        raise NameError("Sum column not defined")
+        raise NameError("reflectivity column not defined")
 
 
-def calc_derivative_coercivity(data: pd.DataFrame):
+def moke_calc_derivative_coercivity(data: pd.DataFrame):
     """
     From a dataframe, return the field values for the extremes of dM/dH
 
     Parameters:
-       data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+       data(pd.Dataframe) : source dataframe with a 'field' and 'magnetization' column
 
     Returns:
        float, float
     """
-    data["Derivative"] = data["Magnetization"] - data["Magnetization"].shift(1)
-    data.loc[np.abs(data["Field"]) < 2e-3, "Derivative"] = (
-        0  # (Avoid derivative discrepancies around 0 Field)
+    data = derivate_dataframe(data, "magnetization")
+    data.loc[np.abs(data["field"]) < 2e-3, "derivative"] = (
+        0  # Avoid derivative discrepancies around 0 field
     )
 
     # For positive / negative field, find index of maximum / minimum derivative and extract corresponding field
     coercivity_positive = data.loc[
-        data.loc[data["Field"] > 0, "Derivative"].idxmax(skipna=True), "Field"
+        data.loc[data["field"] > 0, "derivative"].idxmax(skipna=True), "field"
     ]
     coercivity_negative = data.loc[
-        data.loc[data["Field"] < 0, "Derivative"].idxmin(skipna=True), "Field"
+        data.loc[data["field"] < 0, "derivative"].idxmin(skipna=True), "field"
     ]
 
     return coercivity_positive, coercivity_negative
 
 
-def calc_mzero_coercivity(data: pd.DataFrame):
+def moke_calc_mzero_coercivity(data: pd.DataFrame):
     """
-    From a dataframe, return the field values where Magnetization is closest to 0
+    From a dataframe, return the field values where magnetization is closest to 0
 
     Parameters:
-        data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
+        data(pd.Dataframe) : source dataframe with a 'field' and 'magnetization' column
 
     Returns:
         float, float
     """
     coercivity_positive = data.loc[
-        np.abs(data.loc[data["Field"] > 0, "Magnetization"]).idxmin(skipna=True),
-        "Field",
+        np.abs(data.loc[data["field"] > 0, "magnetization"]).idxmin(skipna=True),
+        "field",
     ]
     coercivity_negative = data.loc[
-        np.abs(data.loc[data["Field"] < 0, "Magnetization"]).idxmin(skipna=True),
-        "Field",
+        np.abs(data.loc[data["field"] < 0, "magnetization"]).idxmin(skipna=True),
+        "field",
     ]
 
     return coercivity_positive, coercivity_negative
 
 
-def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
+def moke_fit_intercept(data: pd.DataFrame, treatment_dict: dict):
     """
     From a dataframe, fit for the intercept field and return the intercept field values
 
     Parameters:
-        data(pd.Dataframe) : source dataframe with a 'Field' and 'Magnetization' column
-        folderpath(pathlib.Path) : path to the folder containing info.txt (usually the same as the measurements)
+        data(pd.Dataframe) : source dataframe with a 'field' and 'magnetization' column
         treatment_dict(dict) : Dictionary with data treatment information. See callbacks_moke.store_data_treatment
 
     Returns:
@@ -332,7 +277,7 @@ def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     force_flat = True
 
     coil_factor = float(treatment_dict["coil_factor"])
-    pulse_voltage = read_info_file(folderpath)["pulse_voltage"]
+    pulse_voltage = float(treatment_dict["pulse_voltage"])
     max_field = coil_factor / 100 * pulse_voltage
 
     sat_field = 1.75  # Should be a data treatment variable, WIP
@@ -342,39 +287,39 @@ def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
     Hmin_sat = sat_field + 0.25
     Hmax_sat = 0.95 * max_field
 
-    non_nan = data[data["Field"].notna()].index.values
+    non_nan = data[data["field"].notna()].index.values
 
-    section = data.loc[non_nan, ("Magnetization", "Field")]
+    section = data.loc[non_nan, ("magnetization", "field")]
     section.reset_index(drop=True, inplace=True)
 
     linear_section = section[
-        (np.abs(section["Field"]) > Hmin) & (np.abs(section["Field"]) < Hmax)
+        (np.abs(section["field"]) > Hmin) & (np.abs(section["field"]) < Hmax)
     ]
     pos_sat_section = section[
-        (section["Field"] > Hmin_sat) & (section["Field"] < Hmax_sat)
+        (section["field"] > Hmin_sat) & (section["field"] < Hmax_sat)
     ]
     neg_sat_section = section[
-        (section["Field"] < -Hmin_sat) & (section["Field"] > -Hmax_sat)
+        (section["field"] < -Hmin_sat) & (section["field"] > -Hmax_sat)
     ]
 
     # 1: Linear section
     # 2: Positive saturation section
     # 3: Negative saturation section
 
-    x1 = linear_section["Field"].values
-    y1 = linear_section["Magnetization"].values
+    x1 = linear_section["field"].values
+    y1 = linear_section["magnetization"].values
     slope1, intercept1 = np.polyfit(x1, y1, 1)
 
-    x2 = pos_sat_section["Field"].values
-    y2 = pos_sat_section["Magnetization"].values
+    x2 = pos_sat_section["field"].values
+    y2 = pos_sat_section["magnetization"].values
     if force_flat:
         slope2 = 0
         intercept2 = np.polyfit(x2, y2, 0)
     else:
         slope2, intercept2 = np.polyfit(x2, y2, 1)
 
-    x3 = neg_sat_section["Field"].values
-    y3 = neg_sat_section["Magnetization"].values
+    x3 = neg_sat_section["field"].values
+    y3 = neg_sat_section["magnetization"].values
     if force_flat:
         slope3 = 0
         intercept3 = np.polyfit(x3, y3, 0)
@@ -386,437 +331,172 @@ def fit_intercept(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
 
     # Make dictionary with results from the fits, can be used for plotting
     fit_dict = {
-        "linear_section": [slope1, intercept1, x1],
-        "positive_section": [slope2, intercept2, x2],
-        "negative_section": [slope3, intercept3, x3],
+        "linear_section": [float(intercept1), float(slope1)],
+        "positive_section": [float(intercept2), float(slope2)],
+        "negative_section": [float(intercept3), float(slope3)],
     }
 
     return float(positive_intercept_field), float(negative_intercept_field), fit_dict
 
+def moke_batch_fit(moke_group, treatment_dict):
+    results_dict = {}
+    for position, position_group in moke_group.items():
+        if "scan_parameters" in position:
+            continue
 
-def make_database(folderpath: Path, treatment_dict: dict):
-    # Regular expression to match 'p' followed by a number
-    pattern = re.compile(r"p(\d+)")
+        mean_shot_group = position_group.get("measurement/shot_mean")
 
-    grouped_files = defaultdict(list)
+        magnetization_array = mean_shot_group["magnetization_mean"][()]
+        pulse_array = mean_shot_group["pulse_mean"][()]
+        reflectivity_array = mean_shot_group["reflectivity_mean"][()]
+        integrated_pulse_array = mean_shot_group["integrated_pulse_mean"][()]
+        
+        measurement_dataframe = pd.DataFrame({"magnetization": magnetization_array, "pulse": pulse_array, "reflectivity": reflectivity_array,
+                                              "integrated_pulse": integrated_pulse_array})
 
-    # Use glob to iterate through the files and group them by p-number
-    for filepath in folderpath.glob("p*.txt"):
-        match = pattern.search(filepath.name)
-        if match:
-            number = match.group(1)  # Extract the p-number
-            grouped_files[number].append(filepath)
+        measurement_dataframe = moke_treat_measurement_dataframe(measurement_dataframe, treatment_dict)
 
-    # Initialize Dataframe
-    database = pd.DataFrame()
+        max_kerr_rotation = moke_calc_max_kerr_rotation(measurement_dataframe)
+        reflectivity = moke_calc_reflectivity(measurement_dataframe)
+        coercivity_m0 = list(moke_calc_mzero_coercivity(measurement_dataframe))
+        coercivity_dmdh = list(moke_calc_derivative_coercivity(measurement_dataframe))
+        intercepts = list(moke_fit_intercept(measurement_dataframe, treatment_dict))
 
-    # Iterate over measurement files
-    for number, files in grouped_files.items():
-        i = int(number) - 1
-        for path in files:
-            if "magnetization" in str(path):
-                mag = pd.read_table(path).dropna(axis=1, how="all")
-            elif "pulse" in str(path):
-                pulse = pd.read_table(path).dropna(axis=1, how="all")
-            elif "sum" in str(path):
-                sum = pd.read_table(path).dropna(axis=1, how="all")
-
-        data = pd.DataFrame(
-            {
-                "Magnetization": mag.mean(axis=1),
-                "Pulse": pulse.mean(axis=1),
-                "Sum": sum.mean(axis=1),
-            }
-        )
-
-        data = treat_data(data, folderpath, treatment_dict)
-
-        # Get positions from file name
-        x_pos = np.round(float(path.name.split("_")[1].lstrip("x")))
-        y_pos = np.round(float(path.name.split("_")[2].lstrip("y")))
-
-        # Get max Kerr rotation
-        kerr_mean = calc_max_kerr_rotation(data)
-
-        # Get reflectivity
-        reflectivity = calc_reflectivity(data)
-
-        # Get coercivity from maximum derivative
-        d_coercivity = np.mean(np.abs(calc_derivative_coercivity(data)))
-
-        # Get M=0 coercivity
-        m_coercivity = np.mean(np.abs(calc_mzero_coercivity(data)))
-
-        # Fit for intercept field
-        intercept_pos, intercept_neg, _ = fit_intercept(
-            data, folderpath, treatment_dict
-        )
-        intercept = np.mean(np.abs((intercept_pos, intercept_neg)))
-
-        # Assign to database
-        database.loc[i, "File Number"] = number
-        database.loc[i, "Ignore"] = 0
-        database.loc[i, "x_pos (mm)"] = x_pos
-        database.loc[i, "y_pos (mm)"] = y_pos
-        database.loc[i, "Max Kerr Rotation (deg)"] = kerr_mean
-        database.loc[i, "Reflectivity (V)"] = reflectivity
-        database.loc[i, "Coercivity max(dM/dH) (T)"] = d_coercivity
-        database.loc[i, "Coercivity M = 0 (T)"] = m_coercivity
-        database.loc[i, "Intercept Field (T)"] = intercept
-
-    database_path = folderpath / (folderpath.name + "_database.csv")
-
-    date = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    app_version = get_version("app")
-    database_version = get_version("moke")
-
-    metadata = {
-        "Date of fitting": date,
-        "Code version": app_version,
-        "Database type": "moke",
-        "Database version": database_version,
-    }
-
-    metadata.update(treatment_dict)
-
-    save_with_metadata(database, database_path, metadata=metadata)
-    return database_path
+        results_dict[f"{position}"] = {
+            "max_kerr_rotation":max_kerr_rotation,
+            "reflectivity":reflectivity,
+            "coercivity_m0":{"negative":coercivity_m0[0], "positive":coercivity_m0[1], "mean":abs_mean(coercivity_m0)},
+            "coercivity_dmdh":{"negative":coercivity_dmdh[0], "positive":coercivity_dmdh[1], "mean":abs_mean(coercivity_dmdh)},
+            "intercept_field":{"negative":intercepts[0], "positive":intercepts[1], "mean":abs_mean(intercepts[:2]), "coefficients":intercepts[2]},
+        }
+            
+    return results_dict
 
 
-def heatmap_plot(
-    database_path: Path,
-    mode: str,
-    title: str = "",
-    z_min: bool = None,
-    z_max: bool = None,
-    precision: int = 1,
-    masking: bool = False,
-):
-
-    database = pd.read_csv(database_path, comment="#")
-
-    # Exit if no database is found
-    if database is None:
-        return go.Figure(layout=heatmap_layout())
-
-    # Mode selection
-    if mode == "Kerr Rotation":
-        values = "Max Kerr Rotation (deg)"
-    elif mode == "Reflectivity":
-        values = "Reflectivity (V)"
-    elif mode == "Coercivity max(dM/dH)":
-        values = "Coercivity max(dM/dH) (T)"
-    elif mode == "Coercivity M = 0":
-        values = "Coercivity M = 0 (T)"
-    elif mode == "Intercept Field":
-        values = "Intercept Field (T)"
-    else:
-        values = "Max Kerr Rotation (deg)"
-
-    # Create a dataframe formatted as the 2d map
-    heatmap_data = database.pivot_table(
-        index="y_pos (mm)",
-        columns="x_pos (mm)",
-        values=values,
-    )
-
-    # If mask is set, hide points that have an ignore tag in the database
-    if masking:
-        # Create a mask to hide ignored points
-        mask_data = database.pivot_table(
-            index="y_pos (mm)", columns="x_pos (mm)", values="Ignore"
-        )
-        # Ignore points
-        mask = mask_data == 0
-
-        heatmap_data = heatmap_data.where(mask, np.nan)
-
-    # Min and max values for colorbar fixing
-    if z_min is None:
-        z_min = np.nanmin(heatmap_data.values)
-    if z_max is None:
-        z_max = np.nanmax(heatmap_data.values)
-
-    z_min = np.round(z_min, precision)
-    z_max = np.round(z_max, precision)
-
-    # Get unit from selected mode for colorbar title
-    unit = values.split(" ")[-1]
-
-    # Generate the heatmap plot from the dataframe
-    heatmap = go.Heatmap(
-        x=heatmap_data.columns,
-        y=heatmap_data.index,
-        z=heatmap_data.values,
-        colorscale="Plasma",
-        # Set ticks for the colorbar
-        colorbar=colorbar_layout(z_min, z_max, precision, title=unit),
-    )
-
-    title = f"{mode} MOKE map <br>" + title
-
-    # Make and show figure
-    fig = go.Figure(data=[heatmap], layout=heatmap_layout(title))
-
-    if z_min is not None:
-        fig.data[0].update(zmin=z_min)
-    if z_max is not None:
-        fig.data[0].update(zmax=z_max)
-
-    return fig
+def moke_make_results_dataframe_from_hdf5(moke_group):
+    data_dict_list = []
 
 
-def blank_plot():
-    fig = go.Figure()
+    for position, position_group in moke_group.items():
+        if "scan_parameters" in position:
+            continue
+        instrument_group = position_group.get("instrument")
+        # Exclude spots outside the wafer
+        if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
 
-    fig.update_xaxes(title_text="Time (s)")
-    fig.update_yaxes(title_text="Voltage (V)")
+            results_group = position_group.get("results")
 
-    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
+            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()],
+                         "y_pos (mm)": instrument_group["y_pos"][()],
+                         "ignored": position_group.attrs["ignored"]}
 
-    return fig
+            if results_group is None:
+                continue
+
+            for value, value_group in results_group.items():
+                if "units" in value_group.attrs:
+                    units = value_group.attrs["units"]
+                else:
+                    units = "arb"
+
+                if value == "parameters":
+                    continue
+                elif isinstance(value_group, h5py.Group):
+                    data_dict[f"{value}"] = value_group['mean'][()]
+                elif isinstance(value_group, h5py.Dataset):
+                    data_dict[f"{value}"] = value_group[()]
+
+            data_dict_list.append(data_dict)
+
+    result_dataframe = pd.DataFrame(data_dict_list)
+
+    return result_dataframe
 
 
-def data_plot(data: pd.DataFrame):
-    fig = go.Figure()
+def moke_plot_oscilloscope_from_dataframe(fig, df):
+    pulse_shift_factor = df["pulse"].mean()
+    magnetization_shift_factor = df["magnetization"].mean() - 0.5
+    reflectivity_shift_factor = df["reflectivity"].mean() - 1
 
     fig.update_xaxes(title_text="Time (units)")
     fig.update_yaxes(title_text="Voltage (V)")
 
-    pulse_shift_factor = data["Pulse"].mean()
-    magnetization_shift_factor = data["Magnetization"].mean() - 0.5
-    sum_shift_factor = data["Sum"].mean() - 1
-
     fig.add_trace(
         go.Scatter(
-            x=data.index,
-            y=data["Pulse"].apply(lambda x: x - pulse_shift_factor),
-            mode="lines+markers",
-            line=dict(color="Green", width=2),
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=data.index,
-            y=data["Magnetization"].apply(lambda x: x - magnetization_shift_factor),
-            mode="lines+markers",
+            x=df["time"],
+            y=df["magnetization"].apply(lambda x: x - magnetization_shift_factor),
+            mode="lines",
             line=dict(color="SlateBlue", width=2),
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=data.index,
-            y=data["Sum"].apply(lambda x: x - sum_shift_factor),
-            mode="lines+markers",
+            x=df["time"],
+            y=df["reflectivity"].apply(lambda x: x - reflectivity_shift_factor),
+            mode="lines",
             line=dict(color="Crimson", width=2),
         )
     )
 
-    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
-
+    fig.add_trace(
+        go.Scatter(
+            x=df["time"],
+            y=df["pulse"].apply(lambda x: x - pulse_shift_factor),
+            mode="lines",
+            line=dict(color="Green", width=2),
+        )
+    )
     return fig
 
 
-def loop_plot(data: pd.DataFrame):
-    data = extract_loop_section(data)
-
-    fig = go.Figure()
-
-    # First plot
+def moke_plot_loop_from_dataframe(fig, df):
     fig.update_xaxes(title_text="Field (T)")
-    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
+    fig.update_yaxes(title_text="Kerr rotation (deg)")
 
     fig.add_trace(
         go.Scatter(
-            x=data["Field"],
-            y=data["Magnetization"],
+            x=df["field"],
+            y=df["magnetization"],
             mode="markers",
             line=dict(color="SlateBlue", width=3),
         )
     )
+    return fig
 
-    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
+
+def moke_plot_vlines(fig, values):
+    for value in values:
+        fig.add_vline(
+            value,
+            line_width=2,
+            line_color="Firebrick",
+            annotation_text=f"{value:.2f} T",
+            annotation_font_size=14,
+            annotation_font_color="Firebrick",
+        )
 
     return fig
 
 
-def loop_derivative_plot(data: pd.DataFrame):
-    data = extract_loop_section(data)
-    data["Derivative"] = data["Magnetization"] - data["Magnetization"].shift(1)
-    data.loc[np.abs(data["Field"]) < 1e-3, "Derivative"] = (
-        0  # Avoid derivative discrepancies around 0 Field
-    )
+def moke_plot_loop_map(hdf5_file, options_dict, normalize = False):
+    results_dataframe = moke_make_results_dataframe_from_hdf5(hdf5_file)
+    instrument_dict = moke_get_instrument_dict_from_hdf5(hdf5_file)
 
-    fig = go.Figure()
+    x_min, x_max = results_dataframe["x_pos (mm)"].min(), results_dataframe["x_pos (mm)"].max()
+    y_min, y_max = results_dataframe["y_pos (mm)"].min(), results_dataframe["y_pos (mm)"].max()
 
-    fig.update_xaxes(title_text="Field (T)")
-    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
-
-    # Plot loop
-    fig.add_trace(
-        go.Scatter(
-            x=data["Field"],
-            y=data["Magnetization"],
-            mode="markers",
-            line=dict(color="SlateBlue", width=3),
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=data["Field"],
-            y=data["Derivative"].apply(lambda x: 10 * x),
-            mode="markers",
-            line=dict(color="Firebrick", width=3),
-        )
-    )
-
-    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
-
-    return fig
-
-
-def loop_intercept_plot(data: pd.DataFrame, folderpath: Path, treatment_dict: dict):
-    data = extract_loop_section(data)
-    positive_intercept_field, negative_intercept_field, fit_dict = fit_intercept(
-        data, folderpath, treatment_dict
-    )
-    max_field = data["Field"].max()
-
-    fig = go.Figure()
-
-    fig.update_xaxes(title_text="Field (T)")
-    fig.update_yaxes(title_text="Max Kerr rotation (deg)")
-
-    # Plot loop
-    fig.add_trace(
-        go.Scatter(
-            x=data["Field"],
-            y=data["Magnetization"],
-            mode="markers",
-            line=dict(color="SlateBlue", width=3),
-        )
-    )
-
-    # Define ranges that will be used to extrapolate the fits
-    range_linear = np.arange(
-        1.2 * negative_intercept_field, 1.2 * positive_intercept_field, 0.1
-    )
-    range_positive = np.arange(0.8 * positive_intercept_field, max_field, 0.1)
-    range_negative = np.arange(-max_field, 0.8 * negative_intercept_field, 0.1)
-
-    slope_linear, intercept_linear, x_linear = fit_dict["linear_section"]
-    slope_positive, intercept_positive, x_positive = fit_dict["positive_section"]
-    slope_negative, intercept_negative, x_negative = fit_dict["negative_section"]
-
-    # Plot linear section fit
-    fig.add_trace(
-        go.Scatter(
-            x=x_linear,
-            y=intercept_linear + slope_linear * x_linear,
-            mode="lines",
-            line=dict(color="Firebrick", width=3),
-        )
-    )
-
-    # Plot linear section extrapolation
-    fig.add_trace(
-        go.Scatter(
-            x=range_linear,
-            y=intercept_linear + slope_linear * range_linear,
-            mode="lines",
-            line=dict(color="Firebrick", width=3, dash="dash"),
-        )
-    )
-
-    # Plot positive section fit
-    fig.add_trace(
-        go.Scatter(
-            x=x_positive,
-            y=intercept_positive + slope_positive * x_positive,
-            mode="lines",
-            line=dict(color="Firebrick", width=3),
-        )
-    )
-
-    # Plot positive section extrapolation
-    fig.add_trace(
-        go.Scatter(
-            x=range_positive,
-            y=intercept_positive + slope_positive * range_positive,
-            mode="lines",
-            line=dict(color="Firebrick", width=3, dash="dash"),
-        )
-    )
-
-    # Plot negative section fit
-    fig.add_trace(
-        go.Scatter(
-            x=x_negative,
-            y=intercept_negative + slope_negative * x_negative,
-            mode="lines",
-            line=dict(color="Firebrick", width=3),
-        )
-    )
-
-    # Plot negative section extrapolation
-    fig.add_trace(
-        go.Scatter(
-            x=range_negative,
-            y=intercept_negative + slope_negative * range_negative,
-            mode="lines",
-            line=dict(color="Firebrick", width=3, dash="dash"),
-        )
-    )
-
-    # Plot intercept values
-    fig.add_vline(
-        positive_intercept_field,
-        line_width=2,
-        line_color="green",
-        annotation_text=f"{positive_intercept_field:.2f} T",
-        annotation_position="top left",
-        annotation_font_size=18,
-        annotation_font_color="green",
-    )
-
-    fig.add_vline(
-        negative_intercept_field,
-        line_width=2,
-        line_color="green",
-        annotation_text=f"{negative_intercept_field:.2f} T",
-        annotation_position="top right",
-        annotation_font_size=18,
-        annotation_font_color="green",
-    )
-
-    fig.update_layout(height=700, width=1100, title_text="", showlegend=False)
-
-    return fig
-
-
-def loop_map_plot(
-    folderpath: Path, database_path: Path, treatment_dict: dict, normalize: bool = True
-):
-
-    database = pd.read_csv(database_path, comment="#")
-
-    info_dict = read_info_file(folderpath)
-
-    x_min, x_max = database["x_pos (mm)"].min(), database["x_pos (mm)"].max()
-    y_min, y_max = database["y_pos (mm)"].min(), database["y_pos (mm)"].max()
-
-    x_dim, y_dim = info_dict["x_dimension"], info_dict["y_dimension"]
-
-    step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim - 1)
-    step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim - 1)
+    x_dim, y_dim = int(instrument_dict["number_of_points_x"]), int(instrument_dict["number_of_points_y"])
 
     if x_dim == 1:
         step_x = 1
+    else:
+        step_x = (np.abs(x_max) + np.abs(x_min)) / (x_dim - 1)
+
     if y_dim == 1:
         step_y = 1
+    else:
+        step_y = (np.abs(y_max) + np.abs(y_min)) / (y_dim - 1)
 
     fig = make_subplots(
         rows=y_dim, cols=x_dim, horizontal_spacing=0.001, vertical_spacing=0.001
@@ -835,39 +515,57 @@ def loop_map_plot(
         plot_bgcolor="white",
     )
 
-    for index, row in database.iterrows():
-        if row["Ignore"] == 0:
-            target_x = row["x_pos (mm)"]
-            target_y = row["y_pos (mm)"]
+    for index, row in results_dataframe.iterrows():
+        target_x = row["x_pos (mm)"]
+        target_y = row["y_pos (mm)"]
 
-            data = load_target_measurement_files(
-                folderpath, target_x, target_y, measurement_nb=0
+        data = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
+        data = moke_treat_measurement_dataframe(data, options_dict)
+        print(data)
+
+        fig_col = int((target_x // step_x + (x_dim + 1) // 2))
+        fig_row = int((-target_y // step_y + (y_dim + 1) // 2))
+
+        fig.add_trace(
+            go.Scatter(
+                x=data["field"],
+                y=data["magnetization"],
+                mode="markers",
+                line=dict(color="SlateBlue", width=1),
+            ),
+            row=fig_row,
+            col=fig_col,
+        )
+
+        if normalize:
+            fig.update_yaxes(
+                range=[data["magnetization"].min(), data["magnetization"].max()],
+                row=fig_row,
+                col=fig_col,
             )
-            data = treat_data(data, folderpath, treatment_dict)
-            data = extract_loop_section(data)
-
-            col = int((target_x / step_x + (x_dim + 1) / 2))
-            row = int((-target_y / step_y + (y_dim + 1) / 2))
-
-            fig.add_trace(
-                go.Scatter(
-                    x=data["Field"],
-                    y=data["Magnetization"],
-                    mode="lines",
-                    line=dict(color="SlateBlue", width=1),
-                ),
-                row=row,
-                col=col,
-            )
-
-            if normalize:
-                fig.update_yaxes(
-                    range=[data["Magnetization"].min(), data["Magnetization"].max()],
-                    row=row,
-                    col=col,
-                )
-            if not normalize:
-                y_max = database["Max Kerr Rotation (deg)"].max()
-                fig.update_yaxes(range=[-y_max, y_max], row=row, col=col)
+        if not normalize:
+            y_max = results_dataframe["max_kerr_rotation"].max()
+            fig.update_yaxes(range=[-y_max, y_max], row=fig_row, col=fig_col)
 
     return fig
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

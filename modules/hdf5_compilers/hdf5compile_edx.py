@@ -1,9 +1,12 @@
 """
 Functions for EDX parsing
 """
+from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 
-def visit_items(item, edx_dict={}):
+EDX_WRITER_VERSION = '0.1 beta'
+
+def visit_items(item, edx_dict=None):
     """
     Recursively visits XML elements to build a nested dictionary representation.
 
@@ -21,6 +24,9 @@ def visit_items(item, edx_dict={}):
     Returns:
         dict: A nested dictionary representing the structure of the XML elements.
     """
+    if edx_dict is None:
+        edx_dict = {}
+
     parse_ignore = [
         "",
         "DetLayers",
@@ -48,7 +54,7 @@ def visit_items(item, edx_dict={}):
     for child in item:
         if child.tag in parse_ignore:
             continue
-        elif child.findall("./") == []:
+        elif not child.findall("./"):
             edx_dict[parent_name][child.tag] = child.text
         else:
             # Recursively visit the child elements
@@ -75,7 +81,7 @@ def get_channels(xml_root):
     return channels
 
 
-def read_data_from_spx(file_string: str):
+def read_data_from_spx(filepath):
     """
     Reads data from an XML file (.spx) containing EDX data exported from BRUKER instrument.
 
@@ -86,7 +92,7 @@ def read_data_from_spx(file_string: str):
         tuple: A tuple containing a dictionary of metadata and a list of channel counts.
     """
     # Parse the XML file
-    root = et.fromstring(file_string)
+    root = et.parse(filepath).getroot()[1]
 
     # Extract the data and metadata from xml
     edx_dict = visit_items(root)
@@ -95,20 +101,22 @@ def read_data_from_spx(file_string: str):
     return edx_dict, channels
 
 
-def get_position_from_name(filename: str):
+def get_position_from_path(filepath):
     """
     Extracts the scan numbers (x and y indices) from the filename of the given
     filepath.
 
     Args:
-        filename (str): Name of the file containing position information with the format (x, y)
+        filepath (str): Name of the file containing position information with the format (x, y)
 
     Returns:
         tuple: A tuple containing the x and y indices of the scan
     """
+    if isinstance(filepath, Path):
+        filepath = str(filepath)
 
-    pattern = r'\((\d+),(\d+)\)'
-    match = re.search(pattern, filename)
+    pattern = r'.*\((\d+),(\d+)\).*'
+    match = re.search(pattern, filepath)
     x_idx = match.group(1)
     y_idx = match.group(2)
 
@@ -132,7 +140,7 @@ def calculate_wafer_positions(scan_numbers, step_x=5, step_y=5, start_x=-40, sta
     x_idx, y_idx = scan_numbers
     x_pos, y_pos = (x_idx - 1) * step_x + start_x, (y_idx - 1) * step_y + start_y
 
-    return x_pos, y_pos
+    return float(x_pos), float(y_pos)
 
 
 def get_units(key):
@@ -232,33 +240,49 @@ def make_energy_dataset(edx_dict, channels):
     energy_step = convertFloat(edx_dict["TRTSpectrumHeader"]["CalibLin"])
 
     energy = np.array(
-        [((i + 1) * energy_step + zero_energy) for i in range(len(channels) // 2)]
+        [((i + 1) * energy_step + zero_energy) for i in range(len(channels))]
     )
 
     return energy
 
 
-def write_edx_to_hdf5(HDF5_path, measurement_dict, mode="a"):
+def write_edx_to_hdf5(hdf5_path, source_path, dataset_name = None):
     """
     Writes the contents of the EDX data file (.spx) to the given HDF5 file.
 
     Args:
-        HDF5_path (str or Path): The path to the HDF5 file to write the data to.
-        filepath (str or Path): The path to the EDX data file (.spx).
+        hdf5_path (str or Path): The path to the HDF5 file to write the data to.
+        source_path (str or Path): The path to the EDX data file (.spx).
         mode (str, optional): The mode to open the HDF5 file in. Defaults to "a".
 
     Returns:
         None
     """
-    for file_name, file_string in measurement_dict.items():
-        scan_numbers = get_position_from_name(file_name)
-        wafer_positions = calculate_wafer_positions(scan_numbers)
-        edx_dict, channels = read_data_from_spx(file_string)
-        energy = make_energy_dataset(edx_dict, channels)
+    if isinstance (hdf5_path, str):
+        hdf5_path = Path(hdf5_path)
+    if isinstance(source_path, str):
+        source_path = Path(source_path)
 
-        with h5py.File(HDF5_path, mode) as f:
-            scan_group = f"/entry/edx/scan_{scan_numbers[0]},{scan_numbers[1]}/"
-            scan = f.create_group(scan_group)
+    if dataset_name is None:
+        dataset_name = source_path.stem
+
+    with h5py.File(hdf5_path, "a") as hdf5_file:
+        edx_group = hdf5_file.create_group(f"{dataset_name}")
+        edx_group.attrs["HT_type"] = "edx"
+        edx_group.attrs["instrument"] = "Bruker Quantax Xflash-7"
+        edx_group.attrs["edx_writer"] = EDX_WRITER_VERSION
+
+        for file_name in safe_rglob(source_path, pattern='*.spx'):
+            file_path = source_path / file_name
+
+            scan_numbers = get_position_from_path(file_path)
+            wafer_positions = calculate_wafer_positions(scan_numbers)
+            edx_dict, channels = read_data_from_spx(file_path)
+            energy = make_energy_dataset(edx_dict, channels)
+
+            scan = edx_group.create_group(f"({wafer_positions[0]},{wafer_positions[1]})")
+            scan.attrs["index"] = scan_numbers
+            scan.attrs["ignored"] = False
 
             # Instrument group for metadata
             instrument = scan.create_group("instrument")

@@ -38,7 +38,7 @@ def profil_get_results_from_hdf5(profil_group, target_x, target_y):
         if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
             results_group = position_group.get("results")
             if results_group is None:
-                raise KeyError("results group not found in file")
+                return None
             for value, value_group in results_group.items():
                 data_dict[value] = value_group[()]
 
@@ -205,14 +205,12 @@ def profil_make_results_dataframe_from_hdf5(profil_group):
     return result_dataframe
 
 
-def profil_plot_total_profile_from_dataframe(fig, df, results_dict=None, position=(1,1)):
+def profil_plot_total_profile_from_dataframe(fig, df, adjusting_slope = None, position=(1,1)):
     # First plot for raw measurement and linear component
-    if results_dict is None:
-        results_dict = {}
-
     fig.update_xaxes(title_text="Distance_(um)", row=1, col=1)
     fig.update_yaxes(title_text="Profile_(nm)", row=1, col=1)
 
+    # Add measurement trace
     fig.add_trace(
         go.Scatter(
             x=df["distance_(um)"],
@@ -222,11 +220,12 @@ def profil_plot_total_profile_from_dataframe(fig, df, results_dict=None, positio
         ), row = position[0], col = position[1]
     )
 
-    if "adjusting_slope" in results_dict.keys():
+    # If a slope is specified, plot the slope
+    if adjusting_slope is not None:
         fig.add_trace(
             go.Scatter(
                 x=df["distance_(um)"],
-                y=df["total_profile_(nm)"].iat[0] + df["distance_(um)"] * results_dict["adjusting_slope"],
+                y=df["total_profile_(nm)"].iat[0] + df["distance_(um)"] * adjusting_slope,
                 mode="lines",
                 line=dict(color="Crimson", width=2),
             ), row = position[0], col = position[1]
@@ -235,14 +234,12 @@ def profil_plot_total_profile_from_dataframe(fig, df, results_dict=None, positio
     return fig
 
 
-def profil_plot_adjusted_profile_from_dataframe(fig, df, results_dict=None, position=(2,1)):
-    if results_dict is None:
-        results_dict = {}
-
+def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, position=(2,1)):
     # Second plot for adjusted profile and fits
     fig.update_xaxes(title_text="Distance_(um)", row=2, col=1)
     fig.update_yaxes(title_text="Thickness_(nm)", row=2, col=1)
 
+    # Plot the profile after linear adjustment
     fig.add_trace(
         go.Scatter(
             x=df["distance_(um)"],
@@ -252,11 +249,12 @@ def profil_plot_adjusted_profile_from_dataframe(fig, df, results_dict=None, posi
         ), row=position[0], col=position[1]
     )
 
-    if "fit_parameters" in results_dict.keys():
+    # If fit parameters are specified, plot the fitted steps
+    if fit_parameters is not None:
         fig.add_trace(
             go.Scatter(
                 x=df["distance_(um)"],
-                y=multi_step_function(df["distance_(um)"], *results_dict["fit_parameters"]),
+                y=multi_step_function(df["distance_(um)"], fit_parameters),
                 mode="lines",
                 line=dict(color="Crimson", width=2),
             ), row=position[0], col=position[1]

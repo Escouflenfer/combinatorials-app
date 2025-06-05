@@ -109,20 +109,6 @@ def callbacks_profil(app):
         target_x = position[0]
         target_y = position[1]
 
-        with h5py.File(hdf5_path, 'r') as hdf5_file:
-            profil_group = hdf5_file[selected_dataset]
-            measurement_df = profil_get_measurement_from_hdf5(profil_group, target_x, target_y)
-            results_dict = profil_get_results_from_hdf5(profil_group, target_x, target_y)
-
-        _, measurement_df = profil_measurement_dataframe_treat(measurement_df, slope=results_dict['adjusting_slope'])
-
-        options_dict = {}
-        if 'adjusting_slope' in plot_options:
-            options_dict['adjusting_slope'] = results_dict['adjusting_slope']
-        if 'fit_parameters' in plot_options:
-            options_dict['fit_parameters'] = results_dict['fit_parameters']
-
-
         # Plot the data
         fig = make_subplots(
             rows=3,
@@ -133,9 +119,29 @@ def callbacks_profil(app):
             vertical_spacing=0.1
         )
 
-        fig = profil_plot_total_profile_from_dataframe(fig, measurement_df, options_dict)
-        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, options_dict)
-        fig = profil_plot_measured_heights_from_dict(fig, results_dict)
+        with h5py.File(hdf5_path, 'r') as hdf5_file:
+            profil_group = hdf5_file[selected_dataset]
+            measurement_df = profil_get_measurement_from_hdf5(profil_group, target_x, target_y)
+            results_dict = profil_get_results_from_hdf5(profil_group, target_x, target_y)
+
+        adjusting_slope = None
+        fit_parameters = None
+        if results_dict:
+            adjusting_slope = results_dict["adjusting_slope"]
+            fit_parameters = results_dict["fit_parameters"]
+
+        adjusting_slope, measurement_df = profil_measurement_dataframe_treat(measurement_df, adjusting_slope)
+
+        if "adjusting_slope" not in plot_options:
+            adjusting_slope = None
+        fig = profil_plot_total_profile_from_dataframe(fig, measurement_df, adjusting_slope)
+
+        if "fit_parameters" not in plot_options:
+            fit_parameters = None
+        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, fit_parameters)
+
+        if results_dict:
+            fig = profil_plot_measured_heights_from_dict(fig, results_dict)
 
         fig.update_layout(plot_layout(title=''))
 

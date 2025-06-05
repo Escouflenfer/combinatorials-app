@@ -71,14 +71,23 @@ class WidgetsPROFIL:
         # Widget for fitting parameters and buttons
         self.profil_right = html.Div(className="subgrid top-right", children=[
             html.Div(className="subgrid-1", children=[
-                html.Label("Estimate height"),
-                dcc.Input(id="profil_fit_height", type="number", placeholder="Height estimate", value=None),
-                dcc.Input(id="profil_fit_nb_steps", type="number", placeholder="Number of steps", value=None),
-                html.Button("Fit!", id="profil_fit_button", n_clicks=0)
+                html.Label("Select mode"),
+                dcc.Dropdown(id="profil_select_fit_mode", className="long-item",
+                             options=["Spot fitting", "Batch fitting", "Manual"], value="Spot fitting")
             ]),
 
+            html.Div(className="subgrid-2", id="profil_fit_inputs", children=[
+
+            ]),
+
+            html.Div(
+                className="subgrid-3", children=[
+                    html.Button(children="Go", id="profil_fit_button", className="long-item", n_clicks=0)
+                ]
+            ),
+
             html.Div(className="subgrid-9", children=[
-                html.Label("PLACEHOLDER"),
+                html.Label("Plot Options"),
                 html.Br(),
                 dcc.Checklist(
                     id="profil_plot_select",

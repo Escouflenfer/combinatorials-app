@@ -1,4 +1,7 @@
 from ..functions.functions_profil import *
+from dash import html, dcc
+
+from ..hdf5_compilers.hdf5compile_base import safe_create_new_subgroup
 
 """Callbacks for profil tab"""
 
@@ -91,7 +94,7 @@ def callbacks_profil(app):
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)
 
-        return fig, z_min, z_max, profil_df.columns[4:]
+        return fig, z_min, z_max, profil_df.columns[7:]
 
     # Profile plot
     @app.callback(
@@ -150,26 +153,40 @@ def callbacks_profil(app):
 
     # Refitting results
     @app.callback(
-        [Output("profil_text_box", "children", allow_duplicate=True),
-         Output("hdf5_path_store", "data", allow_duplicate=True)],
+        Output("profil_text_box", "children", allow_duplicate=True),
         Input("profil_fit_button", "n_clicks"),
-        State("profil_fit_height", "value"),
+        State("profil_select_fit_mode", "value"),
         State("profil_fit_nb_steps", "value"),
+        State("profil_fit_x0", "value"),
         State("hdf5_path_store", "data"),
         State("profil_select_dataset", "value"),
+        State("profil_position_store", "data"),
         prevent_initial_call=True,
     )
-    @check_conditions(profil_conditions, hdf5_path_index=3)
-    def profil_refit_data(n_clicks, fit_height, fit_degree, hdf5_path, selected_dataset):
+    @check_conditions(profil_conditions, hdf5_path_index=4)
+    def profil_refit_data(n_clicks, fit_mode, nb_steps, x0, hdf5_path, selected_dataset, target_position):
         if n_clicks > 0:
-            with h5py.File(hdf5_path, 'a') as hdf5_file:
-                profil_group = hdf5_file[selected_dataset]
-                check = profil_batch_fit_steps(profil_group, fit_height, fit_degree)
-            if check:
-                return 'Successfully refitted data', hdf5_path
-            
-            
-    
+            if fit_mode == "Batch fitting":
+                with h5py.File(hdf5_path, 'a') as hdf5_file:
+                    profil_group = hdf5_file[selected_dataset]
+                    for position, position_group in profil_group.items():
+                        check = profil_spot_fit_steps(position_group, nb_steps, x0)
+                return 'Successfully refitted data'
+
+            if fit_mode == "Spot fitting":
+                with h5py.File(hdf5_path, 'a') as hdf5_file:
+                    profil_group = hdf5_file[selected_dataset]
+                    position_group = get_target_position_group(profil_group, target_position[0], target_position[1])
+                    check = profil_spot_fit_steps(position_group, nb_steps, x0)
+                if check:
+                    return f"Successfully refitted position {target_position}"
+            if fit_mode == "Manual":
+                with h5py.File(hdf5_path, 'a') as hdf5_file:
+                    profil_group = hdf5_file[selected_dataset]
+                    position_group = get_target_position_group(profil_group, target_position[0], target_position[1])
+                    results_group = safe_create_new_subgroup(position_group, new_subgroup_name="results")
+
+
     
     # Callback to deal with heatmap edit mode
     @app.callback(
@@ -197,3 +214,21 @@ def callbacks_profil(app):
             else:
                 position_group.attrs["ignored"] = False
                 return f"{target_x}, {target_y} ignore set to False"
+
+
+    # Callback for fit modes
+    @app.callback(
+        Output("profil_fit_inputs", "children"),
+        Input("profil_select_fit_mode", "value"),
+    )
+    def profil_fitting_interface(selected_mode):
+        if selected_mode in ["Spot fitting", "Batch fitting"]:
+            new_children = [
+                dcc.Input(id="profil_fit_nb_steps", className="long-item", type="number", placeholder="Number of steps", value=None),
+                dcc.Input(id="profil_fit_x0", className="long-item", type="number", placeholder="First step position", value=None),
+            ]
+        else:
+            new_children = [
+                dcc.Input(id="profil_fit_height", className="long-item", type="number", placeholder="Height", value=None),
+            ]
+        return new_children

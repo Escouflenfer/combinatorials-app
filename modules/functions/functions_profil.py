@@ -1,7 +1,9 @@
-from scipy.optimize import least_squares
+from scipy.optimize import least_squares, curve_fit
 from scipy.signal import savgol_filter
 import plotly.graph_objs as go
 from sklearn.linear_model import RANSACRegressor, LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import HuberRegressor
 from functions_shared import *
 
 def profil_conditions(hdf5_path, *args, **kwargs):
@@ -57,6 +59,8 @@ def multi_step_function(x, *params):
         y = np.where(x >= x0, y1, y)
     return y
 
+def parabola(x, a, b, c):
+    return a * x**2 + b * x + c
 
 def generate_parameters(height, x0, n_steps):
     guess = []
@@ -101,36 +105,35 @@ def residuals(params, x, y):
     return y - multi_step_function(x, *params)
 
 
-def profil_measurement_dataframe_treat(df, slope=None, smoothing=True):
+def profil_measurement_dataframe_treat(df, coefficients=None, smoothing=True):
     # Calculate and remove linear component from profile with step point linear fit
-    if slope is None:
-        step = 100
-        slope = (np.mean(df.iloc[-step:-1, 1].tolist()) - np.mean(df.iloc[0:step, 1].tolist())) / df.iat[-1, 0]
+    if coefficients is None:
+        coefficients = curve_fit(parabola, df["distance_(um)"], df["total_profile_(nm)"])[0]
 
-    df["adjusted_profile_(nm)"] = df["total_profile_(nm)"] - df["distance_(um)"] * slope - df.iat[0, 1]
+    df["adjusted_profile_(nm)"] = df["total_profile_(nm)"] - parabola(df["distance_(um)"], coefficients[0], coefficients[1], coefficients[2])
     if smoothing:
         df["adjusted_profile_(nm)"] = savgol_filter(df["adjusted_profile_(nm)"], 100, 0)
 
-    return slope, df
+    return coefficients, df
 
 
-def profil_measurement_dataframe_fit_steps(df, est_height, n_steps):
+def profil_measurement_dataframe_fit_steps(df, n_steps, x0_guess):
     results_dict = {}
 
     if "adjusted_profile_(nm)" not in df.columns:
-        slope, df = profil_measurement_dataframe_treat(df, smoothing=True)
-        results_dict["adjusting_slope"] = slope
+        coefficients, df = profil_measurement_dataframe_treat(df, smoothing=True)
+        results_dict["adjusting_slope"] = coefficients
 
     # Detect the position of the first step of the measurement
-    df = derivate_dataframe(df, "total_profile_(nm)")
-    df_head = df.loc[df["distance_(um)"] < 600]
-    max_index = df_head["derivative"].idxmax()
+    df = derivate_dataframe(df, column="adjusted_profile_(nm)")
+    df_head = df.loc[df["distance_(um)"] < x0_guess*1.1]
+    max_index = np.abs(df_head["derivative"]).idxmax()
     x0 = df_head.loc[max_index, "distance_(um)"]
 
     distance_array = df["distance_(um)"].to_numpy()
     profile_array = df["adjusted_profile_(nm)"].to_numpy()
 
-    guess = generate_parameters(height = est_height, x0 = x0, n_steps = n_steps)
+    guess = generate_parameters(height = 1, x0 = x0, n_steps = n_steps)
 
     result = least_squares(residuals, guess, jac="2-point", args=(distance_array, profile_array), loss="soft_l1")
     fitted_params = result.x
@@ -149,7 +152,7 @@ def profil_measurement_dataframe_fit_steps(df, est_height, n_steps):
     return results_dict
 
 
-def profil_batch_fit_steps(profil_group, est_height, nb_steps):
+def profil_batch_fit_steps(profil_group, nb_steps, x0):
     for position, position_group in profil_group.items():
         measurement_group = position_group.get("measurement")
 
@@ -158,7 +161,7 @@ def profil_batch_fit_steps(profil_group, est_height, nb_steps):
 
         measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
 
-        results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, est_height, nb_steps)
+        results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, nb_steps, x0)
 
         if "results" in position_group:
             del position_group["results"]
@@ -174,6 +177,31 @@ def profil_batch_fit_steps(profil_group, est_height, nb_steps):
 
     return True
 
+
+def profil_spot_fit_steps(position_group, nb_steps, x0):
+    measurement_group = position_group.get("measurement")
+
+    distance_array = measurement_group["distance"][()]
+    profile_array = measurement_group["profile"][()]
+
+    measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
+
+    results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, nb_steps, x0)
+
+    if "results" in position_group:
+        del position_group["results"]
+
+    results = position_group.create_group("results")
+    try:
+        for key, result in results_dict.items():
+            results[key] = result
+        results["measured_height"].attrs["units"] = "nm"
+    except KeyError:
+        raise KeyError("Given results dictionary not compatible with current version of this function."
+                       "Check compatibility with fit function")
+
+
+    return True
 
 
 def profil_make_results_dataframe_from_hdf5(profil_group):
@@ -225,7 +253,7 @@ def profil_plot_total_profile_from_dataframe(fig, df, adjusting_slope = None, po
         fig.add_trace(
             go.Scatter(
                 x=df["distance_(um)"],
-                y=df["total_profile_(nm)"].iat[0] + df["distance_(um)"] * adjusting_slope,
+                y=parabola(df["distance_(um)"], adjusting_slope[0], adjusting_slope[1], adjusting_slope[2]),
                 mode="lines",
                 line=dict(color="Crimson", width=2),
             ), row = position[0], col = position[1]
@@ -254,7 +282,7 @@ def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, 
         fig.add_trace(
             go.Scatter(
                 x=df["distance_(um)"],
-                y=multi_step_function(df["distance_(um)"], fit_parameters),
+                y=multi_step_function(df["distance_(um)"], *fit_parameters),
                 mode="lines",
                 line=dict(color="Crimson", width=2),
             ), row=position[0], col=position[1]

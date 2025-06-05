@@ -4,7 +4,6 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 
 @Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
-from typing import List
 import plotly.express as px
 from itertools import cycle
 

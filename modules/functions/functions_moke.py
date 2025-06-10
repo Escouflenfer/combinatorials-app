@@ -375,11 +375,11 @@ def moke_batch_fit(moke_group, treatment_dict):
 
 def moke_make_results_dataframe_from_hdf5(moke_group):
     data_dict_list = []
-
-
     for position, position_group in moke_group.items():
+
         if "scan_parameters" in position:
             continue
+
         instrument_group = position_group.get("instrument")
         # Exclude spots outside the wafer
         if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:

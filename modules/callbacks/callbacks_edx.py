@@ -105,7 +105,11 @@ def callbacks_edx(app):
             z_min = np.round(fig.data[0].zmin, precision)
             z_max = np.round(fig.data[0].zmax, precision)
 
-            return fig, z_min, z_max, edx_df.columns[4:]
+            options = list(edx_df.columns[3:])
+            if "default" in options:
+                options.remove("default")
+
+            return fig, z_min, z_max, options
 
 
     # EDX plot

@@ -66,55 +66,7 @@ class WidgetsBROWSER:
             style={"display": "flex", "align-items": "center"},
         )
 
-        self.make_edx_button = html.Div(
-            children=[
-                html.Button("Set EDX folder", id="edx_path_button"),
-                html.Div(
-                    "None",
-                    id="edx_path_text",
-                    style={"display": "inline-block", "margin-left": "10px"},
-                ),
-            ],
-            style={"display": "flex", "align-items": "center"},
-        )
-
-        self.make_dektak_button = html.Div(
-            children=[
-                html.Button("Set DEKTAK folder", id="dektak_path_button"),
-                html.Div(
-                    "None",
-                    id="dektak_path_text",
-                    style={"display": "inline-block", "margin-left": "10px"},
-                ),
-            ],
-            style={"display": "flex", "align-items": "center"},
-        )
-
-        self.make_moke_button = html.Div(
-            children=[
-                html.Button("Set MOKE folder", id="moke_path_button"),
-                html.Div(
-                    "None",
-                    id="moke_path_text",
-                    style={"display": "inline-block", "margin-left": "10px"},
-                ),
-            ],
-            style={"display": "flex", "align-items": "center"},
-        )
-
-        self.make_xray_button = html.Div(
-            children=[
-                html.Button("Set XRAY folder", id="xrd_path_button"),
-                html.Div(
-                    "None",
-                    id="xrd_path_text",
-                    style={"display": "inline-block", "margin-left": "10px"},
-                ),
-            ],
-            style={"display": "flex", "align-items": "center"},
-        )
-
-        self.make_squid_button = html.Div(
+        self.make_hdf5_button = html.Div(
             children=[
                 html.Button("Set HDF5 folder", id="hdf5_path_button"),
                 html.Div(
@@ -126,10 +78,6 @@ class WidgetsBROWSER:
             style={"display": "flex", "align-items": "center"},
         )
 
-        self.make_clear_button = html.Div(
-            children=[html.Button("Clear", id="clear_path_button")],
-            style={"display": "flex", "align-items": "center"},
-        )
 
     def make_tab_from_widgets(self):
         browser_tab = dcc.Tab(
@@ -140,12 +88,7 @@ class WidgetsBROWSER:
                 html.Div(
                     [
                         self.make_folder_button,
-                        self.make_edx_button,
-                        self.make_dektak_button,
-                        self.make_moke_button,
-                        self.make_xray_button,
-                        self.make_squid_button,
-                        self.make_clear_button,
+                        self.make_hdf5_button,
                         self.browser,
                         self.folder_path_store,
                     ],

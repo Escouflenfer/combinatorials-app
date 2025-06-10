@@ -94,6 +94,10 @@ def callbacks_profil(app):
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)
 
+        options = list(profil_df.columns[3:])
+        if "default" in options:
+            options.remove("default")
+
         return fig, z_min, z_max, profil_df.columns[7:]
 
     # Profile plot

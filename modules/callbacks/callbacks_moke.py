@@ -64,7 +64,16 @@ def callbacks_moke(app, children_moke):
                 masking = False
 
             moke_df = moke_make_results_dataframe_from_hdf5(moke_group)
+
+            if heatmap_select is not None and selected_dataset is not None:
+                plot_title = f"{heatmap_select} MOKE map <br>{selected_dataset}"
+                colorbar_title = f"(T)"
+            else:
+                plot_title = ""
+                colorbar_title = ""
+
             fig = make_heatmap_from_dataframe(moke_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              plot_title=plot_title, colorbar_title=colorbar_title,
                                               precision=precision, masking=masking)
 
             z_min = np.round(fig.data[0].zmin, precision)
@@ -110,14 +119,14 @@ def callbacks_moke(app, children_moke):
             fig = moke_plot_loop_from_dataframe(fig, measurement_df)
         elif plot_options == "stored_result":
             fig = moke_plot_loop_from_dataframe(fig, measurement_df)
-            if heatmap_select == "coercivity_m0_(T)":
-                moke_plot_vlines(fig, values=[results_dict["coercivity_m0"]["negative"],
+            if heatmap_select == "coercivity_m0":
+                fig = moke_plot_vlines(fig, values=[results_dict["coercivity_m0"]["negative"],
                                               results_dict["coercivity_m0"]["positive"]])
-            if heatmap_select == "coercivity_dmdh_(T)":
-                moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
+            if heatmap_select == "coercivity_dmdh":
+                fig = moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
                                               results_dict["coercivity_dmdh"]["positive"]])
-            if heatmap_select == "intercept_field_(T)":
-                moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
+            if heatmap_select == "intercept_field":
+                fig = moke_plot_vlines(fig, values=[results_dict["coercivity_dmdh"]["negative"],
                                               results_dict["coercivity_dmdh"]["positive"]])
 
         fig.update_layout(plot_layout(title=''))

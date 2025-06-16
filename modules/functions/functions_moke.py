@@ -467,14 +467,20 @@ def moke_plot_loop_from_dataframe(fig, df):
 
 def moke_plot_vlines(fig, values):
     for value in values:
+        if value > 0:
+            annotation_position = "top right"
+        else:
+            annotation_position = "top left"
+
         fig.add_vline(
-            value,
-            line_width=2,
-            line_color="Firebrick",
-            annotation_text=f"{value:.2f} T",
-            annotation_font_size=14,
-            annotation_font_color="Firebrick",
-        )
+        value,
+        line_width=2,
+        line_color="Firebrick",
+        annotation_text=f"{value:.2f} T",
+        annotation_font_size=14,
+        annotation_font_color="Firebrick",
+        annotation_position=annotation_position
+    )
 
     return fig
 
@@ -521,7 +527,6 @@ def moke_plot_loop_map(hdf5_file, options_dict, normalize = False):
 
         data = moke_get_measurement_from_hdf5(hdf5_file, target_x, target_y)
         data = moke_treat_measurement_dataframe(data, options_dict)
-        print(data)
 
         fig_col = int((target_x // step_x + (x_dim + 1) // 2))
         fig_row = int((-target_y // step_y + (y_dim + 1) // 2))
@@ -530,8 +535,8 @@ def moke_plot_loop_map(hdf5_file, options_dict, normalize = False):
             go.Scatter(
                 x=data["field"],
                 y=data["magnetization"],
-                mode="markers",
-                line=dict(color="SlateBlue", width=1),
+                mode="lines",
+                line=dict(color="Black", width=1),
             ),
             row=fig_row,
             col=fig_col,

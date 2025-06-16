@@ -98,7 +98,17 @@ def callbacks_edx(app):
                 masking = False
 
             edx_df = edx_make_results_dataframe_from_hdf5(edx_group)
+
+            if heatmap_select is not None and selected_dataset is not None:
+                plot_title = f"EDX composition map <br>{selected_dataset}"
+                colorbar_title = f"{heatmap_select.replace('Element', '')} <br>at.%"
+            else:
+                plot_title = ""
+                colorbar_title = ""
+
+
             fig = make_heatmap_from_dataframe(edx_df, values=heatmap_select, z_min=z_min, z_max=z_max,
+                                              plot_title=plot_title, colorbar_title=colorbar_title,
                                               precision=precision, masking=masking)
 
 

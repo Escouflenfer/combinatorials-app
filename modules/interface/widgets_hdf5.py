@@ -27,7 +27,7 @@ class WidgetsHDF5:
                         html.Label("Dataset Name"),
                         dcc.Input(
                             id="hdf5_dataset_name",
-                            className="long_item",
+                            className="long-item",
                             type="text",
                             placeholder="Dataset Name",
                             value=None
@@ -63,7 +63,11 @@ class WidgetsHDF5:
                 html.Div(
                     className='text-7',
                     children=[html.Button(id='hdf5_new', children="Create new HDF5", n_clicks=0)]
-                )
+                ),
+                html.Div(
+                    className='text-9',
+                    children=[html.Button(id='hdf5_export', children="Export to CSV", n_clicks=0)]
+                ),
             ],
         )
 

@@ -5,7 +5,7 @@ Functions for XRD parsing (Rigaku SmartLab and ESRF NeXuS)
 from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 
-ESRF_WRITER_VERSION = '0.1 beta'
+ESRF_WRITER_VERSION = "0.1 beta"
 
 
 def return_cdte_source_path(dataset_group):
@@ -31,29 +31,31 @@ def return_cdte_source_path(dataset_group):
     for i in range(num_sources):
         src_file = dcpl.get_virtual_filename(i)  # Source file (can be '.' if same file)
 
-        src_file_path = Path(src_file.decode() if isinstance(src_file, bytes) else src_file)
+        src_file_path = Path(
+            src_file.decode() if isinstance(src_file, bytes) else src_file
+        )
 
         return src_file_path
 
 
 def esrf_check_if_alignment(hdf5_group):
     """
-        Return the source path of a virtual dataset (such as Cdte images in NeXuS h5 files)
+    Return the source path of a virtual dataset (such as Cdte images in NeXuS h5 files)
 
-        @param:
-        dataset_group (h5py.Group): dataset group
+    @param:
+    dataset_group (h5py.Group): dataset group
 
-        @return:
-        Bool: True if the file is an alignment scan, False otherwise
-        str: The type of alignment scan, th or tsz. If False, returns None
+    @return:
+    Bool: True if the file is an alignment scan, False otherwise
+    str: The type of alignment scan, th or tsz. If False, returns None
     """
     title = str(hdf5_group["title"][()])
 
     if "ascan" in title:
         if "th" in title:
-            return True, 'th'
+            return True, "th"
         if "tsz" in title:
-            return True, 'tsz'
+            return True, "tsz"
 
     return False, None
 
@@ -92,7 +94,7 @@ def get_results_from_refinement(filepath):
     r_coeffs, global_params, phases = {}, {}, {}
     current_phase = "None"
 
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         lines = f.readlines()
 
     for idx, line in enumerate(lines):
@@ -105,7 +107,7 @@ def get_results_from_refinement(filepath):
             elm = line.strip().split("=")
             global_params[elm[0]] = elm[1]
         elif line.startswith("Local parameters and GOALs for phase"):
-            current_phase = line.split()[-1]
+            current_phase = line.split()[-1].replace("//", "")
             phases[current_phase] = {}
         elif True in [line.startswith(elm) for elm in attrib_list]:
             elm = line.strip().split("=")
@@ -128,7 +130,7 @@ def get_results_from_refinement(filepath):
 
 
 def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
-    if isinstance (hdf5_path, str):
+    if isinstance(hdf5_path, str):
         hdf5_path = Path(hdf5_path)
     if isinstance(source_path, str):
         source_path = Path(source_path)
@@ -148,8 +150,7 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
     if raw_h5_path is None:
         raise NameError("Couldn't locate RAW_DATA H5 file")
 
-
-    with h5py.File(hdf5_path, 'a') as hdf5_file:
+    with h5py.File(hdf5_path, "a") as hdf5_file:
         with h5py.File(raw_h5_path, "r") as raw_source:
             esrf_group = hdf5_file.create_group(dataset_name)
             esrf_group.attrs["HT_type"] = "xrd"
@@ -160,41 +161,65 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
             for name, group in raw_source.items():
                 alignment_test, alignment_type = esrf_check_if_alignment(group)
 
-                source_instrument_group = group.get('instrument')
+                source_instrument_group = group.get("instrument")
                 source_measurement_group = group.get("measurement")
 
                 x_pos = np.round(source_instrument_group["positioners/xsamp"][()])
                 y_pos = np.round(source_instrument_group["positioners/ysamp"][()])
 
                 if alignment_test:
-                    target_position_group = create_incremental_group(alignment_group, f"{alignment_type}_alignment")
+                    target_position_group = create_incremental_group(
+                        alignment_group, f"{alignment_type}_alignment"
+                    )
                 else:
-                    target_position_group = esrf_group.create_group(f"({x_pos},{y_pos})")
+                    target_position_group = esrf_group.create_group(
+                        f"({x_pos},{y_pos})"
+                    )
 
                 target_position_group.attrs["index"] = name
                 target_position_group.attrs["ignored"] = False
 
                 # Brutal copy of instrument group, it's a dump anyway
-                raw_source.copy(source_instrument_group, target_position_group, expand_soft=True)
-                rename_group(target_position_group, "instrument/positioners/xsamp", "instrument/x_pos")
-                rename_group(target_position_group, "instrument/positioners/ysamp", "instrument/y_pos")
+                raw_source.copy(
+                    source_instrument_group, target_position_group, expand_soft=True
+                )
+                rename_group(
+                    target_position_group,
+                    "instrument/positioners/xsamp",
+                    "instrument/x_pos",
+                )
+                rename_group(
+                    target_position_group,
+                    "instrument/positioners/ysamp",
+                    "instrument/y_pos",
+                )
 
                 # Put some basic order in the measurement group
-                target_measurement_group = target_position_group.create_group("measurement")
+                target_measurement_group = target_position_group.create_group(
+                    "measurement"
+                )
                 for subname, subgroup in source_measurement_group.items():
                     if subname == "CdTe":
                         cdte_path = return_cdte_source_path(subgroup)
                         abs_cdte_path = raw_h5_path.parent / cdte_path
                         with h5py.File(abs_cdte_path, "r") as cdte_source:
-                            cdte_measurement_group = cdte_source.get("entry_0000/measurement")
-                            cdte_measurement_group.copy("data", target_measurement_group, "CdTe")
+                            cdte_measurement_group = cdte_source.get(
+                                "entry_0000/measurement"
+                            )
+                            cdte_measurement_group.copy(
+                                "data", target_measurement_group, "CdTe"
+                            )
 
                     if "CdTe_" in subname:
                         roi_name = subname.split("_")[1]
-                        roi_group = safe_create_new_subgroup(target_measurement_group, f"CdTe_roi_{roi_name}")
+                        roi_group = safe_create_new_subgroup(
+                            target_measurement_group, f"CdTe_roi_{roi_name}"
+                        )
                         raw_source.copy(subgroup, roi_group)
                     elif "falconx" in subname:
-                        falconx_group = safe_create_new_subgroup(target_measurement_group, "falconx")
+                        falconx_group = safe_create_new_subgroup(
+                            target_measurement_group, "falconx"
+                        )
                         raw_source.copy(subgroup, falconx_group)
                     elif subname in source_instrument_group:
                         continue
@@ -209,20 +234,29 @@ def write_esrf_to_hdf5(hdf5_path, source_path, dataset_name):
                         continue
                     if target_group.attrs["index"] == name:
                         target_position_group = esrf_group.get(target_name)
-                        target_instrument_group = target_position_group.get("instrument")
+                        target_instrument_group = target_position_group.get(
+                            "instrument"
+                        )
                         processed_source.copy(integrate_group, target_instrument_group)
 
-                        target_measurement_group = target_position_group.get("measurement")
-                        target_integrated_group = target_instrument_group.get("CdTe_integrate/integrated")
-                        processed_source.copy(target_integrated_group, target_measurement_group, "CdTe_integrate")
+                        target_measurement_group = target_position_group.get(
+                            "measurement"
+                        )
+                        target_integrated_group = target_instrument_group.get(
+                            "CdTe_integrate/integrated"
+                        )
+                        processed_source.copy(
+                            target_integrated_group,
+                            target_measurement_group,
+                            "CdTe_integrate",
+                        )
                         del target_integrated_group
 
     return None
 
 
-
 def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
-    if isinstance (hdf5_path, str):
+    if isinstance(hdf5_path, str):
         hdf5_path = Path(hdf5_path)
     if isinstance(results_folderpath, str):
         results_folderpath = Path(results_folderpath)
@@ -236,22 +270,40 @@ def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
 
         for lst_filepath in safe_rglob(results_folderpath, pattern="*.lst"):
             dia_filepath = lst_filepath.with_suffix(".dia")
-            file_index = str(lst_filepath.stem).split('_')[-1]
+            file_index = str(lst_filepath.stem).split("_")[-1]
             for name, group in target_group.items():
                 if name == "alignment_scans":
                     continue
                 else:
-                    if group.attrs["index"].split('.')[0] == file_index:
-                        r_coeffs, global_params, phases = get_results_from_refinement(lst_filepath)
+                    if group.attrs["index"].split(".")[0] == file_index:
+                        r_coeffs, global_params, phases = get_results_from_refinement(
+                            lst_filepath
+                        )
 
-                        column_names = ["Angle", "Total Counts", "Calculated", "Background"] + list(phases)
-                        df = pd.read_csv(dia_filepath, sep=r'\s+', engine='python', skiprows=1, header=None,
-                                         names=column_names)
+                        column_names = [
+                            "Angle",
+                            "Total Counts",
+                            "Calculated",
+                            "Background",
+                        ] + list(phases)
+
+                        df = pd.read_csv(
+                            dia_filepath,
+                            sep=r"\s+",
+                            engine="python",
+                            skiprows=1,
+                            header=None,
+                            names=column_names,
+                        )
                         df["Residual"] = df["Total Counts"] - df["Calculated"]
 
-                        target_results_group = safe_create_new_subgroup(group, "results")
+                        target_results_group = safe_create_new_subgroup(
+                            group, "results"
+                        )
 
-                        r_coeffs_group = target_results_group.create_group("r_coefficients")
+                        r_coeffs_group = target_results_group.create_group(
+                            "r_coefficients"
+                        )
                         write_dict_to_hdf5(r_coeffs, r_coeffs_group)
 
                         phases_group = target_results_group.create_group("phases")
@@ -260,14 +312,21 @@ def write_xrd_results_to_hdf5(hdf5_path, results_folderpath, target_dataset):
                             check = False
                             for phase, phase_group in phases_group.items():
                                 if phase == structure[1:]:
-                                    phase_group.create_dataset("phase_fraction", data=global_params[structure])
+                                    phase_group.create_dataset(
+                                        "phase_fraction", data=global_params[structure]
+                                    )
                                     check = True
                                     break
                             if not check:
                                 phase_group = phases_group.create_group(structure[1:])
-                                phase_group.create_dataset("phase_fraction", data=global_params[structure])
+                                phase_group.create_dataset(
+                                    "phase_fraction", data=global_params[structure]
+                                )
 
                         fit_group = target_results_group.create_group("fits")
                         for col in df.columns:
-                            node = fit_group.create_dataset(col, data=np.array(df[col]), dtype='float')
+                            node = fit_group.create_dataset(
+                                col, data=np.array(df[col]), dtype="float"
+                            )
+
                         break

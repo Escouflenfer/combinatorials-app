@@ -4,10 +4,12 @@ Internal use for Institut Néel and within the MaMMoS project, to export and rea
 
 @Author: Pierre Le Berre - Institut Néel (pierre.le-berre@neel.cnrs.fr)
 """
+
 import plotly.express as px
 from itertools import cycle
 
 from ..functions.functions_shared import *
+
 
 def xrd_conditions(hdf5_path, *args, **kwargs):
     if hdf5_path is None:
@@ -27,8 +29,8 @@ def xrd_get_integrated_from_hdf5(xrd_group, target_x, target_y):
 
     integrated_group = measurement_group.get("CdTe_integrate")
 
-    q_array = integrated_group['q'][()]
-    intensity_array = integrated_group['intensity'][0]
+    q_array = integrated_group["q"][()]
+    intensity_array = integrated_group["intensity"][0]
 
     measurement_dataframe = pd.DataFrame({"q": q_array, "intensity": intensity_array})
 
@@ -39,7 +41,7 @@ def xrd_get_image_from_hdf5(xrd_group, target_x, target_y):
     position_group = get_target_position_group(xrd_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
 
-    image_array = measurement_group['CdTe'][0]
+    image_array = measurement_group["CdTe"][0]
 
     return image_array
 
@@ -65,7 +67,7 @@ def xrd_get_results_from_hdf5(xrd_group, target_x, target_y):
 
 
 def xrd_make_results_dataframe_from_hdf5(xrd_group):
-    OPTIONS_LIST = ['A', 'C', 'phase_fraction']
+    OPTIONS_LIST = ["A", "C", "phase_fraction"]
 
     data_dict_list = []
 
@@ -74,13 +76,19 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
             continue
         instrument_group = position_group.get("instrument")
         # Exclude spots outside the wafer
-        if np.abs(instrument_group["x_pos"][()]) + np.abs(instrument_group["y_pos"][()]) <= 60:
+        if (
+            np.abs(instrument_group["x_pos"][()])
+            + np.abs(instrument_group["y_pos"][()])
+            <= 60
+        ):
 
-            data_dict = {"x_pos (mm)": instrument_group["x_pos"][()],
-                         "y_pos (mm)": instrument_group["y_pos"][()],
-                         "ignored": position_group.attrs["ignored"]}
+            data_dict = {
+                "x_pos (mm)": instrument_group["x_pos"][()],
+                "y_pos (mm)": instrument_group["y_pos"][()],
+                "ignored": position_group.attrs["ignored"],
+            }
 
-            phases_group = position_group.get('results/phases')
+            phases_group = position_group.get("results/phases")
             if phases_group is not None:
                 for phase, phase_group in phases_group.items():
                     for value, value_group in phase_group.items():
@@ -91,7 +99,12 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
                             else:
                                 units = "arb"
 
-                            dataset = float(dataset.split("+")[0])
+                            # Check if refined parameter is not UNDEF
+                            value_str = dataset.split("+")[0]
+                            if value_str == "UNDEF":
+                                dataset = np.nan
+                            else:
+                                dataset = float(value_str)
 
                             data_dict[f"[{phase}]_{value}_({units})"] = dataset
 
@@ -100,7 +113,6 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
     result_dataframe = pd.DataFrame(data_dict_list)
 
     return result_dataframe
-
 
 
 def xrd_plot_integrated_from_dataframe(fig, df):
@@ -134,12 +146,10 @@ def xrd_plot_fits_from_dataframe(fig, df, fits=None):
                 y=df[fit],
                 mode="lines",
                 line=dict(color=next(colors), width=2),
-                name=fit
+                name=fit,
             )
-
         )
     return fig
-
 
 
 def xrd_plot_image_from_array(array, z_min, z_max):
@@ -149,19 +159,21 @@ def xrd_plot_image_from_array(array, z_min, z_max):
 
         z_max = np.nanmax(array)
 
-    fig = go.Figure(data=go.Heatmap(
-        z=array,
-        colorscale="Plasma",
-        colorbar=colorbar_layout(z_min, z_max, precision=0, title="count")
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=array,
+            colorscale="Plasma",
+            colorbar=colorbar_layout(z_min, z_max, precision=0, title="count"),
+        )
+    )
 
     fig.update_layout(
         title="Image",
         xaxis_title="x",
         yaxis_title="y",
-        height = 800,
-        width = 800,
-        margin=dict(r=100, t=100)
+        height=800,
+        width=800,
+        margin=dict(r=100, t=100),
     )
 
     if z_min is not None:

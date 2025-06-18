@@ -26,7 +26,9 @@ def check_conditions(conditions_function, hdf5_path_index):
             if not conditions_function(hdf5_path, *args, **kwargs):
                 raise PreventUpdate
             return callback_function(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -36,13 +38,18 @@ def cleanup_file(path):
     except OSError:
         pass
 
-def cleanup_directory(folderpath):
-    for folder in os.listdir(folderpath):
-        full_path = os.path.join(folderpath, folder)
-        if os.path.isdir(full_path):
-            shutil.rmtree(full_path)
 
-def get_version(tag:str):
+def cleanup_directory(folderpath):
+    try:
+        for folder in os.listdir(folderpath):
+            full_path = os.path.join(folderpath, folder)
+            if os.path.isdir(full_path):
+                shutil.rmtree(full_path)
+    except FileNotFoundError:
+        os.makedirs(folderpath)
+
+
+def get_version(tag: str):
     """
     Scan the versions.txt file to extract version information.
 
@@ -61,40 +68,42 @@ def get_version(tag:str):
                 return version
 
 
-def safe_glob(directory, pattern='*'):
+def safe_glob(directory, pattern="*"):
     return [
-        f for f in directory.glob(pattern)
-        if f.is_file() and not (f.name.startswith('.') or f.name.startswith('._'))
+        f
+        for f in directory.glob(pattern)
+        if f.is_file() and not (f.name.startswith(".") or f.name.startswith("._"))
     ]
 
 
-def safe_rglob(directory, pattern='*'):
+def safe_rglob(directory, pattern="*"):
     return [
-        f for f in directory.rglob(pattern)
-        if f.is_file() and not f.name.startswith('.') and not f.name.startswith('._')
+        f
+        for f in directory.rglob(pattern)
+        if f.is_file() and not f.name.startswith(".") and not f.name.startswith("._")
     ]
 
 
 def is_macos_system_file(file_path):
     if type(file_path) is str:
         print(file_path)
-        if '/._' not in file_path and not file_path.startswith('._'):
+        if "/._" not in file_path and not file_path.startswith("._"):
             return False
         else:
             return True
     if type(file_path) is Path:
         print(file_path.name)
-        if not file_path.name.startswith('._'):
+        if not file_path.name.startswith("._"):
             return False
         else:
             return True
 
 
-def unpack_zip_directory(filename_list: list, depth: int, remove_directories = True):
+def unpack_zip_directory(filename_list: list, depth: int, remove_directories=True):
     for filename in filename_list:
-        if filename.count('/') != depth:
+        if filename.count("/") != depth:
             filename_list.remove(filename)
-        elif remove_directories and filename.endswith('/'):
+        elif remove_directories and filename.endswith("/"):
             filename_list.remove(filename)
 
     return filename_list
@@ -102,29 +111,31 @@ def unpack_zip_directory(filename_list: list, depth: int, remove_directories = T
 
 def detect_measurement(filename_list: list):
     """
-       Scan a folder to determine which type of measurement it is
+    Scan a folder to determine which type of measurement it is
 
-       Parameters:
-           filename_list (list): list containing all filenames to parse
+    Parameters:
+        filename_list (list): list containing all filenames to parse
 
-       Returns:
-           version (str): detected measurement type
-       """
+    Returns:
+        version (str): detected measurement type
+    """
     measurement_dict = {
         "XRD": ["ras"],
         "MOKE": ["log"],
         "EDX": ["spx"],
         "PROFIL": ["asc2d"],
         "ESRF": ["h5"],
-        "XRD results": ["lst"]
+        "XRD results": ["lst"],
     }
 
     for measurement_type, file_type in measurement_dict.items():
         for filename in filename_list:
-            if filename.startswith('.'):  # Skip hidden files
+            if filename.startswith("."):  # Skip hidden files
                 continue
-            if filename.split('.')[-1] in file_type: # Check extensions for correspondence to the dictionary spec
-                depth = filename.count('/')
+            if (
+                filename.split(".")[-1] in file_type
+            ):  # Check extensions for correspondence to the dictionary spec
+                depth = filename.count("/")
                 return measurement_type, depth
     return None
 
@@ -133,13 +144,13 @@ def get_sample_info_from_hdf5(hdf5_path):
     info_dict = {}
 
     with h5py.File(hdf5_path, "r") as f:
-        sample_group = f['/sample']
+        sample_group = f["/sample"]
 
-        info_dict['sample_name'] = sample_group['sample_name'][()]
+        info_dict["sample_name"] = sample_group["sample_name"][()]
     return info_dict
 
 
-def get_database_path(folderpath:Path):
+def get_database_path(folderpath: Path):
     """
     Scan a folder to find a database file, tagged as *_database.csv
 
@@ -177,7 +188,7 @@ def compare_version(database_path: Path):
         return False
 
 
-def save_with_metadata(df:pd.DataFrame, export_path:Path, metadata=None):
+def save_with_metadata(df: pd.DataFrame, export_path: Path, metadata=None):
     """
     Save a dataframe to a csv while including metadata as comments (#).
 
@@ -215,11 +226,11 @@ def read_metadata(database_path):
     with open(database_path, "r") as file:
         for line in file:
             if line.startswith("#"):
-                line = line.strip('# ')
+                line = line.strip("# ")
                 try:
-                    key, value = line.split(" = ")[0], line.split(" = ")[1].strip('\n')
+                    key, value = line.split(" = ")[0], line.split(" = ")[1].strip("\n")
                 except IndexError:
-                    key, value = line.split(": ")[0], line.split(": ")[1].strip('\n')
+                    key, value = line.split(": ")[0], line.split(": ")[1].strip("\n")
                 metadata[key] = value
 
     return metadata
@@ -237,13 +248,27 @@ def heatmap_layout(title=""):
     """
     layout = go.Layout(
         title=dict(text=title, font=dict(size=24)),
-        xaxis=dict(title="X (mm)", tickfont=dict(size=24), title_font=dict(size=20), range=[-43, 43],
-                   tickmode='linear', tick0=-40, dtick=10),
-        yaxis=dict(title="Y (mm)", tickfont=dict(size=24), title_font=dict(size=20), range=[-43, 43],
-                   tickmode='linear', tick0=-40, dtick=10),
+        xaxis=dict(
+            title="X (mm)",
+            tickfont=dict(size=24),
+            title_font=dict(size=20),
+            range=[-43, 43],
+            tickmode="linear",
+            tick0=-40,
+            dtick=10,
+        ),
+        yaxis=dict(
+            title="Y (mm)",
+            tickfont=dict(size=24),
+            title_font=dict(size=20),
+            range=[-43, 43],
+            tickmode="linear",
+            tick0=-40,
+            dtick=10,
+        ),
         height=800,
         width=850,
-        margin=dict(r=100, t=100)
+        margin=dict(r=100, t=100),
     )
     return layout
 
@@ -324,37 +349,37 @@ def significant_round(num, sig_figs):
 
 def derivate_dataframe(df, column):
     """
-       Add a column to a dataframe that is the discrete derivative of another column
+    Add a column to a dataframe that is the discrete derivative of another column
 
-       Parameters:
-           df (pandas.DataFrame): dataframe to apply the function
-           column (str): The name of the column from which to calculate the derivative
+    Parameters:
+        df (pandas.DataFrame): dataframe to apply the function
+        column (str): The name of the column from which to calculate the derivative
 
-       Returns:
-           pandas.DataFrame: The initial dataframe with an additional 'Derivative' column
-       """
+    Returns:
+        pandas.DataFrame: The initial dataframe with an additional 'Derivative' column
+    """
     # Ensure the DataFrame has the column 'Total Profile (nm)'
     if column not in df.columns:
         raise ValueError(f"The DataFrame must contain a 'f{column}' column.")
     # Calculate point to point derivative
-    df['derivative'] = df[column].diff().fillna(0)
+    df["derivative"] = df[column].diff().fillna(0)
     return df
 
 
 def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
     """
-       Evaluate an n-degree polynomial using Horner's method. Works with arrays, returning P(x) for every x within
-       range [x_start, x_end].
+    Evaluate an n-degree polynomial using Horner's method. Works with arrays, returning P(x) for every x within
+    range [x_start, x_end].
 
-       Parameters:
-           coefficient_list (list or numpy array): list of coefficients such that list[i] is the i-order coefficient
-           x_end (int): end of the x_range on which to evaluate the polynomial
-           x_start (int): start of the x_range on which to evaluate the polynomial
-           x_step (int): step size of the x_range on which to evaluate the polynomial
+    Parameters:
+        coefficient_list (list or numpy array): list of coefficients such that list[i] is the i-order coefficient
+        x_end (int): end of the x_range on which to evaluate the polynomial
+        x_start (int): start of the x_range on which to evaluate the polynomial
+        x_step (int): step size of the x_range on which to evaluate the polynomial
 
-       Returns:
-           np.array: P(x) for every x within range [x_start, x_end]
-       """
+    Returns:
+        np.array: P(x) for every x within range [x_start, x_end]
+    """
     x = np.arange(x_start, x_end, x_step)
     result = np.zeros_like(x, dtype=np.float64)
 
@@ -364,14 +389,20 @@ def calc_poly(coefficient_list, x_end, x_start=0, x_step=1):
     return result
 
 
-def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
-                                precision=2, plot_title = "", colorbar_title = "",
-                                masking = False):
+def make_heatmap_from_dataframe(
+    df,
+    values=None,
+    z_min=None,
+    z_max=None,
+    precision=2,
+    plot_title="",
+    colorbar_title="",
+    masking=False,
+):
     if values is None:
         df["default"] = df["x_pos (mm)"] + df["y_pos (mm)"]
         values = "default"
         plot_title = "No heatmap selected, default values"
-
 
     heatmap_data = df.pivot_table(
         index="y_pos (mm)",
@@ -383,9 +414,7 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
     if masking:
         # Create a mask to hide ignored points
         mask_data = df.pivot_table(
-            index="y_pos (mm)",
-            columns="x_pos (mm)",
-            values="ignored"
+            index="y_pos (mm)", columns="x_pos (mm)", values="ignored"
         )
         # Ignore points
         mask = mask_data == False
@@ -416,9 +445,10 @@ def make_heatmap_from_dataframe(df, values=None, z_min=None, z_max=None,
 
     return fig
 
+
 def check_group_for_results(hdf5_group):
     for position, position_group in hdf5_group.items():
-        if 'results' not in position_group:
+        if "results" not in position_group:
             return False
     return True
 
@@ -426,8 +456,8 @@ def check_group_for_results(hdf5_group):
 def get_hdf5_datasets(hdf5_file, dataset_type):
     dataset_list = []
     for dataset, dataset_group in hdf5_file.items():
-        if 'HT_type' in dataset_group.attrs:
-            if dataset_type == dataset_group.attrs['HT_type']:
+        if "HT_type" in dataset_group.attrs:
+            if dataset_type == dataset_group.attrs["HT_type"]:
                 dataset_list.append(dataset)
 
     return dataset_list
@@ -455,7 +485,10 @@ def save_dict_to_hdf5(hdf5_group, results_dict):
 def get_target_position_group(measurement_group, target_x, target_y):
     for position, position_group in measurement_group.items():
         instrument_group = position_group.get("instrument")
-        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
+        if (
+            instrument_group["x_pos"][()] == target_x
+            and instrument_group["y_pos"][()] == target_y
+        ):
             return position_group
 
 
@@ -483,8 +516,4 @@ def convert_bytes(target):
     try:
         return float(target)
     except ValueError:
-        return target.decode('utf-8')
-
-
-
-
+        return target.decode("utf-8")

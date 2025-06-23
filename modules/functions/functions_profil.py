@@ -5,6 +5,8 @@ from sklearn.linear_model import RANSACRegressor, LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import HuberRegressor
 from functions_shared import *
+from modules.hdf5_compilers.hdf5compile_profil import write_dektak_results_to_hdf5
+
 
 def profil_conditions(hdf5_path, *args, **kwargs):
     if hdf5_path is None:
@@ -43,6 +45,7 @@ def profil_get_results_from_hdf5(profil_group, target_x, target_y):
                 return None
             for value, value_group in results_group.items():
                 data_dict[value] = value_group[()]
+            data_dict["type"] = results_group.attrs["type"]
 
     return data_dict
 
@@ -126,7 +129,7 @@ def profil_measurement_dataframe_fit_steps(df, n_steps, x0_guess):
 
     # Detect the position of the first step of the measurement
     df = derivate_dataframe(df, column="adjusted_profile_(nm)")
-    df_head = df.loc[df["distance_(um)"] < x0_guess*1.1]
+    df_head = df.loc[(df["distance_(um)"] > x0_guess*0.7) & (df["distance_(um)"] < x0_guess*1.3)]
     max_index = np.abs(df_head["derivative"]).idxmax()
     x0 = df_head.loc[max_index, "distance_(um)"]
 
@@ -151,33 +154,6 @@ def profil_measurement_dataframe_fit_steps(df, n_steps, x0_guess):
 
     return results_dict
 
-
-def profil_batch_fit_steps(profil_group, nb_steps, x0):
-    for position, position_group in profil_group.items():
-        measurement_group = position_group.get("measurement")
-
-        distance_array = measurement_group["distance"][()]
-        profile_array = measurement_group["profile"][()]
-
-        measurement_dataframe = pd.DataFrame({"distance_(um)": distance_array, "total_profile_(nm)": profile_array})
-
-        results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, nb_steps, x0)
-
-        if "results" in position_group:
-            del position_group["results"]
-
-        results = position_group.create_group("results")
-        try:
-            for key, result in results_dict.items():
-                results[key] = result
-            results["measured_height"].attrs["units"] = "nm"
-        except KeyError:
-            raise KeyError("Given results dictionary not compatible with current version of this function."
-                           "Check compatibility with fit function")
-
-    return True
-
-
 def profil_spot_fit_steps(position_group, nb_steps, x0):
     measurement_group = position_group.get("measurement")
 
@@ -188,20 +164,7 @@ def profil_spot_fit_steps(position_group, nb_steps, x0):
 
     results_dict = profil_measurement_dataframe_fit_steps(measurement_dataframe, nb_steps, x0)
 
-    if "results" in position_group:
-        del position_group["results"]
-
-    results = position_group.create_group("results")
-    try:
-        for key, result in results_dict.items():
-            results[key] = result
-        results["measured_height"].attrs["units"] = "nm"
-    except KeyError:
-        raise KeyError("Given results dictionary not compatible with current version of this function."
-                       "Check compatibility with fit function")
-
-
-    return True
+    return results_dict
 
 
 def profil_make_results_dataframe_from_hdf5(profil_group):
@@ -262,7 +225,7 @@ def profil_plot_total_profile_from_dataframe(fig, df, adjusting_slope = None, po
     return fig
 
 
-def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, position=(2,1)):
+def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, measured_height = None, position=(2,1)):
     # Second plot for adjusted profile and fits
     fig.update_xaxes(title_text="Distance_(um)", row=2, col=1)
     fig.update_yaxes(title_text="Thickness_(nm)", row=2, col=1)
@@ -287,6 +250,9 @@ def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, 
                 line=dict(color="Crimson", width=2),
             ), row=position[0], col=position[1]
         )
+
+    # If height is specified, plot measured height line
+    fig.add_hline(y=measured_height, line=dict(color="Crimson", width=2), row=position[0], col=position[1])
 
     return fig
 

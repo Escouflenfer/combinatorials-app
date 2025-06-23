@@ -410,6 +410,9 @@ def make_heatmap_from_dataframe(
         values=values,
     )
 
+    if "default" in df.columns:
+        df.drop("default", axis="columns", inplace=True)
+
     # If mask is set, hide points that have an ignore tag in the database
     if masking:
         # Create a mask to hide ignored points

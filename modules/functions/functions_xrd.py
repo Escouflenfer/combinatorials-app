@@ -27,10 +27,19 @@ def xrd_get_integrated_from_hdf5(xrd_group, target_x, target_y):
     position_group = get_target_position_group(xrd_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
 
-    integrated_group = measurement_group.get("CdTe_integrate")
+    if xrd_group.attrs["instrument"] == "bm02 - esrf":
+        integrated_group = measurement_group.get("CdTe_integrate")
+        q_array = integrated_group["q"][()]
+        intensity_array = integrated_group["intensity"][0]
 
-    q_array = integrated_group["q"][()]
-    intensity_array = integrated_group["intensity"][0]
+    elif xrd_group.attrs["instrument"] == "Rigaku Smartlab":
+        q_array = measurement_group["angle"][()]
+        intensity_array = measurement_group["counts"]
+
+    else:
+        raise KeyError(
+            "XRD instrument is neither bm02 - esrf nor Rigaku Smartlab, can not retrieve integrated data."
+        )
 
     measurement_dataframe = pd.DataFrame({"q": q_array, "intensity": intensity_array})
 
@@ -41,7 +50,16 @@ def xrd_get_image_from_hdf5(xrd_group, target_x, target_y):
     position_group = get_target_position_group(xrd_group, target_x, target_y)
     measurement_group = position_group.get("measurement")
 
-    image_array = measurement_group["CdTe"][0]
+    if xrd_group.attrs["instrument"] == "bm02 - esrf":
+        image_array = measurement_group["CdTe"][0]
+
+    elif xrd_group.attrs["instrument"] == "Rigaku Smartlab":
+        image_array = measurement_group["2Dimage"]
+
+    else:
+        raise KeyError(
+            "XRD instrument is neither bm02 - esrf nor Rigaku Smartlab, can not retrieve 2D image."
+        )
 
     return image_array
 

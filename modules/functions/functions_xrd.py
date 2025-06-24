@@ -67,7 +67,7 @@ def xrd_get_results_from_hdf5(xrd_group, target_x, target_y):
 
 
 def xrd_make_results_dataframe_from_hdf5(xrd_group):
-    OPTIONS_LIST = ["A", "C", "phase_fraction"]
+    OPTIONS_LIST = ["A", "C", "phase_fraction", "Rwp"]
 
     data_dict_list = []
 
@@ -88,6 +88,7 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
                 "ignored": position_group.attrs["ignored"],
             }
 
+            # Check in phases for refined lattice parameters and weight fraction
             phases_group = position_group.get("results/phases")
             if phases_group is not None:
                 for phase, phase_group in phases_group.items():
@@ -109,6 +110,19 @@ def xrd_make_results_dataframe_from_hdf5(xrd_group):
                             data_dict[f"[{phase}]_{value}_({units})"] = dataset
 
             data_dict_list.append(data_dict)
+
+            # Check in R_coefficients for Rwp
+            phases_group = position_group.get("results/r_coefficients")
+            if phases_group is not None:
+                for value, r_group in phases_group.items():
+                    if value == "Rwp":
+                        rwp = float(str(r_group[()]).split("%")[0].replace("b'", ""))
+                        dataset = rwp
+                        if "units" in r_group.attrs:
+                            units = r_group.attrs["units"]
+                        else:
+                            units = "%"
+                        data_dict[f"{value}_({units})"] = dataset
 
     result_dataframe = pd.DataFrame(data_dict_list)
 

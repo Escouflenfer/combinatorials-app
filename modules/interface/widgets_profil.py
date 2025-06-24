@@ -92,8 +92,7 @@ class WidgetsPROFIL:
                 dcc.Checklist(
                     id="profil_plot_select",
                     options=[{"label": "Adjusting Slope", "value": "adjusting_slope"},
-                             {"label": "Profile Fits", "value": "fit_parameters"},
-                             {"label": "Height measurement", "value": "measured_height"},],
+                             {"label": "Profile Fits", "value": "fit_parameters"}],
                     value=["adjusting_slope", "profile_fits"],
                     style={"display": "inline-block"}
                 ),

@@ -65,6 +65,10 @@ class WidgetsHDF5:
                     children=[html.Button(id='hdf5_new', children="Create new HDF5", n_clicks=0)]
                 ),
                 html.Div(
+                    className='text-8',
+                    children=[html.Button(id='hdf5_update', children="Update HDF5 structure", n_clicks=0)]
+                ),
+                html.Div(
                     className='text-9',
                     children=[html.Button(id='hdf5_export', children="Export to CSV", n_clicks=0)]
                 ),

@@ -234,6 +234,37 @@ def callbacks_hdf5(app):
 
 
 
+    @app.callback(
+        Output("hdf5_text_box", "children", allow_duplicate=True),
+        Input("hdf5_update", "n_clicks"),
+        State("hdf5_path_store", "data"),
+        prevent_initial_call=True
+    )
+    def update_hdf5_file(n_clicks, hdf5_path):
+        if n_clicks > 0:
+            hdf5_path = Path(hdf5_path)
+            checklist = []
+            with h5py.File(hdf5_path, "a") as hdf5_file:
+                for dataset_name, dataset_group in hdf5_file.items():
+                    if dataset_name == "sample":
+                        continue
+                    if dataset_group.attrs["HT_type"] == "edx":
+                        continue
+                    if dataset_group.attrs["HT_type"] == "moke":
+                        continue
+                    if dataset_group.attrs["HT_type"] in ["esrf", "xrd"]:
+                        continue
+                    if dataset_group.attrs["HT_type"] == "profil":
+                        update_dektak_hdf5(dataset_group)
+                        checklist.append(f"[PROFIL] {dataset_name}")
+            if not checklist:
+                return "All datasets are already up to date"
+            return f"Successfully updated datasets {checklist}"
+
+
+
+
+
 
 
 

@@ -143,9 +143,8 @@ def callbacks_profil(app):
 
         if "fit_parameters" not in plot_options:
             fit_parameters = None
-        if "measured_height" not in plot_options:
-            measured_height = None
-        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, fit_parameters, measured_height)
+
+        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, fit_parameters)
 
         if results_dict:
             fig = profil_plot_measured_heights_from_dict(fig, results_dict)

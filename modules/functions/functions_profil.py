@@ -225,7 +225,7 @@ def profil_plot_total_profile_from_dataframe(fig, df, adjusting_slope = None, po
     return fig
 
 
-def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, measured_height = None, position=(2,1)):
+def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, position=(2,1)):
     # Second plot for adjusted profile and fits
     fig.update_xaxes(title_text="Distance_(um)", row=2, col=1)
     fig.update_yaxes(title_text="Thickness_(nm)", row=2, col=1)
@@ -250,9 +250,6 @@ def profil_plot_adjusted_profile_from_dataframe(fig, df, fit_parameters = None, 
                 line=dict(color="Crimson", width=2),
             ), row=position[0], col=position[1]
         )
-
-    # If height is specified, plot measured height line
-    fig.add_hline(y=measured_height, line=dict(color="Crimson", width=2), row=position[0], col=position[1])
 
     return fig
 

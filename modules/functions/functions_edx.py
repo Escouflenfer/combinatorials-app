@@ -73,6 +73,9 @@ def edx_get_measurement_from_hdf5(edx_group, target_x, target_y):
 def edx_plot_measurement_from_dataframe(df):
     fig = go.Figure(layout = plot_layout(''))
 
+    fig.update_xaxes(title_text="Energy (keV)")
+    fig.update_yaxes(title_text="Counts")
+
     fig.add_trace(
         go.Scatter(
             x=df['Energy (keV)'],

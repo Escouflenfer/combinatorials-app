@@ -105,20 +105,22 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
 
 
 
-def write_dektak_results_to_hdf5(profil_group, results_dict, target_x, target_y):
-    for position, position_group in profil_group.items():
-        instrument_group = position_group.get('instrument')
-        if instrument_group["x_pos"][()] == target_x and instrument_group["y_pos"][()] == target_y:
-            results = position_group.create_group("results")
-            try:
-                for key, result in results_dict.items():
-                    results[key] = result
-            except KeyError:
-                raise KeyError('Given results dictionary not compatible with current version of this function.'
-                               'Check compatibility.')
-            results["measured_height"].attrs["units"] = "nm"
-            results["extracted_positions"].attrs["units"] = "μm"
-            results["extracted_heights"].attrs["units"] = "nm"
-            results["adjusting_slope"].attrs["units"] = "nm/μm"
+def write_dektak_results_to_hdf5(position_group, results_dict, overwrite = True):
+    if overwrite and "results" in position_group:
+        del position_group["results"]
 
+    results = safe_create_new_subgroup(position_group, "results")
+    if "fit_parameters" in results_dict.keys:
+        results.attrs["type"] = "fitted"
+        for key, result in results_dict.items():
+            results[key] = result
+        results["measured_height"].attrs["units"] = "nm"
+        results["extracted_positions"].attrs["units"] = "μm"
+        results["extracted_heights"].attrs["units"] = "nm"
+        results["adjusting_slope"].attrs["units"] = "nm/μm"
+    else:
+        results.attrs["type"] = "manual"
+        for key, result in results_dict.items():
+            results[key] = result
+        results["measured_height"].attrs["units"] = "nm"
     return None

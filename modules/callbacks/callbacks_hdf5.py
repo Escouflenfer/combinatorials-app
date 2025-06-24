@@ -193,7 +193,7 @@ def callbacks_hdf5(app):
                         value=datasets[0],
                     )
                 ]
-        return new_children, "YOLO"
+        return new_children, ""
 
 
     @app.callback(

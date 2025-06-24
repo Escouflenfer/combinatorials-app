@@ -94,10 +94,6 @@ def callbacks_profil(app):
         z_min = np.round(fig.data[0].zmin, precision)
         z_max = np.round(fig.data[0].zmax, precision)
 
-        options = list(profil_df.columns[3:])
-        if "default" in options:
-            options.remove("default")
-
         return fig, z_min, z_max, profil_df.columns[7:]
 
     # Profile plot
@@ -133,9 +129,11 @@ def callbacks_profil(app):
 
         adjusting_slope = None
         fit_parameters = None
+        measured_height = None
         if results_dict:
             adjusting_slope = results_dict["adjusting_slope"]
             fit_parameters = results_dict["fit_parameters"]
+            measured_height = results_dict["measured_height"]
 
         adjusting_slope, measurement_df = profil_measurement_dataframe_treat(measurement_df, adjusting_slope)
 
@@ -145,7 +143,9 @@ def callbacks_profil(app):
 
         if "fit_parameters" not in plot_options:
             fit_parameters = None
-        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, fit_parameters)
+        if "measured_height" not in plot_options:
+            measured_height = None
+        fig = profil_plot_adjusted_profile_from_dataframe(fig, measurement_df, fit_parameters, measured_height)
 
         if results_dict:
             fig = profil_plot_measured_heights_from_dict(fig, results_dict)
@@ -174,23 +174,26 @@ def callbacks_profil(app):
                 with h5py.File(hdf5_path, 'a') as hdf5_file:
                     profil_group = hdf5_file[selected_dataset]
                     for position, position_group in profil_group.items():
-                        check = profil_spot_fit_steps(position_group, nb_steps, x0)
+                        results_dict = profil_spot_fit_steps(position_group, nb_steps, x0)
+                        write_dektak_results_to_hdf5(position_group, results_dict, overwrite = True)
                 return 'Successfully refitted data'
 
             if fit_mode == "Spot fitting":
                 with h5py.File(hdf5_path, 'a') as hdf5_file:
                     profil_group = hdf5_file[selected_dataset]
                     position_group = get_target_position_group(profil_group, target_position[0], target_position[1])
-                    check = profil_spot_fit_steps(position_group, nb_steps, x0)
-                if check:
-                    return f"Successfully refitted position {target_position}"
+                    results_dict = profil_spot_fit_steps(position_group, nb_steps, x0)
+                    write_dektak_results_to_hdf5(position_group, results_dict, overwrite=True)
+                return f"Successfully refitted position {target_position}"
+
             if fit_mode == "Manual":
                 with h5py.File(hdf5_path, 'a') as hdf5_file:
                     profil_group = hdf5_file[selected_dataset]
                     position_group = get_target_position_group(profil_group, target_position[0], target_position[1])
                     results_group = safe_create_new_subgroup(position_group, new_subgroup_name="results")
-
-
+                    results_group["measured_height"] = nb_steps #nb_steps input reused for manual height input
+                    results_group["measured_height"].attrs["units"] = "nm"
+                return f"Manually assigned height to position {target_position}"
     
     # Callback to deal with heatmap edit mode
     @app.callback(
@@ -233,6 +236,6 @@ def callbacks_profil(app):
             ]
         else:
             new_children = [
-                dcc.Input(id="profil_fit_height", className="long-item", type="number", placeholder="Height", value=None),
+                dcc.Input(id="profil_fit_nb_steps", className="long-item", type="number", placeholder="Height", value=None),
             ]
         return new_children

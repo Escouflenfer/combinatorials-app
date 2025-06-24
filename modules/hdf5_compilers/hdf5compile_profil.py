@@ -4,7 +4,7 @@ Functions for DEKTAK parsing
 from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 
-PROFIL_WRITER_VERSION = '0.2 beta'
+PROFIL_WRITER_VERSION = "0.2"
 
 def read_header_from_dektak(file_path):
     header_dict = {}
@@ -128,23 +128,34 @@ def write_dektak_results_to_hdf5(position_group, results_dict, overwrite = True)
 
 
 def update_dektak_hdf5(dektak_group):
+    """
+    Function to update an old version of a profilometry group to specs of newer versions.
+
+    @param dektak_group:
+    @return: True if group has been updated, False if group was already up to date
+    """
     source_version = dektak_group.attrs["profil_writer"]
+
+    if source_version == PROFIL_WRITER_VERSION:
+        return False
+
     if "beta" in source_version:
         source_version = float(source_version.strip(" beta"))
     else:
         source_version = float(source_version)
 
-    if source_version == PROFIL_WRITER_VERSION:
-        return True
-    else:
-        if source_version < 0.2:
-            # Version 0.2 added manual vs fitted tags to results groups
-            for position, position_group in dektak_group.items():
-                if "results" in position_group:
-                    if "type" not in position_group["results"].attrs:
-                        position_group["results"].attrs["type"] = "fitted"
+    if source_version < 0.2:
+        # Version 0.2 added manual vs fitted tags to results groups
+        for position, position_group in dektak_group.items():
+            results_group = position_group.get("results")
+            if results_group:
+                if "type" not in results_group.attrs:
+                    results_group.attrs["type"] = "fitted"
+        #end of patch
 
+        # Update the version tag to the current version
         dektak_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
+        return True
 
 
 

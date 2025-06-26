@@ -1,38 +1,43 @@
 """
 Functions for DEKTAK parsing
 """
+
 from ..functions.functions_shared import *
 from ..hdf5_compilers.hdf5compile_base import *
 
-PROFIL_WRITER_VERSION = '0.2 beta'
+PROFIL_WRITER_VERSION = "0.2 beta"
+
 
 def read_header_from_dektak(file_path):
     header_dict = {}
 
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         lines = file.readlines()
 
     for line in lines[4:45]:
-        split = line.strip().split(',')
+        split = line.strip().split(",")
         key, value = split[0], split[-1]
-        if key == 'TargetName':
-            value = f'({split[-2].strip('(')},{split[-1].strip(')')})'
+        if key == "TargetName":
+            value = f"({split[-2].strip('(')},{split[-1].strip(')')})"
         header_dict[key] = value
-    del header_dict['FullFilename']
+    del header_dict["FullFilename"]
     return header_dict
+
 
 def read_data_from_dektak(file_path, header_length=46):
     asc2d_dataframe = pd.read_csv(file_path, skiprows=header_length)
-    asc2d_dataframe.rename(columns={' z(raw/unitless)': 'profile'}, inplace=True)
-    asc2d_dataframe.rename(columns={'y(um)': 'distance'}, inplace=True)
+    asc2d_dataframe.rename(columns={" z(raw/unitless)": "profile"}, inplace=True)
+    asc2d_dataframe.rename(columns={"y(um)": "distance"}, inplace=True)
     return asc2d_dataframe
 
+
 def position_from_tuple(scan_number):
-    pattern = r'\((\d+),(\d+)\)'
+    pattern = r"\((\d+),(\d+)\)"
     match = re.search(pattern, scan_number)
     x = (int(match.group(2)) - 10) * 5  # Header tuple has the format (y,x)
     y = (10 - int(match.group(1))) * 5
     return x, y
+
 
 def set_instrument_from_dict(header_dict, node):
     """
@@ -53,8 +58,8 @@ def set_instrument_from_dict(header_dict, node):
     return None
 
 
-def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
-    if isinstance (hdf5_path, str):
+def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name=None, mode="a"):
+    if isinstance(hdf5_path, str):
         hdf5_path = Path(hdf5_path)
     if isinstance(source_path, str):
         source_path = Path(source_path)
@@ -69,12 +74,12 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
         profil_group.attrs["instrument"] = "Bruker DektakXT"
         profil_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
 
-        for file_name in safe_rglob(source_path, '*.asc2d'):
+        for file_name in safe_rglob(source_path, "*.asc2d"):
             file_path = source_path / file_name
 
             header_dict = read_header_from_dektak(file_path)
             asc2d_dataframe = read_data_from_dektak(file_path)
-            scan_number = header_dict['TargetName']
+            scan_number = header_dict["TargetName"]
 
             x_pos, y_pos = position_from_tuple(scan_number)
 
@@ -95,22 +100,23 @@ def write_dektak_to_hdf5(hdf5_path, source_path, dataset_name = None, mode='a'):
             data = scan.create_group("measurement")
             data.attrs["NX_class"] = "HTmeasurement"
             for col in asc2d_dataframe.columns:
-                node = data.create_dataset(col, data=np.array(asc2d_dataframe[col]), dtype='float')
-                if col == 'profile':
-                    node.attrs['unit'] = 'nm'
-                elif col == 'distance':
-                    node.attrs['unit'] = 'μm'
+                node = data.create_dataset(
+                    col, data=np.array(asc2d_dataframe[col]), dtype="float"
+                )
+                if col == "profile":
+                    node.attrs["unit"] = "nm"
+                elif col == "distance":
+                    node.attrs["unit"] = "μm"
 
     return None
 
 
-
-def write_dektak_results_to_hdf5(position_group, results_dict, overwrite = True):
+def write_dektak_results_to_hdf5(position_group, results_dict, overwrite=True):
     if overwrite and "results" in position_group:
         del position_group["results"]
 
     results = safe_create_new_subgroup(position_group, "results")
-    if "fit_parameters" in results_dict.keys:
+    if "fit_parameters" in results_dict.keys():
         results.attrs["type"] = "fitted"
         for key, result in results_dict.items():
             results[key] = result
@@ -124,7 +130,6 @@ def write_dektak_results_to_hdf5(position_group, results_dict, overwrite = True)
             results[key] = result
         results["measured_height"].attrs["units"] = "nm"
     return None
-
 
 
 def update_dektak_hdf5(dektak_group):
@@ -145,6 +150,3 @@ def update_dektak_hdf5(dektak_group):
                         position_group["results"].attrs["type"] = "fitted"
 
         dektak_group.attrs["profil_writer"] = PROFIL_WRITER_VERSION
-
-
-
